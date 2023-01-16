@@ -1,0 +1,50 @@
+{
+  "name": "board4you",
+  "version": "1.0.0",
+  "description": "client side of board4you",
+  "main": "./src/main.js",
+  "scripts": {
+    "build": "webpack build",
+    "dev": "webpack -w",
+    "electron": "electron .",
+    "start": "webpack serve --open"
+  },
+  "author": "GachiLord",
+  "license": "ISC",
+  "dependencies": {
+    "@flaticon/flaticon-uicons": "^1.7.0",
+    "adm-zip": "^0.5.10",
+    "bootstrap": "^5.2.3",
+    "image-to-pdf": "^2.0.0",
+    "konva": "^8.3.14",
+    "react": "^18.2.0",
+    "react-bootstrap": "^2.6.0",
+    "react-color": "^2.19.3",
+    "react-dom": "^18.2.0",
+    "react-icons": "^4.7.1",
+    "react-konva": "^18.2.3",
+    "react-router": "^6.4.4",
+    "react-router-dom": "^6.4.4",
+    "semantic-ui-react": "^2.1.4",
+    "use-image": "^1.1.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.5",
+    "@babel/plugin-proposal-class-properties": "^7.18.6",
+    "@babel/plugin-syntax-dynamic-import": "^7.8.3",
+    "@babel/preset-env": "^7.20.2",
+    "@babel/preset-react": "^7.18.6",
+    "babel-loader": "^9.1.0",
+    "css-loader": "^6.7.2",
+    "electron": "^22.0.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "html-webpack-plugin": "^5.5.0",
+    "pdfjs-dist": "^3.2.146",
+    "prop-types": "^15.8.1",
+    "style-loader": "^3.3.1",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.0",
+    "webpack-dev-server": "^4.11.1"
+  }
+}
