@@ -138,6 +138,8 @@ export default class Canvas extends React.Component{
         const tool = this.props.tool
         const color = this.props.color
         const pos = e.target.getStage().getRelativePointerPosition()
+        const lineSize = this.props.lineSize
+        const lineType = this.props.lineType
 
         // del select if drawing and
         if (tool !== 'select') this.setState({temporaryShapes: {}})
@@ -159,7 +161,9 @@ export default class Canvas extends React.Component{
                     type: type, 
                     color: color,
                     shapeId: uuid4(),
-                    pos: {x: 0, y: 0}
+                    pos: {x: 0, y: 0},
+                    lineSize: lineSize,
+                    lineType: lineType
                 }]
             })
 
@@ -180,7 +184,9 @@ export default class Canvas extends React.Component{
                                 height: 0,
                                 width: 0,
                                 color: color,
-                                shapeId: uuid4()
+                                shapeId: uuid4(),
+                                lineSize: lineSize,
+                                lineType: lineType
                             }
                             ]
             })
@@ -487,7 +493,6 @@ export default class Canvas extends React.Component{
         flushSync( () => this.setState({renderOutOfViewElements: true}) )
         const stagePos = this.state.stagePos
         const width = this.width
-        const height = this.state.height
         const lastY = CanvasUtils.getLastY(this.getCurrentHistoryAcActions())
 
 
@@ -624,7 +629,7 @@ export default class Canvas extends React.Component{
                                             points={shape.points}
                                             stroke={shape.color}
                                             fill={shape.color}
-                                            strokeWidth={shape.tool === 'eraser' ? 10: 2}
+                                            strokeWidth={shape.lineSize}
                                             tension={0.5}
                                             lineCap="round"
                                             lineJoin="round"
@@ -632,6 +637,7 @@ export default class Canvas extends React.Component{
                                             shadowForStrokeEnabled={false}
                                             globalCompositeOperation= 'source-over'
                                             tool={shape.tool}
+                                            dash={shape.lineType === 'general' ? []: [10, 10]}
                                         />
                                     )
                             
@@ -656,12 +662,13 @@ export default class Canvas extends React.Component{
                                             width={shape.width}
                                             height={shape.height}
                                             stroke={shape.color}
-                                            strokeWidth={2}
+                                            strokeWidth={shape.lineSize}
                                             shadowForStrokeEnabled={false}
                                             shapeId={shape.shapeId}
                                             key={shape.shapeId}
                                             globalCompositeOperation='source-over'
                                             tool={shape.tool}
+                                            dash={shape.lineType === 'general' ? []: [10, 10]}
                                         />
                                     )
                                 case 'line':
@@ -674,8 +681,8 @@ export default class Canvas extends React.Component{
                                             key={shape.shapeId}
                                             points={shape.points}
                                             stroke={shape.color}
-                                            strokeWidth={shape.tool === 'eraser' ? 10: 2}
-                                            dash={shape.tool === 'dashed line' ? [10, 10]: []}
+                                            strokeWidth={shape.lineSize}
+                                            dash={shape.lineType === 'general' ? []: [10, 10]}
                                             tension={0.5}
                                             lineCap="round"
                                             lineJoin="round"

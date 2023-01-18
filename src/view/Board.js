@@ -8,7 +8,12 @@ export default class Board extends React.Component{
     constructor(props){
         super(props)
 
-        this.state = {mode:'move', color: 'black'}
+        this.state = {
+            mode:'move',
+            lineColor: 'black',
+            lineType: 'general',
+            lineSize: 1
+        }
     }
 
 
@@ -16,22 +21,35 @@ export default class Board extends React.Component{
         this.setState({mode:newMode});
     }
 
-    handleColorChange = (color) => { this.setState({color: color}) }
+    handleAttrChange = (attrs) => {
+        this.setState(state => {
+            return {
+                ...state.mode,
+                ...attrs
+            }
+        })
+    }
 
     render = () => {
         const panelStyle = {zIndex: 3}
 
         return (
             <div>
-                    <div className="position-fixed h-75 d-flex align-items-center m-4" style={panelStyle}>
-                        <ToolPanel
-                            onModeChange={this.handleModeChange} 
-                            onColorChange={this.handleColorChange} 
-                            tool={this.state.mode}/>
-                    </div>
-                    <div className="m-2">
-                        <Canvas tool={this.state.mode} color={this.state.color}/>
-                    </div>
+                <div className="position-fixed h-75 d-flex align-items-center m-4" style={panelStyle}>
+                    <ToolPanel
+                        onModeChange={this.handleModeChange} 
+                        handleAttrChange={this.handleAttrChange}
+                        tool={this.state.mode}
+                    />
+                </div>
+                <div className="m-2">
+                    <Canvas
+                        tool={this.state.mode}
+                        color={this.state.lineColor}
+                        lineType={this.state.lineType}
+                        lineSize={this.state.lineSize}
+                    />
+                </div>
             </div>
         )
     }

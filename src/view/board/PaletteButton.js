@@ -16,7 +16,6 @@ export default class PaletteButton extends React.Component{
         color = color.hex
         this.setState({color: color})
         this.props.onColorChange(color)
-        
     }
 
     handleOpen = () => { this.setState({paletteIsVisible: !this.state.paletteIsVisible}) } 
@@ -45,7 +44,7 @@ export default class PaletteButton extends React.Component{
                         <div style={closeArea} onClick={this.handleClose}></div>
                         <SwatchesPicker onChange={this.handleChange} className='position-absolute' width={550}/>
                         </>
-                        )}
+                    )}
                 </IconContext.Provider>
             </div>
         )
