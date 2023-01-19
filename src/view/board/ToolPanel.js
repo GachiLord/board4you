@@ -83,6 +83,7 @@ export default class ToolPanel extends Component{
                     handleAttrChange={this.props.handleAttrChange}
                     hideColorPicker
                     hideLineTypePicker
+                    lineSize={20}
                     >
                     <BsEraser />
                 </ToolButton>

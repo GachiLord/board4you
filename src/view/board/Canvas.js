@@ -4,6 +4,7 @@ import { v4 as uuid4 } from 'uuid';
 import { flushSync } from "react-dom";
 import CanvasImage from './CanvasImage';
 import CanvasUtils from '../../model/CanvasUtils';
+import canvasSize from '../../model/CommonCanvasSize'
 
 
 export default class Canvas extends React.Component{
@@ -11,8 +12,8 @@ export default class Canvas extends React.Component{
     constructor(props){
         super(props)
         this.electronAPI = window.electronAPI
-        this.width = 1720,
-        this.baseHeight = 900
+        this.width = canvasSize.width,
+        this.baseHeight = canvasSize.height
         this.baseState = {
                     height: this.baseHeight,
                     isDrawing: false,
@@ -30,7 +31,6 @@ export default class Canvas extends React.Component{
         this.state = this.baseState
         this.stage = React.createRef()
         this.stageWrap = React.createRef() 
-        this.transformer = React.createRef()
     }
 
     getCurrentHistoryAcActions = () => {
@@ -134,6 +134,26 @@ export default class Canvas extends React.Component{
         this.stage.current.container().style.cursor = style
     }
 
+    setCursorForTool = () => {
+        const tool = this.props.tool
+        const setCursor = this.setCursor
+
+        switch(tool){
+            case 'move':
+                setCursor('move')
+                break
+            case 'select':
+                setCursor('crosshair')
+                break
+            case 'rect':
+                setCursor('crosshair')
+                break
+            default:
+                setCursor()
+                break
+        }
+    }
+
     handleMouseDown = (e) => {
         const tool = this.props.tool
         const color = this.props.color
@@ -210,7 +230,9 @@ export default class Canvas extends React.Component{
                 } )
             }
         }
-        else if (tool === 'move') this.setState({isDraggingStage: true})
+        else if (tool === 'move') {
+            this.setState({isDraggingStage: true})
+        }
 
         this.setState({lastPointerPos: pos})
     }
@@ -233,7 +255,7 @@ export default class Canvas extends React.Component{
             shapes.splice(shapes.length - 1, 1, lastLine);
             this.setState({currentHistory: shapes.concat()});
         }
-        else if (['arrow', 'line', 'dashed line'].includes(tool)){
+        else if (['arrow', 'line'].includes(tool)){
             if (!this.state.isDrawing) return;
 
             let shapes = this.state.currentHistory
@@ -307,8 +329,15 @@ export default class Canvas extends React.Component{
         const stage = e.target.getStage()
 
 
-        if ('select'!== tool && isDrawing) {
-            // this.handleDownCanvasClick(e.target.getStage().getRelativePointerPosition())
+        if ('pen'=== tool) {
+            let shapes = this.state.currentHistory
+            let lastEl = shapes.at(-1)
+            let points = lastEl.points
+            
+            if (points.length === 2) {
+                shapes.at(-1).points = points.concat([ points[0] + 1, points[1] + 1, points[0] - 1, points[1] ])
+                this.setState({currentHistory: shapes})
+            }
         }
         else if (tool === 'select'){
             if (!isDrawing) return
@@ -316,6 +345,17 @@ export default class Canvas extends React.Component{
             
             let shapes = stage.getChildren()[0].children
             let box = this.state.temporaryShapes.selectRect
+
+            // offset negative wifth and height
+            if (box.width < 0) {
+                box.x += box.width
+                box.width = Math.abs(box.width)
+            }
+            if (box.height < 0){
+                box.y += box.height
+                box.height = Math.abs(box.height)
+            }
+
             let selected = shapes.filter((shape) =>
                 {
                     if (Konva.Util.haveIntersection(box, CanvasUtils.getClientRect(shape))) return shape
@@ -596,6 +636,7 @@ export default class Canvas extends React.Component{
                     onMouseMove={this.handleMouseMove}
                     onMouseup={this.handleStopDrawing}
                     onMouseLeave={this.handleStopDrawing}
+                    onMouseEnter={this.setCursorForTool}
                     x={this.state.stagePos.x}
                     y={this.state.stagePos.y}
                     >
@@ -712,6 +753,8 @@ export default class Canvas extends React.Component{
                                     onDragStart={this.handleSelectDragStart}
                                     onDragEnd={this.handleSelectDragEnd}
                                     onDragMove={this.handleSelectDragMove}
+                                    onMouseEnter={() => {this.setCursor('grab')}}
+                                    onMouseLeave={() => {this.setCursorForTool()}}
                                     shadowForStrokeEnabled={false}
                                     draggable
                                 />

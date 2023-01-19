@@ -9,10 +9,10 @@ export default class Board extends React.Component{
         super(props)
 
         this.state = {
-            mode:'move',
+            mode:'pen',
             lineColor: 'black',
             lineType: 'general',
-            lineSize: 1
+            lineSize: 2
         }
     }
 

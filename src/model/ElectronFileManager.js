@@ -1,8 +1,8 @@
 const { dialog } = require('electron')
 const fs = require('fs')
 const imgToPDF = require('image-to-pdf')
-var AdmZip = require("adm-zip");
-
+const AdmZip = require("adm-zip")
+const canvasSize = require('./CommonCanvasSize')
 
 module.exports = class ElectronFileManager{
 
@@ -54,7 +54,7 @@ module.exports = class ElectronFileManager{
         let extention = ElectronFileManager.getFileExtension(filePath)
         let uniqueBase64Files = new Set(base64files)
 
-        if (extention === 'pdf') imgToPDF([...uniqueBase64Files], [1720, 900]).pipe(fs.createWriteStream(filePath))
+        if (extention === 'pdf') imgToPDF([...uniqueBase64Files], [canvasSize.width, canvasSize.height]).pipe(fs.createWriteStream(filePath))
         else {
             let zip = new AdmZip()
             base64files.forEach( (base64, i) => {
