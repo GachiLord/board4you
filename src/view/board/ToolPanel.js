@@ -1,11 +1,10 @@
 import React, { Component } from "react";
 import ToolButton from "./ToolButton";
-import PaletteButton from "./PaletteButton";
 import {BsArrowRight, BsArrowsMove, BsPen, BsEraser} from 'react-icons/bs'
 import {AiOutlineLine} from 'react-icons/ai'
-import {AiOutlineSmallDash} from 'react-icons/ai'
 import {IoSquareOutline} from 'react-icons/io5'
 import {RxGroup} from 'react-icons/rx'
+import UndoRedoBar from "./UndoRedoBar";
 
 
 export default class ToolPanel extends Component{

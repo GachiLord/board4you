@@ -1,6 +1,7 @@
 import React from "react";
 import Canvas from "./board/Canvas";
 import ToolPanel from "./board/ToolPanel";
+import UndoRedoBar from "./board/UndoRedoBar";
 
 
 export default class Board extends React.Component{
@@ -32,6 +33,7 @@ export default class Board extends React.Component{
 
     render = () => {
         const panelStyle = {zIndex: 3}
+        const undoBarStyle = {...panelStyle, 'bottom': '0'}
 
         return (
             <div>
@@ -41,6 +43,9 @@ export default class Board extends React.Component{
                         handleAttrChange={this.handleAttrChange}
                         tool={this.state.mode}
                     />
+                </div>
+                <div className="position-fixed d-flex align-items-center m-4" style={undoBarStyle}>
+                    <UndoRedoBar />
                 </div>
                 <div className="m-2">
                     <Canvas

@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import CanvasImage from './CanvasImage';
 import CanvasUtils from '../../model/CanvasUtils';
 import canvasSize from '../../model/CommonCanvasSize'
+import boardEvents from '../base/boardEvents';
 
 
 export default class Canvas extends React.Component{
@@ -329,7 +330,7 @@ export default class Canvas extends React.Component{
         const stage = e.target.getStage()
 
 
-        if ('pen'=== tool) {
+        if ('pen'=== tool && e.type !== 'mouseleave') {
             let shapes = this.state.currentHistory
             let lastEl = shapes.at(-1)
             let points = lastEl.points
@@ -574,6 +575,9 @@ export default class Canvas extends React.Component{
             this.electronAPI.onMenuButtonClick( (_, o, d) => {this.runOption(o, d)} )
         }
         else console.warn('electronApi is not found')
+        // fbemitter events listener
+        boardEvents.addListener('undo', () => { this.runOption('undo') })
+        boardEvents.addListener('redo', () => { this.runOption('redo') })         
         // web events listeners
         window.addEventListener('paste', (e) => {
             CanvasUtils.retrieveImageFromClipboardAsBase64(e, (url, size) => {
