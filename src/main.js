@@ -74,10 +74,10 @@ function createWindow() {
     },
     // { role: 'windowMenu' }
     {
-      role: 'help',
+      role: 'Помощь',
       submenu: [
         {
-          label: 'Learn More',
+          label: 'Узнать больше',
           click: async () => {
             const { shell } = require('electron')
             await shell.openExternal('https://electronjs.org')

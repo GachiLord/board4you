@@ -449,6 +449,7 @@ export default class Canvas extends React.Component{
         const width = (size.width > this.width) ? this.width : size.width
         const x = 0
         const y = CanvasUtils.getLastY(this.getCurrentHistoryAcActions()) + delta
+        console.log(y)
         this.setState( state => {
             return {
                 currentHistory: [
@@ -548,7 +549,6 @@ export default class Canvas extends React.Component{
                     height: this.baseHeight
                 })
             )
-            console.log(y, lastY)
         }
         
 
@@ -557,9 +557,9 @@ export default class Canvas extends React.Component{
     }
 
     copySelectionToClipBoard = () => {
-        let selectRect = {...this.state.temporaryShapes.selectRect}
+        let selectRect = this.state.temporaryShapes.selectRect
         selectRect.x += 2
-        selectRect.y += 2
+        selectRect.y += 2 - Math.abs(this.state.stagePos.y)
         selectRect.height -= 4
         selectRect.width -= 4
         navigator.clipboard.write([
