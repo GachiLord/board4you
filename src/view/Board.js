@@ -1,7 +1,7 @@
 import React from "react";
 import Canvas from "./board/Canvas";
-import ToolPanel from "./board/ToolPanel";
-import UndoRedoBar from "./board/UndoRedoBar";
+import ToolPanel from "./board/toolPanel/ToolPanel";
+import UndoRedoBar from "./board/undoRedoBar/UndoRedoBar"
 
 
 export default class Board extends React.Component{
