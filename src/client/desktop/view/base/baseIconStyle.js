@@ -1,0 +1,1 @@
+export default {size: "2em", color: "black", verticalAlign: 'middle' }

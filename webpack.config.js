@@ -3,13 +3,12 @@ const path = require('path');
 
 module.exports = {
   entry: {
-    main: './src/index.js',
+    main: './src/client/desktop/index.js',
   },
   output: {
     filename: '[name].js',
     path: path.resolve(__dirname, 'bundle'),
   },
-  mode: "development",
   devtool: 'inline-source-map',
   devServer: {
     static: {
@@ -32,16 +31,8 @@ module.exports = {
         }
       },
       {
-        test: /\.css$/,
-        use: [
-          "style-loader",
-          {
-            loader: "css-loader",
-            options: {
-              modules: true
-            }
-          }
-        ]
+        test: /\.css$/i,
+        use: ["style-loader", "css-loader"],
       },
       {
         test: /\.(png|svg|jpg|gif)$/,
