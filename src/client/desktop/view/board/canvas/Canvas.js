@@ -3,9 +3,9 @@ import { Stage, Layer, Line, Arrow, Rect, Transformer } from 'react-konva';
 import { v4 as uuid4 } from 'uuid';
 import { flushSync } from "react-dom";
 import CanvasImage from './CanvasImage';
-import CanvasUtils from '../../model/CanvasUtils';
-import canvasSize from '../../model/CommonCanvasSize'
-import boardEvents from '../base/boardEvents';
+import CanvasUtils from '../../../model/CanvasUtils';
+import canvasSize from '../../../model/CommonCanvasSize'
+import boardEvents from '../../base/boardEvents';
 
 
 export default class Canvas extends React.Component{

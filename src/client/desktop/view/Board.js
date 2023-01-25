@@ -1,5 +1,5 @@
 import React from "react";
-import Canvas from "./board/Canvas";
+import Canvas from "./board/canvas/Canvas";
 import ToolPanel from "./board/toolPanel/ToolPanel";
 import UndoRedoBar from "./board/undoRedoBar/UndoRedoBar"
 
