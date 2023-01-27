@@ -3,16 +3,16 @@ const path = require('path');
 
 module.exports = {
   entry: {
-    main: './src/client/desktop/index.js',
+    desktop: './src/client/desktop/index.js',
   },
   output: {
     filename: '[name].js',
-    path: path.resolve(__dirname, 'bundle'),
+    path: path.resolve(__dirname, 'bundles'),
   },
   devtool: 'inline-source-map',
   devServer: {
     static: {
-      directory: './bundle',
+      directory: './bundles',
       serveIndex: true,
     },
     historyApiFallback: true

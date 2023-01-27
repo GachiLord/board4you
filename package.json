@@ -7,7 +7,7 @@
     "build": "webpack build --mode=production",
     "dev": "webpack -w --mode=development",
     "electron": "electron .",
-    "start": "webpack serve --open"
+    "start": "webpack serve --open --mode=development"
   },
   "author": "GachiLord",
   "license": "ISC",
