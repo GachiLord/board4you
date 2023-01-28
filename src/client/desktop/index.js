@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import Board from './view/Board'
+import Board from '../view/board/Editor'
 import 'bootstrap/dist/css/bootstrap.css'
 import React from 'react';
 

@@ -1,7 +1,7 @@
 const { app, BrowserWindow, Menu, ipcMain } = require('electron')
 const isMac = process.platform === 'darwin'
 const path = require('path')
-const ElectronFileManager = require('./model/ElectronFileManager')
+const ElectronFileManager = require('../model/ElectronFileManager')
 
 
 let currentFilePath = null
@@ -15,7 +15,7 @@ function createWindow() {
     }
   })
 
-  win.loadFile('./bundle/index.html')
+  win.loadFile('./bundles/desktop/index.html')
 
   // top menu
   const template = [
