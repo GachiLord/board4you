@@ -1,10 +1,12 @@
-const { app, BrowserWindow, Menu, ipcMain } = require('electron')
+const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron')
 const isMac = process.platform === 'darwin'
 const path = require('path')
 const ElectronFileManager = require('../model/ElectronFileManager')
 
 
-let currentFilePath = null
+let currentFilePath = null // path to editable file
+let fileHasChanged = false
+
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -15,6 +17,34 @@ function createWindow() {
     }
   })
 
+  // dialog stuff
+
+  function exitAlert(){
+    const response = dialog.showMessageBoxSync(win, {
+      message: 'Продолжить редактирование или закрыть файл без сохранения?',
+      type: 'question',
+      buttons: ['Продолжить', 'Не сохранять'],
+    })
+
+    if ( response === 0 ) return true
+    else return false
+  }
+
+  async function handleOpenFile(){
+    let open = async () => {
+      let opened = await ElectronFileManager.openFilesAsBase64Images()
+
+      win.webContents.send('onMenuButtonClick', 'openFile', opened )
+      currentFilePath = opened.path
+      fileHasChanged = false
+    }
+
+    if (!fileHasChanged) open()
+    else if(!exitAlert()) open()
+
+  }
+
+  // load page
   win.loadFile('./bundles/desktop/index.html')
 
   // top menu
@@ -28,13 +58,7 @@ function createWindow() {
           currentFilePath = null 
         },
           accelerator: 'CommandOrControl+N' },
-        { label: 'Открыть', click: async () => { 
-          let opened = await ElectronFileManager.openFilesAsBase64Images()
-          if (opened !== undefined) {
-            win.webContents.send('onMenuButtonClick', 'openFile', opened )
-            currentFilePath = opened.path
-          }
-        }, accelerator: 'CommandOrControl+O' },
+        { label: 'Открыть', click: handleOpenFile, accelerator: 'CommandOrControl+O' },
         { type: 'separator'},
         { label: 'Сохранить', click: () => { 
           win.webContents.send('onMenuButtonClick', 'saveFile')
@@ -74,7 +98,7 @@ function createWindow() {
     },
     // { role: 'windowMenu' }
     {
-      role: 'Помощь',
+      role: 'help',
       submenu: [
         {
           label: 'Узнать больше',
@@ -90,6 +114,11 @@ function createWindow() {
   const menu = Menu.buildFromTemplate(template)
   Menu.setApplicationMenu(menu)
 
+  win.on('close', (e) => {
+    if ( fileHasChanged ) {
+      if (exitAlert()) e.preventDefault()
+    }
+  })
 }
 
 app.whenReady().then(() => {
@@ -103,14 +132,25 @@ app.whenReady().then(() => {
 
   ipcMain.on('saveFileAs', async (_, data) => {
     currentFilePath = await ElectronFileManager.saveBase64As(data)
+    fileHasChanged = false
   })
 
   ipcMain.on('saveFile', async (_, data) => {
     if (currentFilePath !== null) ElectronFileManager.saveBase64(data, currentFilePath)
     else currentFilePath = await ElectronFileManager.saveBase64As(data)
+    fileHasChanged = false
+  })
+
+  ipcMain.on('fileHasChanged', () => {
+    fileHasChanged = true
+  })
+  
+  ipcMain.on('fileHasOpened', () => {
+    fileHasChanged = false
   })
 
 })
+
 
 app.on('window-all-closed', () => {
   if (isMac !== 'darwin') {

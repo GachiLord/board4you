@@ -1,3 +1,5 @@
 node_modules
 out/
 dist/
+bundles/desktop.js
+bundles/desktop.js.LICENSE.txt

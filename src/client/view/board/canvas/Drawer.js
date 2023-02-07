@@ -5,6 +5,7 @@ import CanvasUtils from '../../../lib/CanvasUtils';
 import canvasSize from '../../../constants/CommonCanvasSize'
 import boardEvents from '../../base/boardEvents';
 import Canvas from './Canvas';
+import emptyImg from '../../../constants/CommonEmptyImage';
 
 
 export default class Drawer extends React.Component{
@@ -74,11 +75,14 @@ export default class Drawer extends React.Component{
     }
 
     addAction = (action = {action: 'add last'}) => {
+        // update state
         this.setState( state => {
             return {
                 historyActions: [...state.historyActions, action]
             }
         } )
+        // handleFileChange
+        if ( this.electronAPI !== undefined ) this.electronAPI.handleFileChange()
     }
 
     acceptCurrentHistoryChanges = () => { 
@@ -391,25 +395,29 @@ export default class Drawer extends React.Component{
         } )
     }
 
-    handleSelectDragStart = (e) => {
-        if (this.state.selection.length > 0) {
+    handleSelectDragStart = () => {
+        const state = this.state
+
+        if (state.selection.length > 0) {
             flushSync( () => {
                 this.handleDrawAfterUndo()
             } )
 
-            this.setState( (state) => { 
-                const selectRect = {...state.temporaryShapes.selectRect}
-                return {historyActions: [...state.historyActions, 
-                    {
-                        action: 'move',
-                        shapes: state.selection,
-                        oldPos: {x: selectRect.x + this.state.stagePos.x,
-                                 y: selectRect.y + this.state.stagePos.y},
-                        newPos: e.target._lastPos
-                    }
-                ],
-                        isDraggingSelection: true
-                    }
+            this.setState({isDraggingSelection: true})
+            
+            const selectRect = {...state.temporaryShapes.selectRect}
+            this.addAction({
+                action: 'move',
+                shapes: state.selection,
+                oldPos: {
+                            x: selectRect.x + state.stagePos.x,
+                            y: selectRect.y + state.stagePos.y
+                        },
+                newPos: 
+                        {
+                            x: selectRect.x + state.stagePos.x,
+                            y: selectRect.y + state.stagePos.y
+                        },
             })
         }
         
@@ -447,7 +455,7 @@ export default class Drawer extends React.Component{
         const width = (size.width > this.width) ? this.width : size.width
         const x = 0
         const y = CanvasUtils.getLastY(this.getCurrentHistoryAcActions()) + delta
-        console.log(y)
+
         this.setState( state => {
             return {
                 currentHistory: [
@@ -490,18 +498,22 @@ export default class Drawer extends React.Component{
                                 let imgs = await CanvasUtils.getPdfAsBase64imgs(path)
                                 for (let i in imgs){
                                     let img = imgs[i]
-                                    this.paste(img, await CanvasUtils.getSizeOfBase64Img(img), 0 )
+                                    if (img !== emptyImg) this.paste(img, await CanvasUtils.getSizeOfBase64Img(img), 0 )
                                 }
                                 break
                             case 'png':
                                 for(let img in files){
                                     let i = files[img]
-                                    this.paste(i, await CanvasUtils.getSizeOfBase64Img(i), 0 )
+                                    if (i !== emptyImg) this.paste(i, await CanvasUtils.getSizeOfBase64Img(i), 0 )
                                 }
                                 break
                         }
 
-                        
+                        if (this.electronAPI) this.electronAPI.handleFileOpen()
+                        // set pos to last page
+                        const stagePos = this.state.stagePos
+                        stagePos.y = -CanvasUtils.getFreeY(this.getCurrentHistoryAcActions())
+                        this.setState({ stagePos: stagePos })
                     }
                     
                 }
