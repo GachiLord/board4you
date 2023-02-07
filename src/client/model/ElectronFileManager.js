@@ -3,6 +3,7 @@ const fs = require('fs')
 const imgToPDF = require('image-to-pdf')
 const AdmZip = require("adm-zip")
 const canvasSize = require('../constants/CommonCanvasSize')
+const emptyImg = require('../constants/CommonEmptyImage')
 
 module.exports = class ElectronFileManager{
 
@@ -17,20 +18,22 @@ module.exports = class ElectronFileManager{
 
         const path = dialogResult.filePaths[0]
         let extention = ElectronFileManager.getFileExtension(path)
-        let base64Files = new Set()
+        let base64Files = []
 
 
         if (extention === 'zip') {
             let zip = new AdmZip(path)
             zip.getEntries().forEach(e => {
-                base64Files.add(ElectronFileManager.getFullBase64(zip.readFile(e).toString('base64')))
+                base64Files.push(ElectronFileManager.getFullBase64(zip.readFile(e).toString('base64')))
             })
             extention = 'png'
         }
-        else base64Files.add(ElectronFileManager.getBase64ofFile(path))
+        else base64Files.push(ElectronFileManager.getBase64ofFile(path))
 
+        // remove empty pages
+        base64Files = base64Files.filter( i => i !== emptyImg )
 
-        return {base64: [...base64Files], path: dialogResult.filePaths[0], type: extention}
+        return {base64: base64Files, path: dialogResult.filePaths[0], type: extention}
     }
 
     
@@ -52,12 +55,12 @@ module.exports = class ElectronFileManager{
 
     static async saveBase64(base64files, filePath) {
         let extention = ElectronFileManager.getFileExtension(filePath)
-        let uniqueBase64Files = new Set(base64files)
+        let uniqueBase64Files = base64files.filter( i => i !== emptyImg )
 
-        if (extention === 'pdf') imgToPDF([...uniqueBase64Files], [canvasSize.width, canvasSize.height]).pipe(fs.createWriteStream(filePath))
+        if (extention === 'pdf') imgToPDF(uniqueBase64Files, [canvasSize.width, canvasSize.height]).pipe(fs.createWriteStream(filePath))
         else {
             let zip = new AdmZip()
-            base64files.forEach( (base64, i) => {
+            uniqueBase64Files.forEach( (base64, i) => {
                 base64 = ElectronFileManager.getOnlyBase64Value(base64)
                 zip.addFile(`lesson${i+1}.png`, Buffer.from(base64, 'base64'))
             } )
