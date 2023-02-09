@@ -53,7 +53,7 @@ module.exports = class ElectronFileManager{
         return base64.replace(/data:.*base64,/, '')
     }
 
-    static async saveBase64(base64files, filePath) {
+    static saveBase64(base64files, filePath) {
         let extention = ElectronFileManager.getFileExtension(filePath)
         let uniqueBase64Files = base64files.filter( i => i !== emptyImg )
 
