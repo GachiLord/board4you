@@ -192,7 +192,7 @@ export default class Drawer extends React.Component{
 
             this.addAction()
         }
-        else if (tool === 'rect'){
+        else if ( ['rect', 'ellipse'].includes(tool) ){
             this.setState({isDrawing: true})
 
             flushSync( () => {
@@ -269,7 +269,7 @@ export default class Drawer extends React.Component{
             
             this.setState({currentHistory: [...shapes.slice(0,-1), lastLine]})
         }
-        else if (tool === 'rect'){
+        else if (['rect', 'ellipse'].includes(tool)){
             if (!this.state.isDrawing) return;
 
             let shapes = this.state.currentHistory

@@ -19,6 +19,12 @@ export default class CanvasUtils{
                 width: attrs.width
             }
         }
+        else if (Object.keys(attrs).includes('radiusX')) return{
+            x: attrs.x,
+            y: attrs.y,
+            height: attrs.radiusX,
+            width: attrs.radiusY
+        }
 
         let x = attrs.pos.x
         let y = attrs.pos.y

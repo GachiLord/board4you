@@ -4,6 +4,7 @@ import {BsArrowRight, BsArrowsMove, BsPen, BsEraser} from 'react-icons/bs'
 import {AiOutlineLine} from 'react-icons/ai'
 import {IoSquareOutline} from 'react-icons/io5'
 import {RxGroup} from 'react-icons/rx'
+import {RxCircle} from 'react-icons/rx'
 
 
 export default class ToolPanel extends Component{
@@ -72,6 +73,15 @@ export default class ToolPanel extends Component{
                     handleAttrChange={this.props.handleAttrChange}
                     >
                     <IoSquareOutline />
+                </ToolButton>
+                <ToolButton
+                    id="ellipse"
+                    onModeChange={this.handleModeChange} 
+                    active={this.state.activeTool} 
+                    customize
+                    handleAttrChange={this.props.handleAttrChange}
+                >
+                    <RxCircle />
                 </ToolButton>
                 <ToolButton 
                     id="eraser" 
