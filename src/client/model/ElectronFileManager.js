@@ -54,10 +54,18 @@ module.exports = class ElectronFileManager{
     }
 
     static async saveBase64(base64files, filePath) {
+        // file and info
         let extention = ElectronFileManager.getFileExtension(filePath)
         let uniqueBase64Files = base64files.filter( i => i !== emptyImg )
+        // create stream and promise for finish evt
+        const fsStream = fs.createWriteStream(filePath)
+        const finish = new Promise( (resolve, reject) => {
+            fsStream.on('finish', () => resolve(filePath) )
+            fsStream.on('error', (e) =>  reject(e) )
+        } )
 
-        if (extention === 'pdf') imgToPDF(uniqueBase64Files, [canvasSize.width, canvasSize.height]).pipe(fs.createWriteStream(filePath))
+        // saving pdf or zip
+        if (extention === 'pdf') imgToPDF(uniqueBase64Files, [canvasSize.width, canvasSize.height]).pipe(fsStream)
         else {
             let zip = new AdmZip()
             uniqueBase64Files.forEach( (base64, i) => {
@@ -67,7 +75,8 @@ module.exports = class ElectronFileManager{
             zip.writeZip(filePath)
         }
         
-        return filePath
+        // waiting for file saving
+        return await finish
     }
 
     static async saveBase64As(base64file) {
@@ -79,7 +88,7 @@ module.exports = class ElectronFileManager{
         })
         if (pathDialog.canceled) return
 
-        return ElectronFileManager.saveBase64(base64file, pathDialog.filePath)
+        return await ElectronFileManager.saveBase64(base64file, pathDialog.filePath)
     }
      
 }

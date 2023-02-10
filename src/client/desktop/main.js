@@ -4,8 +4,10 @@ const path = require('path')
 const ElectronFileManager = require('../model/ElectronFileManager')
 
 
-let currentFilePath = null // path to editable file
+// state vars
+let currentFilePath = null
 let fileHasChanged = false
+let fileIsSaving = false
 
 
 function createWindow() {
@@ -115,7 +117,10 @@ function createWindow() {
   Menu.setApplicationMenu(menu)
 
   win.on('close', (e) => {
-    if ( fileHasChanged ) {
+    // dont close app while file is saving
+    if ( fileIsSaving && currentFilePath !== null ) e.preventDefault()
+    // dont close app if there are unsaved changes
+    if ( fileHasChanged && !fileIsSaving ) {
       if (exitAlert()) e.preventDefault()
     }
   })
@@ -130,15 +135,26 @@ app.whenReady().then(() => {
     }
   })
 
+  // msgs listeners  
+
   ipcMain.on('saveFileAs', async (_, data) => {
+    fileIsSaving = true
+
     currentFilePath = await ElectronFileManager.saveBase64As(data)
+
     fileHasChanged = false
+    fileIsSaving = false
+
   })
 
   ipcMain.on('saveFile', async (_, data) => {
-    if (currentFilePath !== null) ElectronFileManager.saveBase64(data, currentFilePath)
+    fileIsSaving = true
+
+    if (currentFilePath !== null) await ElectronFileManager.saveBase64(data, currentFilePath)
     else currentFilePath = await ElectronFileManager.saveBase64As(data)
+
     fileHasChanged = false
+    fileIsSaving = false
   })
 
   ipcMain.on('fileHasChanged', () => {
