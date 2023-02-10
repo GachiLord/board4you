@@ -117,7 +117,10 @@ function createWindow() {
   Menu.setApplicationMenu(menu)
 
   win.on('close', (e) => {
-    if ( fileHasChanged || ( fileIsSaving && currentFilePath !== null ) ) {
+    // dont close app while file is saving
+    if ( fileIsSaving && currentFilePath !== null ) e.preventDefault()
+    // dont close app if there are unsaved changes
+    if ( fileHasChanged && !fileIsSaving ) {
       if (exitAlert()) e.preventDefault()
     }
   })
@@ -132,6 +135,8 @@ app.whenReady().then(() => {
     }
   })
 
+  // msgs listeners  
+
   ipcMain.on('saveFileAs', async (_, data) => {
     fileIsSaving = true
 
@@ -145,11 +150,11 @@ app.whenReady().then(() => {
   ipcMain.on('saveFile', async (_, data) => {
     fileIsSaving = true
 
-    if (currentFilePath !== null) ElectronFileManager.saveBase64(data, currentFilePath)
+    if (currentFilePath !== null) await ElectronFileManager.saveBase64(data, currentFilePath)
     else currentFilePath = await ElectronFileManager.saveBase64As(data)
 
     fileHasChanged = false
-    setTimeout( () => { fileIsSaving = false }, 500 )
+    fileIsSaving = false
   })
 
   ipcMain.on('fileHasChanged', () => {
