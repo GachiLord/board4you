@@ -3,8 +3,7 @@ import ToolButton from "./ToolButton";
 import {BsArrowRight, BsArrowsMove, BsPen, BsEraser} from 'react-icons/bs'
 import {AiOutlineLine} from 'react-icons/ai'
 import {IoSquareOutline} from 'react-icons/io5'
-import {RxGroup} from 'react-icons/rx'
-import {RxCircle} from 'react-icons/rx'
+import {RxGroup, RxCircle} from 'react-icons/rx'
 
 
 export default class ToolPanel extends Component{
@@ -91,7 +90,6 @@ export default class ToolPanel extends Component{
                     handleAttrChange={this.props.handleAttrChange}
                     hideColorPicker
                     hideLineTypePicker
-                    lineSize={20}
                     >
                     <BsEraser />
                 </ToolButton>

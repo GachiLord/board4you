@@ -11,6 +11,7 @@ export default class CanvasUtils{
     static getClientRect(shape){
         const attrs = shape.attrs === undefined ? shape: shape.attrs
 
+        // if shape is a rect
         if (Object.keys(attrs).includes('height')) {
             return {
                 x: attrs.x,
@@ -19,13 +20,14 @@ export default class CanvasUtils{
                 width: attrs.width
             }
         }
+        // if shape is a ellipse
         else if (Object.keys(attrs).includes('radiusX')) return{
             x: attrs.x,
             y: attrs.y,
             height: attrs.radiusX,
             width: attrs.radiusY
         }
-
+        // if shape is a line
         let x = attrs.pos.x
         let y = attrs.pos.y
         let minX = Math.min(...this.getCoorFromPoints(attrs.points, 'x'))

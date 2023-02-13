@@ -58,7 +58,7 @@ export default function(props){
         setState(state => {
             return {customizerIsOpen: !state.customizerIsOpen}
         })
-        props.handleAttrChange(custom)
+        props.handleAttrChange(props.active, custom)
         setState({custom: custom})
     }
 
