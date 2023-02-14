@@ -19,6 +19,8 @@ export default class ToolPanel extends Component{
     }
 
     render = () => {
+        const settings = this.props.defaultSettings
+        const locCfg = window.global.localizationCfg
 
         return (
             <div className="d-flex align-items-center flex-column">
@@ -43,6 +45,7 @@ export default class ToolPanel extends Component{
                     active={this.state.activeTool} 
                     customize
                     handleAttrChange={this.props.handleAttrChange}
+                    {...settings['pen']}
                     >
                     <BsPen />
                 </ToolButton>
@@ -52,6 +55,7 @@ export default class ToolPanel extends Component{
                     active={this.state.activeTool} 
                     customize
                     handleAttrChange={this.props.handleAttrChange}
+                    {...settings['line']}
                     >
                     <AiOutlineLine />
                 </ToolButton>
@@ -61,6 +65,7 @@ export default class ToolPanel extends Component{
                     active={this.state.activeTool} 
                     customize
                     handleAttrChange={this.props.handleAttrChange}
+                    {...settings['arrow']}
                     >
                     <BsArrowRight />
                 </ToolButton>
@@ -70,6 +75,7 @@ export default class ToolPanel extends Component{
                     active={this.state.activeTool} 
                     customize
                     handleAttrChange={this.props.handleAttrChange}
+                    {...settings['rect']}
                     >
                     <IoSquareOutline />
                 </ToolButton>
@@ -79,6 +85,7 @@ export default class ToolPanel extends Component{
                     active={this.state.activeTool} 
                     customize
                     handleAttrChange={this.props.handleAttrChange}
+                    {...settings['ellipse']}
                 >
                     <RxCircle />
                 </ToolButton>
@@ -90,6 +97,7 @@ export default class ToolPanel extends Component{
                     handleAttrChange={this.props.handleAttrChange}
                     hideColorPicker
                     hideLineTypePicker
+                    {...settings['eraser']}
                     >
                     <BsEraser />
                 </ToolButton>

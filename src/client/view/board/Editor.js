@@ -48,6 +48,7 @@ export default function(props){
                     onModeChange={handleModeChange} 
                     handleAttrChange={handleAttrChange}
                     tool={currentTool}
+                    defaultSettings={toolSettings}
                 />
             </div>
             <div className="position-fixed d-flex align-items-center m-4" style={undoBarStyle}>
