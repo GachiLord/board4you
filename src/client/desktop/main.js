@@ -1,3 +1,7 @@
+// check for update
+const { autoUpdater } = require("electron-updater")
+autoUpdater.checkForUpdatesAndNotify()
+// import app`s deps
 const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron')
 const isMac = process.platform === 'darwin'
 const path = require('path')
