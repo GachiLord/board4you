@@ -1,6 +1,6 @@
 {
   "name": "board4you",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "client side of board4you",
   "main": "./src/client/desktop/main.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "electron": "electron .",
     "start": "webpack serve --open --mode=development",
     "buildApp": "electron-builder -wl",
-    "release": "electron-builder -wl"
+    "release": "export GH_TOKEN=$(gh auth token); electron-builder -wl"
   },
   "build": {
     "appId": "com.electron.board4you",
