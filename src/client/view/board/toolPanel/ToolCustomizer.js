@@ -57,6 +57,7 @@ export default class ToolCustomizer extends Component{
         const labelStyle = {
             'wordWrap': 'normal'
         }
+        const locCfg = window.global.localizationCfg
 
 
         return (
@@ -82,7 +83,7 @@ export default class ToolCustomizer extends Component{
                                     <>
                                         <Form.Group as={Row}>
                                             <Form.Label column sm="4" style={labelStyle}>
-                                            Размер
+                                            {locCfg.size}
                                             </Form.Label>
                                             <Col sm="8">
                                             <RangeSlider
@@ -105,12 +106,12 @@ export default class ToolCustomizer extends Component{
                                     <>
                                         <Form.Group as={Row}>
                                             <Form.Label column sm="4"  style={labelStyle}>
-                                            Линия
+                                            {locCfg.line}
                                             </Form.Label>
                                             <Col sm="8">
                                             <Form.Select onChange={this.onChangeLineType} value={this.state.lineType}>
-                                                <option value='general'>сплошная</option>
-                                                <option value='dashed'>прерывистая</option>
+                                                <option value='general'>{locCfg.solid}</option>
+                                                <option value='dashed'>{locCfg.dashed}</option>
                                             </Form.Select>
                                             </Col>
                                         </Form.Group>

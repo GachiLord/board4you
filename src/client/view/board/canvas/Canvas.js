@@ -1,6 +1,6 @@
 import React from "react"
 import CanvasImage from './CanvasImage';
-import { Stage, Layer, Line, Arrow, Rect } from 'react-konva';
+import { Stage, Layer, Line, Arrow, Rect, Ellipse } from 'react-konva';
 
 
 export default React.forwardRef((props, ref) => {
@@ -116,6 +116,24 @@ export default React.forwardRef((props, ref) => {
                                         globalCompositeOperation={shape.tool === 'eraser' ? 'destination-out' : 'source-over'}
                                         tool={shape.tool}
                                     />)
+                            case 'ellipse':
+                                return (
+                                    <Ellipse
+                                        pos={shape.pos}
+                                        x={shape.pos.x}
+                                        y={shape.pos.y}
+                                        radiusX={Math.abs(shape.width)}
+                                        radiusY={Math.abs(shape.height)}
+                                        stroke={shape.color}
+                                        strokeWidth={shape.lineSize}
+                                        shadowForStrokeEnabled={false}
+                                        shapeId={shape.shapeId}
+                                        key={shape.shapeId}
+                                        globalCompositeOperation='source-over'
+                                        tool={shape.tool}
+                                        dash={shape.lineType === 'general' ? []: [10, 10]}
+                                    />
+                                )
                         }
                     }      
                 )}           

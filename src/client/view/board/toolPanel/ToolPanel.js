@@ -3,7 +3,7 @@ import ToolButton from "./ToolButton";
 import {BsArrowRight, BsArrowsMove, BsPen, BsEraser} from 'react-icons/bs'
 import {AiOutlineLine} from 'react-icons/ai'
 import {IoSquareOutline} from 'react-icons/io5'
-import {RxGroup} from 'react-icons/rx'
+import {RxGroup, RxCircle} from 'react-icons/rx'
 
 
 export default class ToolPanel extends Component{
@@ -19,6 +19,8 @@ export default class ToolPanel extends Component{
     }
 
     render = () => {
+        const settings = this.props.defaultSettings
+        const locCfg = window.global.localizationCfg
 
         return (
             <div className="d-flex align-items-center flex-column">
@@ -43,6 +45,7 @@ export default class ToolPanel extends Component{
                     active={this.state.activeTool} 
                     customize
                     handleAttrChange={this.props.handleAttrChange}
+                    {...settings['pen']}
                     >
                     <BsPen />
                 </ToolButton>
@@ -52,6 +55,7 @@ export default class ToolPanel extends Component{
                     active={this.state.activeTool} 
                     customize
                     handleAttrChange={this.props.handleAttrChange}
+                    {...settings['line']}
                     >
                     <AiOutlineLine />
                 </ToolButton>
@@ -61,6 +65,7 @@ export default class ToolPanel extends Component{
                     active={this.state.activeTool} 
                     customize
                     handleAttrChange={this.props.handleAttrChange}
+                    {...settings['arrow']}
                     >
                     <BsArrowRight />
                 </ToolButton>
@@ -70,8 +75,19 @@ export default class ToolPanel extends Component{
                     active={this.state.activeTool} 
                     customize
                     handleAttrChange={this.props.handleAttrChange}
+                    {...settings['rect']}
                     >
                     <IoSquareOutline />
+                </ToolButton>
+                <ToolButton
+                    id="ellipse"
+                    onModeChange={this.handleModeChange} 
+                    active={this.state.activeTool} 
+                    customize
+                    handleAttrChange={this.props.handleAttrChange}
+                    {...settings['ellipse']}
+                >
+                    <RxCircle />
                 </ToolButton>
                 <ToolButton 
                     id="eraser" 
@@ -81,7 +97,7 @@ export default class ToolPanel extends Component{
                     handleAttrChange={this.props.handleAttrChange}
                     hideColorPicker
                     hideLineTypePicker
-                    lineSize={20}
+                    {...settings['eraser']}
                     >
                     <BsEraser />
                 </ToolButton>

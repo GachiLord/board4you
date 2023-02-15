@@ -1,21 +1,36 @@
 {
   "name": "board4you",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "client side of board4you",
   "main": "./src/client/desktop/main.js",
   "scripts": {
     "build": "webpack build --mode=production",
     "dev": "webpack -w --mode=development",
     "electron": "electron .",
-    "start": "webpack serve --open --mode=development"
+    "start": "webpack serve --open --mode=development",
+    "buildApp": "electron-builder -wl",
+    "release": "export GH_TOKEN=$(gh auth token); electron-builder -wl"
+  },
+  "build": {
+    "appId": "com.electron.board4you",
+    "publish": [
+      "github"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   },
   "author": "GachiLord",
-  "license": "ISC",
+  "license": "GPL",
   "dependencies": {
     "@flaticon/flaticon-uicons": "^1.7.0",
     "@react-spring/web": "^9.6.1",
     "adm-zip": "^0.5.10",
     "bootstrap": "^5.2.3",
+    "electron-updater": "^5.3.0",
     "fbemitter": "^3.0.0",
     "image-to-pdf": "^2.0.0",
     "konva": "^8.3.14",
@@ -30,6 +45,7 @@
     "react-router-dom": "^6.4.4",
     "semantic-ui-react": "^2.1.4",
     "use-image": "^1.1.0",
+    "use-local-storage-state": "^18.1.2",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
@@ -40,7 +56,8 @@
     "@babel/preset-react": "^7.18.6",
     "babel-loader": "^9.1.0",
     "css-loader": "^6.7.3",
-    "electron": "^22.0.1",
+    "electron": "^23.0.0",
+    "electron-builder": "^23.6.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "html-webpack-plugin": "^5.5.0",
     "pdfjs-dist": "^3.2.146",

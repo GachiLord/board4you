@@ -1,7 +1,12 @@
+// check for update
+const { autoUpdater } = require("electron-updater")
+autoUpdater.checkForUpdatesAndNotify()
+// import app`s deps
 const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron')
 const isMac = process.platform === 'darwin'
 const path = require('path')
 const ElectronFileManager = require('../model/ElectronFileManager')
+const getLocalization = require('../lib/CommonGetLocalizationCfg')
 
 
 // state vars
@@ -10,7 +15,7 @@ let fileHasChanged = false
 let fileIsSaving = false
 
 
-function createWindow() {
+function createWindow(localeCfg) {
   const win = new BrowserWindow({
     width: 800,
     height: 600,
@@ -23,9 +28,8 @@ function createWindow() {
 
   function exitAlert(){
     const response = dialog.showMessageBoxSync(win, {
-      message: 'Продолжить редактирование или закрыть файл без сохранения?',
-      type: 'question',
-      buttons: ['Продолжить', 'Не сохранять'],
+      message: localeCfg.exitAlertMsg,
+      buttons: localeCfg.exitAlertOptions,
     })
 
     if ( response === 0 ) return true
@@ -53,60 +57,61 @@ function createWindow() {
   const template = [
     // { role: 'fileMenu' }
     {
-      label: 'Файл',
+      label: localeCfg.fileMenuLabel,
       submenu: [
-        { label: 'Создать', click: () => { 
+        { label: localeCfg.create, click: () => { 
           win.webContents.send('onMenuButtonClick', 'newFile')
           currentFilePath = null 
         },
           accelerator: 'CommandOrControl+N' },
-        { label: 'Открыть', click: handleOpenFile, accelerator: 'CommandOrControl+O' },
+        { label: localeCfg.open, click: handleOpenFile, accelerator: 'CommandOrControl+O' },
         { type: 'separator'},
-        { label: 'Сохранить', click: () => { 
+        { label: localeCfg.save, click: () => { 
           win.webContents.send('onMenuButtonClick', 'saveFile')
          }, accelerator: 'CommandOrControl+S' },
-        { label: 'Сохранить как', click: () => { win.webContents.send('onMenuButtonClick', 'saveFileAs') }, accelerator: 'CommandOrControl+Shift+S' },
+        { label: localeCfg.saveAs, click: () => { win.webContents.send('onMenuButtonClick', 'saveFileAs') }, accelerator: 'CommandOrControl+Shift+S' },
         { type: 'separator'},
-        isMac ? { role: 'close', label: 'Файл' } : { role: 'quit', label: 'Закрыть' }
+        isMac ? { role: 'close', label: localeCfg.file } : { role: 'quit', label: localeCfg.close }
       ]
     },
     // { role: 'editMenu' }
     {
-      label: 'Правка',
+      label: localeCfg.editMenuLabel,
       submenu: [
-        { label: 'Отменить', click: () => { win.webContents.send('onMenuButtonClick', 'undo') }, accelerator: 'CommandOrControl+Z' },
-        { label: 'Повторить', click: () => { win.webContents.send('onMenuButtonClick', 'redo') }, accelerator: 'CommandOrControl+Y' },
+        { label: localeCfg.undo, click: () => { win.webContents.send('onMenuButtonClick', 'undo') }, accelerator: 'CommandOrControl+Z' },
+        { label: localeCfg.redo, click: () => { win.webContents.send('onMenuButtonClick', 'redo') }, accelerator: 'CommandOrControl+Y' },
         { type: 'separator'},
-        { label: 'Вырезать', click: () => { win.webContents.send('onMenuButtonClick', 'cut') }, accelerator: 'CommandOrControl+X' },
-        { label: 'Скопировать', click: () => { win.webContents.send('onMenuButtonClick', 'copy') }, accelerator: 'CommandOrControl+C' },
-        { label: 'Вставить', role: 'paste' },
-        { label: 'Удалить', click: () => { win.webContents.send('onMenuButtonClick', 'del') }, accelerator: 'Delete' }
+        { label: localeCfg.cut, click: () => { win.webContents.send('onMenuButtonClick', 'cut') }, accelerator: 'CommandOrControl+X' },
+        { label: localeCfg.copy, click: () => { win.webContents.send('onMenuButtonClick', 'copy') }, accelerator: 'CommandOrControl+C' },
+        { label: localeCfg.paste, role: 'paste' },
+        { label: localeCfg.del, click: () => { win.webContents.send('onMenuButtonClick', 'del') }, accelerator: 'Delete' }
       ]
     },
     // { role: 'viewMenu' }
     {
-      label: 'Вид',
+      label: localeCfg.viewMenuLabel,
       submenu: [
-        { role: 'reload', label: 'Перезагрузить' },
-        { role: 'forceReload', label: 'Принудительно перезагрузить' },
-        { role: 'toggleDevTools', label: 'Инструменты разработчика' },
+        { role: 'reload', label: localeCfg.reload },
+        { role: 'forceReload', label: localeCfg.forceReload },
+        { role: 'toggleDevTools', label: localeCfg.devTools },
         { type: 'separator' },
-        { role: 'resetZoom', label: 'Стандартный размер' },
-        { role: 'zoomIn', label: 'Приблизить' },
-        { role: 'zoomOut', label: 'Отдалить' },
+        { role: 'resetZoom', label: localeCfg.resetZoom },
+        { role: 'zoomIn', label: localeCfg.zoomIn },
+        { role: 'zoomOut', label: localeCfg.zoomOut },
         { type: 'separator' },
-        { role: 'togglefullscreen', label: 'Полноэкранный режим' }
+        { role: 'togglefullscreen', label: localeCfg.fullscreen }
       ]
     },
     // { role: 'windowMenu' }
     {
       role: 'help',
+      label: localeCfg.help,
       submenu: [
         {
-          label: 'Узнать больше',
+          label: localeCfg.learnMore,
           click: async () => {
             const { shell } = require('electron')
-            await shell.openExternal('https://electronjs.org')
+            await shell.openExternal('https://github.com/GachiLord/board4you')
           }
         }
       ]
@@ -127,7 +132,8 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  createWindow()
+  const localeCfg = getLocalization(app.getLocale())
+  createWindow(localeCfg)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
