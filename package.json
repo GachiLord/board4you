@@ -12,7 +12,7 @@
     "release": "export GH_TOKEN=$(gh auth token); electron-builder -wl"
   },
   "build": {
-    "appId": "com.electron.board4you",
+    "appId": "board4you",
     "publish": [
       "github"
     ],
