@@ -47,6 +47,7 @@ export default React.forwardRef((props, ref) => {
                             case 'arrow':
                                 return (
                                     <Arrow
+                                        pos={shape.pos}
                                         y={shape.pos.y}
                                         x={shape.pos.x}
                                         shapeId={shape.shapeId}

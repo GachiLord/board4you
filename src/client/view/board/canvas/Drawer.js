@@ -361,7 +361,14 @@ export default class Drawer extends React.Component{
 
             let selected = shapes.filter((shape) =>
                 {
-                    if (Konva.Util.haveIntersection(box, CanvasUtils.getClientRect(shape))) return shape
+                    const shapeType = shape.attrs.tool
+                    if (shapeType === 'line' || shapeType === 'arrow' || shapeType === 'pen'){
+                        if (CanvasUtils.hasInterceptionWithLine(box, shape)) return shape
+                    }
+                    else{
+                        if (Konva.Util.haveIntersection(box, CanvasUtils.getClientRect(shape))) return shape
+                    }
+                    // if (Konva.Util.haveIntersection(box, CanvasUtils.getClientRect(shape))) return shape
                 }
             );
             this.setState({selection: selected})
@@ -456,27 +463,32 @@ export default class Drawer extends React.Component{
         const x = 0
         const y = CanvasUtils.getLastY(this.getCurrentHistoryAcActions()) + delta
 
-        this.setState( state => {
-            return {
-                currentHistory: [
-                    ...state.currentHistory,
-                    {
-                    type: 'img',
-                    pos: {
-                    x: x,
-                    y: y,
-                    },
-                    url: url,
-                    height: height,
-                    width: width,
-                    shapeId: uuid4()
+        flushSync( () => {
+            this.acceptCurrentHistoryChanges()
+            this.setState( state => {
+                return {
+                    currentHistory: [
+                        ...state.currentHistory,
+                        {
+                        type: 'img',
+                        pos: {
+                        x: x,
+                        y: y,
+                        },
+                        url: url,
+                        height: height,
+                        width: width,
+                        shapeId: uuid4()
+                        }
+                    ]
                     }
-                ]
-                }
-            } )
+                } )
+            this.addAction()
+        } )
 
             if (y + height > this.state.height) this.increaseHeight( Math.round(scale) )
-            this.addAction()
+            
+            this.removeSelectRect()
     }
 
     runOption = async (o, data) => {
@@ -592,7 +604,6 @@ export default class Drawer extends React.Component{
         window.addEventListener('paste', (e) => {
             CanvasUtils.retrieveImageFromClipboardAsBase64(e, (url, size) => {
                 this.paste(url, size)
-                
             })
         });
         window.addEventListener('copy', () => {

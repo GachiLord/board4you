@@ -43,6 +43,20 @@ export default class CanvasUtils{
         }
     }
 
+    static hasInterceptionWithLine(box, line){
+        const attrs = line.attrs === undefined ? line: line.attrs
+
+        for (let i = 0; i < attrs.points.length; i += 2){
+            const x = attrs.pos.x + attrs.points[i]
+            const y = attrs.pos.y + attrs.points[i+1]
+
+            if ( (x >= box.x && x <= (box.x + box.width))
+                && (y >= box.y && y <= (box.y + box.height)) ) return true
+        }
+
+        return false
+    }
+
     static findShapes = (history, query = {}) => {
         return history.map( (hisItem) => {
             // get count of mathced properties
