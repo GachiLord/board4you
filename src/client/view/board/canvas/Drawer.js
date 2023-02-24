@@ -361,14 +361,14 @@ export default class Drawer extends React.Component{
 
             let selected = shapes.filter((shape) =>
                 {
-                    // const shapeType = shape.attrs.tool
-                    // if (shapeType === 'line' || shapeType === 'arrow' || shapeType === 'pen'){
-                    //     if (CanvasUtils.hasInterceptionWithLine(box, shape)) return shape
-                    // }
-                    // else{
-                    //     if (Konva.Util.haveIntersection(box, CanvasUtils.getClientRect(shape))) return shape
-                    // }
-                    if (Konva.Util.haveIntersection(box, CanvasUtils.getClientRect(shape))) return shape
+                    const shapeType = shape.attrs.tool
+                    if (shapeType === 'line' || shapeType === 'arrow' || shapeType === 'pen'){
+                        if (CanvasUtils.hasInterceptionWithLine(box, shape)) return shape
+                    }
+                    else{
+                        if (Konva.Util.haveIntersection(box, CanvasUtils.getClientRect(shape))) return shape
+                    }
+                    // if (Konva.Util.haveIntersection(box, CanvasUtils.getClientRect(shape))) return shape
                 }
             );
             this.setState({selection: selected})

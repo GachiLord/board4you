@@ -44,11 +44,14 @@ export default class CanvasUtils{
     }
 
     static hasInterceptionWithLine(box, line){
-        for (let i = 0; i < line.attrs.points.length; i += 2){
-            const x = line.attrs.pos.x + line.attrs.points[i]
-            const y = line.attrs.pos.y + line.attrs.points[i+1]
+        const attrs = line.attrs === undefined ? line: line.attrs
 
-            if ( (x >= box.x && x <= (box.x + box.width)) && (y >= box.y && x <= (box.y + box.height)) ) return true
+        for (let i = 0; i < attrs.points.length; i += 2){
+            const x = attrs.pos.x + attrs.points[i]
+            const y = attrs.pos.y + attrs.points[i+1]
+
+            if ( (x >= box.x && x <= (box.x + box.width))
+                && (y >= box.y && y <= (box.y + box.height)) ) return true
         }
 
         return false
