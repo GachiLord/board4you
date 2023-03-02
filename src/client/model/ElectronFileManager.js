@@ -72,11 +72,16 @@ module.exports = class ElectronFileManager{
                 base64 = ElectronFileManager.getOnlyBase64Value(base64)
                 zip.addFile(`lesson${i+1}.png`, Buffer.from(base64, 'base64'))
             } )
-            zip.writeZip(filePath)
+            fs.writeFile(filePath, zip.toBuffer(),  "binary", function(err) { console.log(err) });
         }
         
         // waiting for file saving
-        return await finish
+        if (extention === 'pdf'){
+            return await finish
+        }
+        else{
+            return filePath
+        }
     }
 
     static async saveBase64As(base64file) {

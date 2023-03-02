@@ -1,6 +1,6 @@
 {
   "name": "board4you",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "client side of board4you",
   "main": "./src/client/desktop/main.js",
   "scripts": {
@@ -17,10 +17,20 @@
       "github"
     ],
     "win": {
-      "target": "nsis"
+      "target": {
+        "target": "nsis",
+        "arch": [
+          "x64",
+          "ia32"
+        ]
+      }
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+        "arch": [
+          "x64",
+          "ia32"
+        ]
     }
   },
   "author": "GachiLord",
@@ -56,8 +66,8 @@
     "@babel/preset-react": "^7.18.6",
     "babel-loader": "^9.1.0",
     "css-loader": "^6.7.3",
-    "electron": "^23.0.0",
-    "electron-builder": "^23.6.0",
+    "electron": "^23.1.1",
+    "electron-builder": "^22.10.3",
     "eslint-plugin-react-hooks": "^4.6.0",
     "html-webpack-plugin": "^5.5.0",
     "pdfjs-dist": "^3.2.146",
