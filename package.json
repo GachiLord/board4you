@@ -1,6 +1,6 @@
 {
   "name": "board4you",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "client side of board4you",
   "main": "./src/client/desktop/main.js",
   "scripts": {
@@ -17,10 +17,20 @@
       "github"
     ],
     "win": {
-      "target": "nsis"
+      "target": {
+        "target": "nsis",
+        "arch": [
+          "x64",
+          "ia32"
+        ]
+      }
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+        "arch": [
+          "x64",
+          "ia32"
+        ]
     }
   },
   "author": "GachiLord",
