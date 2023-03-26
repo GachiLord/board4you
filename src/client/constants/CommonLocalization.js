@@ -10,6 +10,8 @@ module.exports = {
         save: 'Save',
         saveAs: 'Save As',
         close: 'Close',
+        // file open menu
+        savePdfOrZip: 'save pdf or zip',
         // edit menu
         editMenuLabel: 'Edit',
         undo: 'Undo',
@@ -56,6 +58,8 @@ module.exports = {
         save: 'Сохранить',
         saveAs: 'Сохранить как',
         close: 'Закрыть',
+        // file open menu
+        savePdfOrZip: 'Сохранить pdf или zip',
         // edit menu
         editMenuLabel: 'Правка',
         undo: 'Отменить',
@@ -81,5 +85,6 @@ module.exports = {
         solid: 'сплошная',
         dashed: 'прерывистая',
         size: 'Размер',
+        
     }
 }

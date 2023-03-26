@@ -15,7 +15,9 @@ let fileHasChanged = false
 let fileIsSaving = false
 
 
-function createWindow(localeCfg) {
+function createWindow() {
+  const localeCfg = global.localeCfg
+
   const win = new BrowserWindow({
     width: 800,
     height: 600,
@@ -132,8 +134,7 @@ function createWindow(localeCfg) {
 }
 
 app.whenReady().then(() => {
-  const localeCfg = getLocalization(app.getLocale())
-  createWindow(localeCfg)
+  global.localeCfg = getLocalization(app.getLocale())
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

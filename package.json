@@ -6,7 +6,7 @@
   "scripts": {
     "build": "webpack build --mode=production",
     "dev": "webpack -w --mode=development",
-    "electron": "electron .",
+    "electron": "electronmon .",
     "start": "webpack serve --open --mode=development",
     "buildApp": "electron-builder -wl",
     "release": "export GH_TOKEN=$(gh auth token); electron-builder -wl"
@@ -17,20 +17,10 @@
       "github"
     ],
     "win": {
-      "target": {
-        "target": "nsis",
-        "arch": [
-          "x64",
-          "ia32"
-        ]
-      }
+      "target": "nsis"
     },
     "linux": {
-      "target": "AppImage",
-        "arch": [
-          "x64",
-          "ia32"
-        ]
+      "target": "AppImage"
     }
   },
   "author": "GachiLord",
