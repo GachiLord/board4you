@@ -93,13 +93,9 @@ function createWindow() {
     {
       label: localeCfg.viewMenuLabel,
       submenu: [
-        { role: 'reload', label: localeCfg.reload },
-        { role: 'forceReload', label: localeCfg.forceReload },
-        { role: 'toggleDevTools', label: localeCfg.devTools },
-        { type: 'separator' },
         { role: 'resetZoom', label: localeCfg.resetZoom },
-        { role: 'zoomIn', label: localeCfg.zoomIn },
-        { role: 'zoomOut', label: localeCfg.zoomOut },
+        { role: 'zoomIn', label: localeCfg.zoomIn, accelerator: 'CommandOrControl+=' },
+        { role: 'zoomOut', label: localeCfg.zoomOut, accelerator: 'CommandOrControl+-' },
         { type: 'separator' },
         { role: 'togglefullscreen', label: localeCfg.fullscreen }
       ]
