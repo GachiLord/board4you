@@ -8,7 +8,6 @@ const path = require('path')
 const ElectronFileManager = require('../model/ElectronFileManager')
 const getLocalization = require('../lib/CommonGetLocalizationCfg')
 
-
 // state vars
 let currentFilePath = null
 let fileHasChanged = false
@@ -131,12 +130,13 @@ function createWindow() {
 
 app.whenReady().then(() => {
   global.localeCfg = getLocalization(app.getLocale())
-
-  app.on('activate', () => {
+  
+  if (isMac) app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
     }
   })
+  else createWindow()
 
   // msgs listeners  
 
