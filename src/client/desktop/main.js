@@ -96,7 +96,8 @@ function createWindow() {
         { role: 'zoomIn', label: localeCfg.zoomIn, accelerator: 'CommandOrControl+=' },
         { role: 'zoomOut', label: localeCfg.zoomOut, accelerator: 'CommandOrControl+-' },
         { type: 'separator' },
-        { role: 'togglefullscreen', label: localeCfg.fullscreen }
+        { role: 'togglefullscreen', label: localeCfg.fullscreen },
+        { role: 'toggleDevTools', label: localeCfg.devTools },
       ]
     },
     // { role: 'windowMenu' }
@@ -130,7 +131,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   global.localeCfg = getLocalization(app.getLocale())
-  
+
   if (isMac) app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
