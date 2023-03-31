@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import Board from '../view/board/Editor'
-import 'bootstrap/dist/css/bootstrap.css'
+import 'bootstrap/dist/css/bootstrap.min.css'
 import React from 'react';
 import getLocalizationCfg from '../lib/CommonGetLocalizationCfg';
 
