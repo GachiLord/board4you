@@ -1,4 +1,6 @@
 import { Util } from 'konva/lib/Util'
+import { jsPDF } from "jspdf"
+import CommonCanvasSize from '../constants/CommonCanvasSize'
 
 export default class CanvasUtils{
     
@@ -227,6 +229,35 @@ export default class CanvasUtils{
 
 
         return imgs
+    }
+
+    static async getBase64imgsAsPdf(imgs){
+        const doc = new jsPDF({
+            orientation: 'l',
+            format: Object.values(CommonCanvasSize),
+        })
+        imgs = await imgs
+
+        imgs.forEach( (item, index) => {
+            doc.addImage(item, 'PNG', 0, 0, CommonCanvasSize.width, CommonCanvasSize.height)
+            if (index < imgs.length - 1) doc.addPage(Object.values(CommonCanvasSize), 'l')
+        } )
+        return doc
+    }
+
+    static async getImageFromUrl(url){
+        return new Promise( (res, rej) => {
+            let img = new Image()
+    
+            img.onError = function() {
+                rej('Cannot load image')
+            };
+            img.onload = function() {
+                res(img);
+            };        
+            img.src = url;
+        } )
+        
     }
 
 }

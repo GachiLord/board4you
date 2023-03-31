@@ -533,10 +533,18 @@ export default class Drawer extends React.Component{
                 }
                 break;
             case 'saveFile':
-                this.electronAPI.saveFile(await this.getStageAsUrl())
+                // save by browser if there is no nodejs env
+                if (!this.electronAPI){
+                    (await CanvasUtils.getBase64imgsAsPdf(this.getStageAsUrl())).save('lesson')
+                }
+                else this.electronAPI.saveFile(await this.getStageAsUrl())
                 break;
             case 'saveFileAs':
-                this.electronAPI.saveFileAs(await this.getStageAsUrl())
+                // save by browser if there is no nodejs env
+                if (!this.electronAPI){
+                    (await CanvasUtils.getBase64imgsAsPdf(await this.getStageAsUrl())).save('lesson')
+                }
+                else this.electronAPI.saveFileAs(await this.getStageAsUrl())
                 break;
             case 'undo':
                 this.handleUndo()
