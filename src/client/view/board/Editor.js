@@ -3,6 +3,7 @@ import Drawer from "./canvas/Drawer";
 import ToolPanel from "./toolPanel/ToolPanel";
 import UndoRedoBar from "./undoRedoBar/UndoRedoBar"
 import useLocalStorageState from 'use-local-storage-state'
+import SizeDialog from "./SizeDialog";
 
 
 export default function(props){
@@ -39,20 +40,21 @@ export default function(props){
 
 
     const panelStyle = {zIndex: 3}
-    const undoBarStyle = {...panelStyle, 'bottom': '0'}
+    const undoBarStyle = {...panelStyle}
 
     return (
-        <div>
-            <div className="position-fixed h-75 d-flex align-items-center m-4" style={panelStyle}>
+        <>
+        <div className="d-flex align-items-center">
+            <div className="h-75 d-flex flex-column justify-content-around m-4" style={panelStyle}>
                 <ToolPanel
                     onModeChange={handleModeChange} 
                     handleAttrChange={handleAttrChange}
                     tool={currentTool}
                     defaultSettings={toolSettings}
                 />
-            </div>
-            <div className="position-fixed d-flex align-items-center m-4" style={undoBarStyle}>
-                <UndoRedoBar />
+                <div className="mt-5 d-inline-block" style={undoBarStyle}>
+                    <UndoRedoBar />
+                </div>
             </div>
             <div className="m-2">
                 <Drawer
@@ -62,6 +64,8 @@ export default function(props){
                     lineSize={toolSettings[currentTool].lineSize}
                 />
             </div>
+            <SizeDialog />
         </div>
+        </>
     )    
 }

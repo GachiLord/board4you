@@ -6,4 +6,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveFile: (file) => ipcRenderer.send('saveFile', file),
   handleFileChange: () => ipcRenderer.send('fileHasChanged'),
   handleFileOpen: () => ipcRenderer.send('fileHasOpened'),
+  setCanvasSize: (value) => ipcRenderer.send('setCanvasSize', value),
 })

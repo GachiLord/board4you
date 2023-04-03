@@ -12,6 +12,12 @@ module.exports = {
         close: 'Close',
         // file open menu
         savePdfOrZip: 'save pdf or zip',
+        // canvas size menu
+        selectSizeOfCanvas: 'Select size of the canvas',
+        select: 'select',
+        selectSize: 'Select size',
+        width: 'Width',
+        height: 'Height',
         // edit menu
         editMenuLabel: 'Edit',
         undo: 'Undo',
@@ -60,6 +66,12 @@ module.exports = {
         close: 'Закрыть',
         // file open menu
         savePdfOrZip: 'Сохранить pdf или zip',
+        // canvas size menu
+        selectSizeOfCanvas: 'Выберите размер холста',
+        select: 'Выбрать',
+        selectSize: 'Выбрать размер',
+        width: 'Ширина',
+        height: 'Длина',
         // edit menu
         editMenuLabel: 'Правка',
         undo: 'Отменить',

@@ -15,7 +15,7 @@ let fileIsSaving = false
 
 
 function createWindow() {
-  const localeCfg = global.localeCfg
+  const localeCfg = globalThis.localizationCfg
 
   const win = new BrowserWindow({
     width: 800,
@@ -51,6 +51,14 @@ function createWindow() {
 
   }
 
+  async function handleNewFile(){
+    if ( fileHasChanged && !fileIsSaving ) {
+      if (exitAlert()) e.preventDefault()
+      win.webContents.send('onMenuButtonClick', 'newFile')
+      currentFilePath = null 
+    }
+  }
+
   // load page
   win.loadFile('./bundles/desktop/index.html')
 
@@ -61,11 +69,12 @@ function createWindow() {
       label: localeCfg.fileMenuLabel,
       submenu: [
         { label: localeCfg.create, click: () => { 
-          win.webContents.send('onMenuButtonClick', 'newFile')
-          currentFilePath = null 
+          handleNewFile()
         },
           accelerator: 'CommandOrControl+N' },
         { label: localeCfg.open, click: handleOpenFile, accelerator: 'CommandOrControl+O' },
+        { type: 'separator'},
+        { label: localeCfg.selectSize, click: () => { win.webContents.send('onMenuButtonClick', 'selectSize') }, accelerator: 'CommandOrControl+L' },
         { type: 'separator'},
         { label: localeCfg.save, click: () => { 
           win.webContents.send('onMenuButtonClick', 'saveFile')
@@ -130,7 +139,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  global.localeCfg = getLocalization(app.getLocale())
+  globalThis.localizationCfg = getLocalization(app.getLocale())
 
   if (isMac) app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -140,6 +149,10 @@ app.whenReady().then(() => {
   else createWindow()
 
   // msgs listeners  
+
+  ipcMain.on('setCanvasSize', ( _, value ) => {
+    globalThis.CanvasSize = value
+  } )
 
   ipcMain.on('saveFileAs', async (_, data) => {
     fileIsSaving = true

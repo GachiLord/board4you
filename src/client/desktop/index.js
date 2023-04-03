@@ -6,9 +6,7 @@ import getLocalizationCfg from '../lib/CommonGetLocalizationCfg';
 
 
 // add loc cfg
-window.global = {
-    localizationCfg: getLocalizationCfg(navigator.language)
-}
+globalThis.localizationCfg = getLocalizationCfg(navigator.language)
 
 const container = document.getElementById('root');
 const root = createRoot(container);

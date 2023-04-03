@@ -86,7 +86,7 @@ module.exports = class ElectronFileManager{
 
     static async saveBase64As(base64file) {
         const pathDialog = await dialog.showSaveDialog({
-            title: global.localeCfg.savePdfOrZip,
+            title: globalThis.localizationCfg.savePdfOrZip,
             defaultPath: 'lesson.pdf',
             properties: ['showOverwriteConfirmation', 'createDirectory']
           

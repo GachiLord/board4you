@@ -1,11 +1,12 @@
 {
   "name": "board4you",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "client side of board4you",
   "main": "./src/client/desktop/main.js",
   "scripts": {
-    "build": "webpack build --env --no-plugin --env --mode=production --no-devtool",
+    "build": "webpack build --mode=production --no-devtool",
     "dev": "webpack -w --mode=development",
+    "size": "",
     "electron": "electronmon .",
     "start": "webpack serve --open --mode=development",
     "buildApp": "electron-builder -wl",

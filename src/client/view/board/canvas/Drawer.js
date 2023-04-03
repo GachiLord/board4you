@@ -2,35 +2,37 @@ import React from 'react';
 import { v4 as uuid4 } from 'uuid';
 import { flushSync } from "react-dom";
 import CanvasUtils from '../../../lib/CanvasUtils';
-import canvasSize from '../../../constants/CommonCanvasSize'
 import boardEvents from '../../base/boardEvents';
 import Canvas from './Canvas';
 import emptyImg from '../../../constants/CommonEmptyImage';
-
+import getCanvasSize from '../../../model/getCanvasSize';
 
 export default class Drawer extends React.Component{
 
     constructor(props){
         super(props)
         this.electronAPI = window.electronAPI
-        this.width = canvasSize.width,
-        this.baseHeight = canvasSize.height
-        this.baseState = {
-                    height: this.baseHeight,
-                    isDrawing: false,
-                    currentHistory: [],
-                    temporaryShapes: [],
-                    historyActions: [],
-                    canceledHistoryActions: [],
-                    selection: [],
-                    isDraggingSelection: false,
-                    stagePos: {x: 0,y: 0},
-                    lastPointerPos: {x:0, y:0},
-                    isDraggingStage: false,
-                    renderOutOfViewElements: false 
-                }
-        this.state = this.baseState
+        this.state = this.getBaseState()
         this.stage = React.createRef()
+    }
+
+    getBaseState(){
+        return {
+            height: getCanvasSize().height,
+            baseHeight: getCanvasSize().height,
+            width: getCanvasSize().width,
+            isDrawing: false,
+            currentHistory: [],
+            temporaryShapes: [],
+            historyActions: [],
+            canceledHistoryActions: [],
+            selection: [],
+            isDraggingSelection: false,
+            stagePos: {x: 0,y: 0},
+            lastPointerPos: {x:0, y:0},
+            isDraggingStage: false,
+            renderOutOfViewElements: false 
+        }
     }
 
     getCurrentHistoryAcActions = () => {
@@ -317,7 +319,7 @@ export default class Drawer extends React.Component{
     }
 
     increaseHeight(ratio = 1) {
-        this.setState((state) => { return { height: state.height + this.baseHeight * ratio }; });
+        this.setState((state) => { return { height: state.height + this.state.baseHeight * ratio }; });
     }
 
     setHeight(height){
@@ -455,14 +457,13 @@ export default class Drawer extends React.Component{
     }
 
     paste = (url, size, delta = 20) => {
-        let scale = (size.width - this.width) / this.baseHeight        
+        let scale = (size.width - this.state.width) / this.state.baseHeight        
         if (scale <= 1) scale = 1
-
         const height = size.height / scale 
-        const width = (size.width > this.width) ? this.width : size.width
+        const width = (size.width > this.state.width) ? this.state.width : size.width
         const x = 0
         const y = CanvasUtils.getLastY(this.getCurrentHistoryAcActions()) + delta
-
+       
         flushSync( () => {
             this.acceptCurrentHistoryChanges()
             this.setState( state => {
@@ -495,15 +496,19 @@ export default class Drawer extends React.Component{
         console.log(o)
         switch (o) {
             case 'newFile':
-                flushSync( () => this.setState(this.baseState))
-                break;
+                flushSync( () => this.setState(this.getBaseState()))
+                break
+            case 'selectSize':
+                boardEvents.emit('selectSize')
+                this.setState({baseHeight: this.getBaseState().height, width: this.getBaseState().width})
+                break
             case 'openFile':   
                 try{
                     const files = data.base64
                     const type = data.type
                     const path = data.path
                     if (files.length > 0) {
-                        flushSync( () => this.setState(this.baseState))
+                        flushSync( () => this.setState(this.getBaseState()))
 
                         switch(type){
                             case 'pdf':
@@ -531,20 +536,20 @@ export default class Drawer extends React.Component{
                 }
                 catch{
                 }
-                break;
+                break
             case 'saveFile':
                 // save by browser if there is no nodejs env
                 if (!this.electronAPI){
-                    (await CanvasUtils.getBase64imgsAsPdf(this.getStageAsUrl())).save('lesson')
+                    (await CanvasUtils.getBase64imgsAsPdf(this.getStageAsUrls())).save('lesson')
                 }
-                else this.electronAPI.saveFile(await this.getStageAsUrl())
+                else this.electronAPI.saveFile(await this.getStageAsUrls())
                 break;
             case 'saveFileAs':
                 // save by browser if there is no nodejs env
                 if (!this.electronAPI){
-                    (await CanvasUtils.getBase64imgsAsPdf(await this.getStageAsUrl())).save('lesson')
+                    (await CanvasUtils.getBase64imgsAsPdf(await this.getStageAsUrls())).save('lesson')
                 }
-                else this.electronAPI.saveFileAs(await this.getStageAsUrl())
+                else this.electronAPI.saveFileAs(await this.getStageAsUrls())
                 break;
             case 'undo':
                 this.handleUndo()
@@ -561,7 +566,7 @@ export default class Drawer extends React.Component{
         }
     }
 
-    getStageAsUrl = async () => {
+    getStageAsUrls = async (quality) => {
         flushSync( () => this.setState({renderOutOfViewElements: true}) )
         const stagePos = this.state.stagePos
         const width = this.width
@@ -569,15 +574,15 @@ export default class Drawer extends React.Component{
 
 
         let urls = []
-        for (let y = stagePos.y; y <= lastY - Math.abs(stagePos.y) ; y += this.baseHeight){
+        for (let y = stagePos.y; y <= lastY - Math.abs(stagePos.y) ; y += this.state.baseHeight){
             if (y >= lastY) break
             urls.push(
                 this.stage.current.toDataURL({
                     x: stagePos.x,
                     y: y,
                     width: width,
-                    height: this.baseHeight
-                })
+                    height: this.state.baseHeight
+                }, quality)
             )
         }
         
@@ -607,7 +612,11 @@ export default class Drawer extends React.Component{
         else console.warn('electronApi is not found')
         // fbemitter events listener
         boardEvents.addListener('undo', () => { this.runOption('undo') })
-        boardEvents.addListener('redo', () => { this.runOption('redo') })         
+        boardEvents.addListener('redo', () => { this.runOption('redo') })
+        boardEvents.addListener('SizeHasChanged', () => { 
+            const size = getCanvasSize()
+            this.setState({baseHeight: size.height, width: size.width})
+         })         
         // web events listeners
         window.addEventListener('paste', (e) => {
             CanvasUtils.retrieveImageFromClipboardAsBase64(e, (url, size) => {
@@ -644,7 +653,7 @@ export default class Drawer extends React.Component{
             history = CanvasUtils.getViewedHisotry(history, 
             {
                 x: 0, y: Math.abs(this.state.stagePos.y),
-                height: Math.abs(this.state.stagePos.y) + this.baseHeight, width: this.width
+                height: Math.abs(this.state.stagePos.y) + this.state.baseHeight, width: this.width
             })
         }
 
@@ -653,16 +662,16 @@ export default class Drawer extends React.Component{
         // create dashed lines between pages if not saving
         let pageLinesY = [] 
         if (!renderOutOfViewElements) {
-            for (let i = this.baseHeight; i <= this.state.height; i += this.baseHeight ){
+            for (let i = this.state.baseHeight; i <= this.state.height; i += this.state.baseHeight ){
                 pageLinesY.push(i)
             }
         }
-        
+
         return (
             <Canvas 
                 ref={this.stage}
-                width={this.width}
-                height={this.baseHeight}
+                width={this.state.width}
+                height={this.state.baseHeight}
                 stagePos={this.state.stagePos}
                 history={history}
                 temporaryShapes={temporaryShapes}

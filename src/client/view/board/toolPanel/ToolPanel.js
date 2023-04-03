@@ -20,7 +20,6 @@ export default class ToolPanel extends Component{
 
     render = () => {
         const settings = this.props.defaultSettings
-        const locCfg = window.global.localizationCfg
 
         return (
             <div className="d-flex align-items-center flex-column">
