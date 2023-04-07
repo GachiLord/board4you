@@ -42,7 +42,7 @@ function createWindow() {
       let opened = await ElectronFileManager.openFilesAsBase64Images()
 
       win.webContents.send('onMenuButtonClick', 'openFile', opened )
-      currentFilePath = opened.path
+      currentFilePath = (opened) ? opened.path: undefined
       fileHasChanged = false
     }
 

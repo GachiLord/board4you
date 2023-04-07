@@ -6,11 +6,10 @@
   "scripts": {
     "build": "webpack build --mode=production --no-devtool",
     "dev": "webpack -w --mode=development",
-    "size": "",
     "electron": "electronmon .",
     "start": "webpack serve --open --mode=development",
     "buildApp": "electron-builder -wl",
-    "release": "export GH_TOKEN=$(gh auth token); electron-builder -wl"
+    "release": "electron-builder -wl"
   },
   "build": {
     "appId": "board4you",
@@ -34,8 +33,10 @@
     "electron-updater": "^5.3.0",
     "fbemitter": "^3.0.0",
     "image-to-pdf": "^2.0.0",
+    "is-url": "^1.2.4",
     "jspdf": "^2.5.1",
     "konva": "^8.3.14",
+    "pdf-img-convert": "^1.2.0",
     "react": "^18.2.0",
     "react-bootstrap": "^2.6.0",
     "react-bootstrap-range-slider": "^3.0.8",
@@ -60,10 +61,11 @@
     "css-loader": "^6.7.3",
     "electron": "^23.2.0",
     "electron-builder": "^22.10.3",
+    "electron-rebuild": "^3.2.9",
     "electronmon": "^2.0.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "html-webpack-plugin": "^5.5.0",
-    "pdfjs-dist": "^3.2.146",
+    "pdfjs-dist": "^3.5.141",
     "prop-types": "^15.8.1",
     "style-loader": "^3.3.1",
     "webpack": "^5.75.0",

@@ -41,11 +41,12 @@ export default function(props){
 
     const panelStyle = {zIndex: 3}
     const undoBarStyle = {...panelStyle}
+    const drawerStyle = {'margin': '5px 0 0 100px'}
 
     return (
         <>
         <div className="d-flex align-items-center">
-            <div className="h-75 d-flex flex-column justify-content-around m-4" style={panelStyle}>
+            <div className="position-fixed h-75 d-flex flex-column justify-content-around m-4" style={panelStyle}>
                 <ToolPanel
                     onModeChange={handleModeChange} 
                     handleAttrChange={handleAttrChange}
@@ -56,7 +57,7 @@ export default function(props){
                     <UndoRedoBar />
                 </div>
             </div>
-            <div className="m-2">
+            <div className="" style={drawerStyle}>
                 <Drawer
                     tool={currentTool}
                     color={toolSettings[currentTool].lineColor}

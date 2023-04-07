@@ -205,17 +205,19 @@ export default class CanvasUtils{
     }
 
     static getPdfAsBase64imgs = async (path) => {
-
         let doc = await pdfjsLib.getDocument({url:path}).promise
         let imgs = []
+        const size = getCanvasSize()
         
         for (let i = 1; i <= doc.numPages; i++){
-            let p = await doc.getPage(i)
+            let p = await doc.getPage(i) 
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            const pageWidth = p.getViewport({ scale: 1 }).width
 
-            let canvas = document.createElement('canvas')
-            let context = canvas.getContext('2d')
-            let viewport = p.getViewport({scale:1})
-
+            const viewport = p.getViewport({ scale: size.width / pageWidth });
+            
+            context.imageSmoothingEnabled = false
             canvas.width = viewport.width
             canvas.height = viewport.height
 
@@ -228,7 +230,7 @@ export default class CanvasUtils{
             canvas.remove()
         }
 
-
+        console.log(imgs)
         return imgs
     }
 

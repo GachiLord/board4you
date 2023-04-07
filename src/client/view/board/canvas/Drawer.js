@@ -6,6 +6,8 @@ import boardEvents from '../../base/boardEvents';
 import Canvas from './Canvas';
 import emptyImg from '../../../constants/CommonEmptyImage';
 import getCanvasSize from '../../../model/getCanvasSize';
+// import { convert } from '../../../lib/pdf2img';
+
 
 export default class Drawer extends React.Component{
 
@@ -14,6 +16,7 @@ export default class Drawer extends React.Component{
         this.electronAPI = window.electronAPI
         this.state = this.getBaseState()
         this.stage = React.createRef()
+        if (this.electronAPI) this.electronAPI.setCanvasSize(getCanvasSize())
     }
 
     getBaseState(){
@@ -457,12 +460,14 @@ export default class Drawer extends React.Component{
     }
 
     paste = (url, size, delta = 20) => {
-        let scale = (size.width - this.state.width) / this.state.baseHeight        
-        if (scale <= 1) scale = 1
-        const height = size.height / scale 
-        const width = (size.width > this.state.width) ? this.state.width : size.width
+        const canvasSize = getCanvasSize()
+        let scale = Math.min((canvasSize.width / size.width), (canvasSize.height / size.height))        
+        if (scale >= 1) scale = 1
+        const height = size.height * scale
+        const width = size.width * scale
         const x = 0
         const y = CanvasUtils.getLastY(this.getCurrentHistoryAcActions()) + delta
+
        
         flushSync( () => {
             this.acceptCurrentHistoryChanges()
@@ -487,7 +492,7 @@ export default class Drawer extends React.Component{
             this.addAction()
         } )
 
-            if (y + height > this.state.height) this.increaseHeight( Math.round(scale) )
+            if (y + height > canvasSize.height) this.increaseHeight( Math.round(scale) )
             
             this.removeSelectRect()
     }
@@ -496,7 +501,7 @@ export default class Drawer extends React.Component{
         console.log(o)
         switch (o) {
             case 'newFile':
-                flushSync( () => this.setState(this.getBaseState()))
+                flushSync( () => { this.setState(this.getBaseState()) } )
                 break
             case 'selectSize':
                 boardEvents.emit('selectSize')
@@ -569,13 +574,13 @@ export default class Drawer extends React.Component{
     getStageAsUrls = async (quality) => {
         flushSync( () => this.setState({renderOutOfViewElements: true}) )
         const stagePos = this.state.stagePos
-        const width = this.width
+        const width = this.state.width
         const lastY = CanvasUtils.getLastY(this.getCurrentHistoryAcActions())
 
 
         let urls = []
-        for (let y = stagePos.y; y <= lastY - Math.abs(stagePos.y) ; y += this.state.baseHeight){
-            if (y >= lastY) break
+        for (let y = stagePos.y; y <= lastY - Math.abs(stagePos.y); y += this.state.baseHeight){
+            if (y >= lastY - 5) break
             urls.push(
                 this.stage.current.toDataURL({
                     x: stagePos.x,
@@ -616,7 +621,7 @@ export default class Drawer extends React.Component{
         boardEvents.addListener('SizeHasChanged', () => { 
             const size = getCanvasSize()
             this.setState({baseHeight: size.height, width: size.width})
-         })         
+        })
         // web events listeners
         window.addEventListener('paste', (e) => {
             CanvasUtils.retrieveImageFromClipboardAsBase64(e, (url, size) => {

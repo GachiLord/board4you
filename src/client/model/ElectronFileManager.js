@@ -2,8 +2,9 @@ const { dialog } = require('electron')
 const fs = require('fs')
 const imgToPDF = require('image-to-pdf')
 const AdmZip = require("adm-zip")
-const canvasSize = require('../constants/CommonCanvasSize')
-const emptyImg = require('../constants/CommonEmptyImage')
+const getCanvasSize = require('./getCanvasSize')
+// const pdf2img = require('pdf-img-convert');
+
 
 module.exports = class ElectronFileManager{
 
@@ -20,7 +21,7 @@ module.exports = class ElectronFileManager{
         let extention = ElectronFileManager.getFileExtension(path)
         let base64Files = []
 
-
+        
         if (extention === 'zip') {
             let zip = new AdmZip(path)
             zip.getEntries().forEach(e => {
@@ -29,11 +30,11 @@ module.exports = class ElectronFileManager{
             extention = 'png'
         }
         else base64Files.push(ElectronFileManager.getBase64ofFile(path))
-
+        
         // remove empty pages
-        base64Files = base64Files.filter( i => i !== emptyImg )
+        base64Files = new Array(...new Set(base64Files))
 
-        return {base64: base64Files, path: dialogResult.filePaths[0], type: extention}
+        return {base64: base64Files, path: path, type: extention}
     }
 
     
@@ -44,7 +45,13 @@ module.exports = class ElectronFileManager{
     }
 
     static getBase64ofFile(file){
-        return "data:image/png;base64,"+fs.readFileSync(file, 'base64');
+        switch(this.getFileExtension(file)){
+            case 'png':
+                return "data:image/png;base64,"+fs.readFileSync(file, 'base64');
+            case 'pdf':
+                return "pdfData:pdf;base64,"+fs.readFileSync(file, 'base64');
+        }
+        
     }
 
     static getFullBase64(base64Value) { return "data:image/png;base64," + base64Value }
@@ -54,9 +61,10 @@ module.exports = class ElectronFileManager{
     }
 
     static async saveBase64(base64files, filePath) {
+        const canvasSize = getCanvasSize()
         // file and info
         let extention = ElectronFileManager.getFileExtension(filePath)
-        let uniqueBase64Files = base64files.filter( i => i !== emptyImg )
+        let uniqueBase64Files = new Array(...new Set(base64files))
         // create stream and promise for finish evt
         const fsStream = fs.createWriteStream(filePath)
         const finish = new Promise( (resolve, reject) => {
@@ -64,7 +72,7 @@ module.exports = class ElectronFileManager{
             fsStream.on('error', (e) =>  reject(e) )
         } )
 
-        // saving pdf or zip
+
         if (extention === 'pdf') imgToPDF(uniqueBase64Files, [canvasSize.width, canvasSize.height]).pipe(fsStream)
         else {
             let zip = new AdmZip()
@@ -72,7 +80,7 @@ module.exports = class ElectronFileManager{
                 base64 = ElectronFileManager.getOnlyBase64Value(base64)
                 zip.addFile(`lesson${i+1}.png`, Buffer.from(base64, 'base64'))
             } )
-            fs.writeFile(filePath, zip.toBuffer(),  "binary", function(err) { console.log(err) });
+            fs.writeFile(filePath, zip.toBuffer(),  "binary", function(err) { console.log(err) })
         }
         
         // waiting for file saving
