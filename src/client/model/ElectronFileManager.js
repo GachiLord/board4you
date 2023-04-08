@@ -2,14 +2,13 @@ const { dialog } = require('electron')
 const fs = require('fs')
 const imgToPDF = require('image-to-pdf')
 const AdmZip = require("adm-zip")
-const getCanvasSize = require('./getCanvasSize')
-// const pdf2img = require('pdf-img-convert');
+const getCanvasSize = require('./CommonGetCanvasSize')
 
 
 module.exports = class ElectronFileManager{
 
     static async openFilesAsBase64Images(){
-        const dialogResult = await dialog.showOpenDialog({ 
+        const dialogResult = await dialog.showOpenDialog(globalThis.appWindow, { 
             properties: ['openFile'],
             filters: [
                 { name: 'pdf, png, zip', extensions: ['pdf', 'png', 'zip'] }
@@ -22,7 +21,7 @@ module.exports = class ElectronFileManager{
         let base64Files = []
 
         
-        if (extention === 'zip') {
+        if (extention === 'zip'){
             let zip = new AdmZip(path)
             zip.getEntries().forEach(e => {
                 base64Files.push(ElectronFileManager.getFullBase64(zip.readFile(e).toString('base64')))
@@ -93,7 +92,7 @@ module.exports = class ElectronFileManager{
     }
 
     static async saveBase64As(base64file) {
-        const pathDialog = await dialog.showSaveDialog({
+        const pathDialog = await dialog.showSaveDialog(globalThis.appWindow, {
             title: globalThis.localizationCfg.savePdfOrZip,
             defaultPath: 'lesson.pdf',
             properties: ['showOverwriteConfirmation', 'createDirectory']

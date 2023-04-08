@@ -5,8 +5,8 @@ import CanvasUtils from '../../../lib/CanvasUtils';
 import boardEvents from '../../base/boardEvents';
 import Canvas from './Canvas';
 import emptyImg from '../../../constants/CommonEmptyImage';
-import getCanvasSize from '../../../model/getCanvasSize';
-// import { convert } from '../../../lib/pdf2img';
+import getCanvasSize from '../../../model/CommonGetCanvasSize';
+import setCanvasSize from '../../../model/setCanvasSize';
 
 
 export default class Drawer extends React.Component{
@@ -517,16 +517,19 @@ export default class Drawer extends React.Component{
 
                         switch(type){
                             case 'pdf':
-                                let imgs = await CanvasUtils.getPdfAsBase64imgs(path)
-                                for (let i in imgs){
-                                    let img = imgs[i]
+                                const pdf = await CanvasUtils.getPdfAsBase64imgs(path) 
+                                const imgs = pdf.imgs
+
+                                this.setState({baseHeight: pdf.size.height, width: pdf.size.width})
+                                setCanvasSize(pdf.size)
+                                
+                                for (let img of imgs){
                                     if (img !== emptyImg) this.paste(img, await CanvasUtils.getSizeOfBase64Img(img), 0 )
-                                }
+                                }     
                                 break
                             case 'png':
-                                for(let img in files){
-                                    let i = files[img]
-                                    if (i !== emptyImg) this.paste(i, await CanvasUtils.getSizeOfBase64Img(i), 0 )
+                                for(let img of files){
+                                    this.paste(img, await CanvasUtils.getSizeOfBase64Img(img), 0 )
                                 }
                                 break
                         }

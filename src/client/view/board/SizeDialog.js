@@ -5,7 +5,7 @@ import boardEvents from '../base/boardEvents'
 import useLocalStorageState from 'use-local-storage-state'
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
-import getCanvasSize from '../../model/getCanvasSize'
+import getCanvasSize from '../../model/CommonGetCanvasSize'
 
 
 
@@ -48,7 +48,7 @@ export default function() {
             <Modal.Title>{loc.selectSizeOfCanvas}</Modal.Title>
             </Modal.Header>
             <Modal.Body>
-                <div className='d-flex p-6'>
+                <div className='d-flex'>
                     <InputGroup className="m-3">
                         <InputGroup.Text id="height">{loc.height}</InputGroup.Text>
                         <Form.Control

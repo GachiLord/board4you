@@ -1,11 +1,12 @@
-const { width } = require("../constants/CommonCanvasSize")
-
 module.exports = function(){
     let exp = {height: 920, width: 1720}
 
     if (globalThis.window) {
         if (localStorage.getItem('CanvasSize')){
-            exp = JSON.parse(localStorage.getItem('CanvasSize'))
+            try{
+                exp = JSON.parse(localStorage.getItem('CanvasSize'))
+            }
+            catch{}
         }
     }
     else if (globalThis.CanvasSize) exp = globalThis.CanvasSize

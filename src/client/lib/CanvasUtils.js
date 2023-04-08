@@ -1,7 +1,8 @@
 import { Util } from 'konva/lib/Util'
 import { jsPDF } from "jspdf"
 import CommonCanvasSize from '../constants/CommonCanvasSize'
-import getCanvasSize from '../model/getCanvasSize'
+import getCanvasSize from '../model/CommonGetCanvasSize'
+import setCanvasSize from '../model/setCanvasSize'
 
 export default class CanvasUtils{
     
@@ -137,7 +138,7 @@ export default class CanvasUtils{
         return new Promise( (resolve, _) => {
             let element = new Image()
             element.onload = function(){
-                let size = {height: this.height, width: this.width}
+                let size = {height: this.height !== NaN ? this.height: 0, width: this.width !== NaN ? this.width: 0}
                 element.remove()
                 resolve(size)
             } 
@@ -207,15 +208,15 @@ export default class CanvasUtils{
     static getPdfAsBase64imgs = async (path) => {
         let doc = await pdfjsLib.getDocument({url:path}).promise
         let imgs = []
-        const size = getCanvasSize()
+        let pagesWidth = []
+        let pagesHeight = []
+
         
         for (let i = 1; i <= doc.numPages; i++){
             let p = await doc.getPage(i) 
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            const pageWidth = p.getViewport({ scale: 1 }).width
-
-            const viewport = p.getViewport({ scale: size.width / pageWidth });
+            const canvas = document.createElement('canvas')
+            const context = canvas.getContext('2d')
+            const viewport = p.getViewport({ scale: 1 })
             
             context.imageSmoothingEnabled = false
             canvas.width = viewport.width
@@ -228,10 +229,13 @@ export default class CanvasUtils{
 
             imgs.push(canvas.toDataURL())
             canvas.remove()
+
+            // add page sizes
+            pagesWidth.push(viewport.width)
+            pagesHeight.push(viewport.height)
         }
 
-        console.log(imgs)
-        return imgs
+        return {imgs: imgs, size: {width: Math.max(...pagesWidth), height: Math.max(...pagesHeight)} }
     }
 
     static async getBase64imgsAsPdf(imgs){

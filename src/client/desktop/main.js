@@ -24,6 +24,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     }
   })
+  globalThis.appWindow = win
 
   // dialog stuff
 
@@ -57,6 +58,7 @@ function createWindow() {
       win.webContents.send('onMenuButtonClick', 'newFile')
       currentFilePath = null 
     }
+    else win.webContents.send('onMenuButtonClick', 'newFile')
   }
 
   // load page
@@ -167,7 +169,7 @@ app.whenReady().then(() => {
   ipcMain.on('saveFile', async (_, data) => {
     fileIsSaving = true
 
-    if (currentFilePath !== null) await ElectronFileManager.saveBase64(data, currentFilePath)
+    if (currentFilePath) currentFilePath = await ElectronFileManager.saveBase64(data, currentFilePath)
     else currentFilePath = await ElectronFileManager.saveBase64As(data)
 
     fileHasChanged = false
