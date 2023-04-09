@@ -15,7 +15,7 @@ export default React.forwardRef((props, ref) => {
                 ref={ref}
                 className="border"
                 width={props.width}
-                height={props.height}
+                height={props.baseHeight}
                 onMouseDown={props.onStageMouseDown && props.onStageMouseDown}
                 onMouseMove={props.onStageMouseMove && props.onStageMouseMove}
                 onMouseup={props.onStageMouseup && props.onStageMouseup}
@@ -33,7 +33,6 @@ export default React.forwardRef((props, ref) => {
                                 width={props.width}
                                 height={props.height + props.baseHeight}
                                 shadowForStrokeEnabled={false}
-                                key='background'
                                 fill='white'
                                 globalCompositeOperation='source-over'
                             />

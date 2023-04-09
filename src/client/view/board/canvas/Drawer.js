@@ -4,7 +4,6 @@ import { flushSync } from "react-dom";
 import CanvasUtils from '../../../lib/CanvasUtils';
 import boardEvents from '../../base/boardEvents';
 import Canvas from './Canvas';
-import emptyImg from '../../../constants/CommonEmptyImage';
 import getCanvasSize from '../../../model/CommonGetCanvasSize';
 import setCanvasSize from '../../../model/setCanvasSize';
 
@@ -524,10 +523,14 @@ export default class Drawer extends React.Component{
                                 setCanvasSize(pdf.size)
                                 
                                 for (let img of imgs){
-                                    if (img !== emptyImg) this.paste(img, await CanvasUtils.getSizeOfBase64Img(img), 0 )
+                                    this.paste(img, await CanvasUtils.getSizeOfBase64Img(img), 0 )
                                 }     
                                 break
                             case 'png':
+                                const size = await CanvasUtils.getSizeOfBase64Img(files[0])
+                                this.setState({baseHeight: size.height, width: size.width})
+                                setCanvasSize(size)
+
                                 for(let img of files){
                                     this.paste(img, await CanvasUtils.getSizeOfBase64Img(img), 0 )
                                 }
@@ -679,7 +682,8 @@ export default class Drawer extends React.Component{
             <Canvas 
                 ref={this.stage}
                 width={this.state.width}
-                height={this.state.baseHeight}
+                baseHeight={this.state.baseHeight}
+                height={this.state.height}
                 stagePos={this.state.stagePos}
                 history={history}
                 temporaryShapes={temporaryShapes}
