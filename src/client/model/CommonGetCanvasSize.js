@@ -14,5 +14,9 @@ module.exports = function(){
     exp.height = Number(exp.height)
     exp.width = Number(exp.width)
 
+
+    if (exp.height === 0) exp.height = 920
+    if (exp.width === 0) exp.width = 1720
+
     return exp
 }

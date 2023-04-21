@@ -516,7 +516,7 @@ export default class Drawer extends React.Component{
 
                         switch(type){
                             case 'pdf':
-                                const pdf = await CanvasUtils.getPdfAsBase64imgs(path) 
+                                const pdf = await CanvasUtils.getPdfAsBase64imgs(path)
                                 const imgs = pdf.imgs
 
                                 this.setState({baseHeight: pdf.size.height, width: pdf.size.width})
@@ -577,7 +577,7 @@ export default class Drawer extends React.Component{
         }
     }
 
-    getStageAsUrls = async (quality) => {
+    getStageAsUrls = async () => {
         flushSync( () => this.setState({renderOutOfViewElements: true}) )
         const stagePos = this.state.stagePos
         const width = this.state.width
@@ -592,8 +592,8 @@ export default class Drawer extends React.Component{
                     x: stagePos.x,
                     y: y,
                     width: width,
-                    height: this.state.baseHeight
-                }, quality)
+                    height: this.state.baseHeight,
+                })
             )
         }
         
@@ -621,14 +621,17 @@ export default class Drawer extends React.Component{
             this.electronAPI.onMenuButtonClick( (_, o, d) => {this.runOption(o, d)} )
         }
         else console.warn('electronApi is not found')
-        // fbemitter events listener
+        // fbemitter event listeners
         boardEvents.addListener('undo', () => { this.runOption('undo') })
         boardEvents.addListener('redo', () => { this.runOption('redo') })
-        boardEvents.addListener('SizeHasChanged', () => { 
+        boardEvents.addListener('SizeHasChanged', () => {
             const size = getCanvasSize()
             this.setState({baseHeight: size.height, width: size.width})
         })
-        // web events listeners
+        boardEvents.addListener('StagePosHasChanged', (pos) => {
+            
+        })
+        // web event listeners
         window.addEventListener('paste', (e) => {
             CanvasUtils.retrieveImageFromClipboardAsBase64(e, (url, size) => {
                 this.paste(url, size)
@@ -672,7 +675,8 @@ export default class Drawer extends React.Component{
         const temporaryShapes = this.state.temporaryShapes
         // create dashed lines between pages if not saving
         let pageLinesY = [] 
-        if (!renderOutOfViewElements) {
+        // preventing infinite loop and removing lines when saving
+        if (!renderOutOfViewElements && this.state.baseHeight !== this.state.height) {
             for (let i = this.state.baseHeight; i <= this.state.height; i += this.state.baseHeight ){
                 pageLinesY.push(i)
             }

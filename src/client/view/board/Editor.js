@@ -6,7 +6,7 @@ import useLocalStorageState from 'use-local-storage-state'
 import SizeDialog from "./SizeDialog";
 
 
-export default function(props){
+export default function(){
 
     const [currentTool, setTool] = useState('pen')
     const defaultSetting = {

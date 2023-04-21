@@ -36,7 +36,6 @@
     "is-url": "^1.2.4",
     "jspdf": "^2.5.1",
     "konva": "^8.3.14",
-    "pdf-img-convert": "^1.2.0",
     "react": "^18.2.0",
     "react-bootstrap": "^2.6.0",
     "react-bootstrap-range-slider": "^3.0.8",

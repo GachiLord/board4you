@@ -25,20 +25,6 @@ export default React.forwardRef((props, ref) => {
                 y={props.stagePos.y}
                 >
                 <Layer listening={false}>
-                    {
-                        (props.renderOutOfViewElements) && (
-                            <Rect
-                                x={0}
-                                y={0}
-                                width={props.width}
-                                height={props.height + props.baseHeight}
-                                shadowForStrokeEnabled={false}
-                                fill='white'
-                                globalCompositeOperation='source-over'
-                            />
-                        )
-                    }
-
                     {history.map((shape) => {
                         switch (shape.type) {
                             case 'arrow':
@@ -133,7 +119,21 @@ export default React.forwardRef((props, ref) => {
                                     />
                                 )
                         }
-                    }      
+                        {
+                            (props.renderOutOfViewElements) && (
+                                <Rect
+                                    x={0}
+                                    y={0}
+                                    width={props.width}
+                                    height={props.height + props.baseHeight}
+                                    shadowForStrokeEnabled={false}
+                                    fill='white'
+                                    globalCompositeOperation='source-over'
+                                />
+                            )
+                        }
+                    }
+                          
                 )}           
                 </Layer>
                 <Layer>

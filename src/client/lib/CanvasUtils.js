@@ -211,14 +211,12 @@ export default class CanvasUtils{
         let pagesWidth = []
         let pagesHeight = []
 
-        
         for (let i = 1; i <= doc.numPages; i++){
-            let p = await doc.getPage(i) 
+            let p = await doc.getPage(i)
             const canvas = document.createElement('canvas')
             const context = canvas.getContext('2d')
             const viewport = p.getViewport({ scale: 1 })
             
-            context.imageSmoothingEnabled = false
             canvas.width = viewport.width
             canvas.height = viewport.height
 
@@ -230,7 +228,6 @@ export default class CanvasUtils{
             imgs.push(canvas.toDataURL())
             canvas.remove()
 
-            // add page sizes
             pagesWidth.push(viewport.width)
             pagesHeight.push(viewport.height)
         }
