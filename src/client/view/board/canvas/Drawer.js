@@ -318,6 +318,7 @@ export default class Drawer extends React.Component{
     handleDownCanvasClick = (pointerPos) => {
         // create new page if user is on edge
         if (pointerPos.y >= this.state.height - 300) this.increaseHeight();
+        boardEvents.emit('stageDragStoped', this.state.stagePos, this.state.height)
     }
 
     increaseHeight(ratio = 1) {
@@ -329,6 +330,7 @@ export default class Drawer extends React.Component{
     }
 
     handleStopDrawing = (e) => {
+        boardEvents.emit('stageDragStoped', this.state.stagePos, this.state.height)
         // stop drawing if we are not on canvas
         // stop drawing    
         const isDrawing = this.state.isDrawing
@@ -628,8 +630,8 @@ export default class Drawer extends React.Component{
             const size = getCanvasSize()
             this.setState({baseHeight: size.height, width: size.width})
         })
-        boardEvents.addListener('StagePosHasChanged', (pos) => {
-            
+        boardEvents.addListener('pageSetted', (pos) => {
+            this.setState({stagePos: pos})
         })
         // web event listeners
         window.addEventListener('paste', (e) => {
@@ -676,7 +678,7 @@ export default class Drawer extends React.Component{
         // create dashed lines between pages if not saving
         let pageLinesY = [] 
         // preventing infinite loop and removing lines when saving
-        if (!renderOutOfViewElements && this.state.baseHeight !== this.state.height) {
+        if (!renderOutOfViewElements && this.state.baseHeight !== 0) {
             for (let i = this.state.baseHeight; i <= this.state.height; i += this.state.baseHeight ){
                 pageLinesY.push(i)
             }

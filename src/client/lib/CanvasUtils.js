@@ -1,8 +1,6 @@
 import { Util } from 'konva/lib/Util'
 import { jsPDF } from "jspdf"
-import CommonCanvasSize from '../constants/CommonCanvasSize'
 import getCanvasSize from '../model/CommonGetCanvasSize'
-import setCanvasSize from '../model/setCanvasSize'
 
 export default class CanvasUtils{
     

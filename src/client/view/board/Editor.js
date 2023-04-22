@@ -4,6 +4,7 @@ import ToolPanel from "./toolPanel/ToolPanel";
 import UndoRedoBar from "./undoRedoBar/UndoRedoBar"
 import useLocalStorageState from 'use-local-storage-state'
 import SizeDialog from "./SizeDialog";
+import PageBar from "./PageBar";
 
 
 export default function(){
@@ -41,19 +42,20 @@ export default function(){
 
     const panelStyle = {zIndex: 3}
     const undoBarStyle = {...panelStyle}
-    const drawerStyle = {'margin': '5px 0 0 100px'}
+    const drawerStyle = {'margin': '5px 0 0 120px'}
 
     return (
         <>
         <div className="d-flex align-items-center">
             <div className="position-fixed h-75 d-flex flex-column justify-content-around m-4" style={panelStyle}>
+                <PageBar />
                 <ToolPanel
                     onModeChange={handleModeChange} 
                     handleAttrChange={handleAttrChange}
                     tool={currentTool}
                     defaultSettings={toolSettings}
                 />
-                <div className="mt-5 d-inline-block" style={undoBarStyle}>
+                <div className="d-inline-block" style={undoBarStyle}>
                     <UndoRedoBar />
                 </div>
             </div>
