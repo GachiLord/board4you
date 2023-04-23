@@ -46,7 +46,7 @@ export default function(){
 
     return (
         <>
-        <div className="d-flex align-items-center">
+        <div className="d-flex">
             <div className="position-fixed h-75 d-flex flex-column justify-content-around m-4" style={panelStyle}>
                 <PageBar />
                 <ToolPanel
