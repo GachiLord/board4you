@@ -1,5 +1,5 @@
 module.exports = function(){
-    let exp = require('../constants/CommonDefaultSize')
+    let exp = {height: 920, width: 1720}
 
     if (globalThis.window) {
         if (localStorage.getItem('CanvasSize')){
