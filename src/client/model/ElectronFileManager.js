@@ -68,6 +68,7 @@ module.exports = class ElectronFileManager{
         const fsStream = fs.createWriteStream(filePath)
         const finish = new Promise( (resolve, reject) => {
             fsStream.on('finish', () => resolve(filePath) )
+            fsStream.on('drain', () => resolve(filePath) )
             fsStream.on('error', (e) =>  reject(e) )
         } )
 
@@ -81,16 +82,9 @@ module.exports = class ElectronFileManager{
             } )
             fsStream.write(zip.toBuffer())
         }
-
-        fsStream.close()
         
         // waiting for file saving
-        if (extention === 'pdf'){
-            return await finish
-        }
-        else{
-            return filePath
-        }
+        return await finish
     }
 
     static async saveBase64As(base64file) {
