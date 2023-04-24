@@ -545,6 +545,7 @@ export default class Drawer extends React.Component{
                         const stagePos = this.state.stagePos
                         stagePos.y = -CanvasUtils.getFreeY(this.getCurrentHistoryAcActions()) + this.state.baseHeight
                         this.setState({ stagePos: stagePos })
+                        boardEvents.emit('stageDragStoped', this.state.stagePos, this.state.height)
                     }
                     
                 }
