@@ -156,6 +156,8 @@ app.whenReady().then(() => {
     globalThis.CanvasSize = value
   } )
 
+  ipcMain.on('newFile', () => currentFilePath = null)
+
   ipcMain.on('saveFileAs', async (_, data) => {
     fileIsSaving = true
 

@@ -503,6 +503,7 @@ export default class Drawer extends React.Component{
         switch (o) {
             case 'newFile':
                 flushSync( () => { this.setState(this.getBaseState()) } )
+                this.electronAPI.hadleNewFile()
                 break
             case 'selectSize':
                 boardEvents.emit('selectSize')
@@ -526,7 +527,7 @@ export default class Drawer extends React.Component{
                                 
                                 for (let img of imgs){
                                     this.paste(img, await CanvasUtils.getSizeOfBase64Img(img), 0 )
-                                }     
+                                }
                                 break
                             case 'png':
                                 const size = await CanvasUtils.getSizeOfBase64Img(files[0])
@@ -542,7 +543,7 @@ export default class Drawer extends React.Component{
                         if (this.electronAPI) this.electronAPI.handleFileOpen()
                         // set pos to last page
                         const stagePos = this.state.stagePos
-                        stagePos.y = -CanvasUtils.getFreeY(this.getCurrentHistoryAcActions())
+                        stagePos.y = -CanvasUtils.getFreeY(this.getCurrentHistoryAcActions()) + this.state.baseHeight
                         this.setState({ stagePos: stagePos })
                     }
                     
