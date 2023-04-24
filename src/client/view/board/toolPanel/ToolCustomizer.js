@@ -57,7 +57,7 @@ export default class ToolCustomizer extends Component{
         const labelStyle = {
             'wordWrap': 'normal'
         }
-        const locCfg = window.global.localizationCfg
+        const locCfg = localizationCfg
 
 
         return (

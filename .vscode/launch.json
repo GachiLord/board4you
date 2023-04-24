@@ -20,9 +20,12 @@
             "type": "node",
             "request": "launch",
             "cwd": "${workspaceFolder}",
-            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electronmon",
             "args" : ["."],
-            "outputCapture": "std"
+            "outputCapture": "std",
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
           }
     ]
 }

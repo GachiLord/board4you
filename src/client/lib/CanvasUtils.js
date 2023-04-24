@@ -1,4 +1,6 @@
 import { Util } from 'konva/lib/Util'
+import { jsPDF } from "jspdf"
+import getCanvasSize from '../model/CommonGetCanvasSize'
 
 export default class CanvasUtils{
     
@@ -134,7 +136,7 @@ export default class CanvasUtils{
         return new Promise( (resolve, _) => {
             let element = new Image()
             element.onload = function(){
-                let size = {height: this.height, width: this.width}
+                let size = {height: this.height !== NaN ? this.height: 0, width: this.width !== NaN ? this.width: 0}
                 element.remove()
                 resolve(size)
             } 
@@ -202,17 +204,17 @@ export default class CanvasUtils{
     }
 
     static getPdfAsBase64imgs = async (path) => {
-
         let doc = await pdfjsLib.getDocument({url:path}).promise
         let imgs = []
-        
+        let pagesWidth = []
+        let pagesHeight = []
+
         for (let i = 1; i <= doc.numPages; i++){
             let p = await doc.getPage(i)
-
-            let canvas = document.createElement('canvas')
-            let context = canvas.getContext('2d')
-            let viewport = p.getViewport({scale:1})
-
+            const canvas = document.createElement('canvas')
+            const context = canvas.getContext('2d')
+            const viewport = p.getViewport({ scale: 1 })
+            
             canvas.width = viewport.width
             canvas.height = viewport.height
 
@@ -223,10 +225,41 @@ export default class CanvasUtils{
 
             imgs.push(canvas.toDataURL())
             canvas.remove()
+
+            pagesWidth.push(viewport.width)
+            pagesHeight.push(viewport.height)
         }
 
+        return {imgs: imgs, size: {width: Math.max(...pagesWidth), height: Math.max(...pagesHeight)} }
+    }
 
-        return imgs
+    static async getBase64imgsAsPdf(imgs){
+        const doc = new jsPDF({
+            orientation: 'l',
+            format: Object.values(getCanvasSize()),
+        })
+        imgs = await imgs
+
+        imgs.forEach( (item, index) => {
+            doc.addImage(item, 'PNG', 0, 0, getCanvasSize().width, getCanvasSize().height)
+            if (index < imgs.length - 1) doc.addPage(Object.values(getCanvasSize()), 'l')
+        } )
+        return doc
+    }
+
+    static async getImageFromUrl(url){
+        return new Promise( (res, rej) => {
+            let img = new Image()
+    
+            img.onError = function() {
+                rej('Cannot load image')
+            };
+            img.onload = function() {
+                res(img);
+            };        
+            img.src = url;
+        } )
+        
     }
 
 }

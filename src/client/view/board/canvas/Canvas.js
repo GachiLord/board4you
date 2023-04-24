@@ -15,7 +15,7 @@ export default React.forwardRef((props, ref) => {
                 ref={ref}
                 className="border"
                 width={props.width}
-                height={props.height}
+                height={props.baseHeight}
                 onMouseDown={props.onStageMouseDown && props.onStageMouseDown}
                 onMouseMove={props.onStageMouseMove && props.onStageMouseMove}
                 onMouseup={props.onStageMouseup && props.onStageMouseup}
@@ -24,25 +24,8 @@ export default React.forwardRef((props, ref) => {
                 x={props.stagePos.x}
                 y={props.stagePos.y}
                 >
-                {
-                    (props.renderOutOfViewElements) && (
-                        <Layer listening={false}>
-                            <Rect
-                                    x={0}
-                                    y={0}
-                                    width={props.width}
-                                    height={props.height + props.baseHeight}
-                                    shadowForStrokeEnabled={false}
-                                    key='background'
-                                    fill='white'
-                                    globalCompositeOperation='source-over'
-                                />
-                        </Layer>
-                    )
-                }
-                
                 <Layer listening={false}>
-                    {history.map((shape) => {
+                    {history.map((shape) => {  
                         switch (shape.type) {
                             case 'arrow':
                                 return (
@@ -136,8 +119,22 @@ export default React.forwardRef((props, ref) => {
                                     />
                                 )
                         }
-                    }      
-                )}           
+                    }
+                          
+                )}
+                    {
+                        (props.renderOutOfViewElements) && (
+                            <Rect
+                                x={0}
+                                y={0}
+                                width={props.width}
+                                height={props.height + props.baseHeight}
+                                shadowForStrokeEnabled={false}
+                                fill='white'
+                                globalCompositeOperation='destination-over'
+                            />
+                        )
+                    }           
                 </Layer>
                 <Layer>
                 {

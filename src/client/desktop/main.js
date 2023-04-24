@@ -8,14 +8,15 @@ const path = require('path')
 const ElectronFileManager = require('../model/ElectronFileManager')
 const getLocalization = require('../lib/CommonGetLocalizationCfg')
 
-
 // state vars
 let currentFilePath = null
 let fileHasChanged = false
 let fileIsSaving = false
 
 
-function createWindow(localeCfg) {
+function createWindow() {
+  const localeCfg = globalThis.localizationCfg
+
   const win = new BrowserWindow({
     width: 800,
     height: 600,
@@ -23,6 +24,7 @@ function createWindow(localeCfg) {
       preload: path.join(__dirname, 'preload.js')
     }
   })
+  globalThis.appWindow = win
 
   // dialog stuff
 
@@ -41,13 +43,22 @@ function createWindow(localeCfg) {
       let opened = await ElectronFileManager.openFilesAsBase64Images()
 
       win.webContents.send('onMenuButtonClick', 'openFile', opened )
-      currentFilePath = opened.path
+      currentFilePath = (opened) ? opened.path: undefined
       fileHasChanged = false
     }
 
     if (!fileHasChanged) open()
     else if(!exitAlert()) open()
 
+  }
+
+  async function handleNewFile(){
+    if ( fileHasChanged && !fileIsSaving ) {
+      if (exitAlert()) e.preventDefault()
+      win.webContents.send('onMenuButtonClick', 'newFile')
+      currentFilePath = null 
+    }
+    else win.webContents.send('onMenuButtonClick', 'newFile')
   }
 
   // load page
@@ -60,11 +71,12 @@ function createWindow(localeCfg) {
       label: localeCfg.fileMenuLabel,
       submenu: [
         { label: localeCfg.create, click: () => { 
-          win.webContents.send('onMenuButtonClick', 'newFile')
-          currentFilePath = null 
+          handleNewFile()
         },
           accelerator: 'CommandOrControl+N' },
         { label: localeCfg.open, click: handleOpenFile, accelerator: 'CommandOrControl+O' },
+        { type: 'separator'},
+        { label: localeCfg.selectSize, click: () => { win.webContents.send('onMenuButtonClick', 'selectSize') }, accelerator: 'CommandOrControl+L' },
         { type: 'separator'},
         { label: localeCfg.save, click: () => { 
           win.webContents.send('onMenuButtonClick', 'saveFile')
@@ -91,15 +103,12 @@ function createWindow(localeCfg) {
     {
       label: localeCfg.viewMenuLabel,
       submenu: [
-        { role: 'reload', label: localeCfg.reload },
-        { role: 'forceReload', label: localeCfg.forceReload },
-        { role: 'toggleDevTools', label: localeCfg.devTools },
-        { type: 'separator' },
         { role: 'resetZoom', label: localeCfg.resetZoom },
-        { role: 'zoomIn', label: localeCfg.zoomIn },
-        { role: 'zoomOut', label: localeCfg.zoomOut },
+        { role: 'zoomIn', label: localeCfg.zoomIn, accelerator: 'CommandOrControl+=' },
+        { role: 'zoomOut', label: localeCfg.zoomOut, accelerator: 'CommandOrControl+-' },
         { type: 'separator' },
-        { role: 'togglefullscreen', label: localeCfg.fullscreen }
+        { role: 'togglefullscreen', label: localeCfg.fullscreen },
+        { role: 'toggleDevTools', label: localeCfg.devTools },
       ]
     },
     // { role: 'windowMenu' }
@@ -132,16 +141,22 @@ function createWindow(localeCfg) {
 }
 
 app.whenReady().then(() => {
-  const localeCfg = getLocalization(app.getLocale())
-  createWindow(localeCfg)
+  globalThis.localizationCfg = getLocalization(app.getLocale())
 
-  app.on('activate', () => {
+  if (isMac) app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
     }
   })
+  else createWindow()
 
   // msgs listeners  
+
+  ipcMain.on('setCanvasSize', ( _, value ) => {
+    globalThis.CanvasSize = value
+  } )
+
+  ipcMain.on('newFile', () => currentFilePath = null)
 
   ipcMain.on('saveFileAs', async (_, data) => {
     fileIsSaving = true
@@ -156,7 +171,7 @@ app.whenReady().then(() => {
   ipcMain.on('saveFile', async (_, data) => {
     fileIsSaving = true
 
-    if (currentFilePath !== null) await ElectronFileManager.saveBase64(data, currentFilePath)
+    if (currentFilePath) currentFilePath = await ElectronFileManager.saveBase64(data, currentFilePath)
     else currentFilePath = await ElectronFileManager.saveBase64As(data)
 
     fileHasChanged = false

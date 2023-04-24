@@ -1,14 +1,12 @@
 import { createRoot } from 'react-dom/client';
 import Board from '../view/board/Editor'
-import 'bootstrap/dist/css/bootstrap.css'
+import 'bootstrap/dist/css/bootstrap.min.css'
 import React from 'react';
 import getLocalizationCfg from '../lib/CommonGetLocalizationCfg';
 
 
 // add loc cfg
-window.global = {
-    localizationCfg: getLocalizationCfg(navigator.language)
-}
+globalThis.localizationCfg = getLocalizationCfg(navigator.language)
 
 const container = document.getElementById('root');
 const root = createRoot(container);
