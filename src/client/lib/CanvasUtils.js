@@ -3,6 +3,35 @@ import { jsPDF } from "jspdf"
 import getCanvasSize from '../model/CommonGetCanvasSize'
 
 export default class CanvasUtils{
+
+    static getHistoryAcActions(history, actions){
+        let endIndex = 0 // for add last action
+        let removedShapesIds = [] // for remove action
+
+        actions.forEach( (item) => {
+            switch (item.action){
+                case 'add last':
+                    endIndex++
+                    break
+                case 'move':
+                    item.shapes.forEach( (shape) => {
+                        const id = shape.attrs.shapeId
+                        const pos = history[id].pos
+                        const oldPos = item.oldPos
+                        const newPos = item.newPos
+                        history[id].pos = {x: newPos.x - (oldPos.x - pos.x),
+                                           y: newPos.y - (oldPos.y - pos.y)}
+                    } )
+                    break
+                case 'remove':
+                    item.shapes.forEach( i => { removedShapesIds.push(i.attrs.shapeId) } )
+        }} )
+
+        history = history.slice(0,endIndex) // accept add last changes
+        history = history.filter( i => !removedShapesIds.includes(i.shapeId) ) // accept remove changes
+
+        return history
+    }
     
     static getViewedHisotry(history, viewBox) {
         return history.filter( s => 
@@ -57,45 +86,6 @@ export default class CanvasUtils{
         }
 
         return false
-    }
-
-    static findShapes = (history, query = {}) => {
-        return history.map( (hisItem) => {
-            // get count of mathced properties
-            let matchCount = Object.keys(query).reduce( (acc, value) => {
-                if (query[value] === hisItem[value]) return acc + 1
-            }, 0 )
-
-            // if item matched, change values
-            if ( matchCount === Object.keys(query).length ) {
-                return hisItem
-            }
-        }).filter( i => i !== undefined )
-    }
-
-    static getHistoryWithChanges = (history, query = {}, attrsKeyValue = {}) => {
-        
-        history = history.slice()
-
-        history.forEach( (hisItem, index) => {
-            // get count of mathced properties
-            let matchCount = Object.keys(query).reduce( (acc, value) => {
-                if (query[value] === hisItem[value]) return acc + 1
-            }, 0 )
-
-            // if item matched, change values
-            if ( matchCount === Object.keys(query).length ) {
-                let newHisItem = {...hisItem}
-                Object.keys(attrsKeyValue).forEach( propToChange => {
-                    newHisItem[propToChange] = attrsKeyValue[propToChange]
-                } )
-
-                history[index] = newHisItem
-            }
-        } )
-
-
-        return history
     }
 
     static getCoorFromPoints = (points, coor) => {
@@ -261,5 +251,4 @@ export default class CanvasUtils{
         } )
         
     }
-
 }

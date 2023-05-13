@@ -1,12 +1,12 @@
 import React from 'react';
-import { v4 as uuid4 } from 'uuid';
-import { flushSync } from "react-dom";
 import CanvasUtils from '../../../lib/CanvasUtils';
 import boardEvents from '../../base/boardEvents';
 import Canvas from './Canvas';
 import getCanvasSize from '../../../model/CommonGetCanvasSize';
-import setCanvasSize from '../../../model/setCanvasSize';
-
+import { mouseDown, mouseMove, mouseUp, removeSelectRect, selectDragMove, selectDragStart, setCursorForTool } from './mouseHandlers'
+import runOption from './electron/runOption';
+import { run } from '../../../lib/twiks';
+import { copySelectionToClipBoard, paste, getStageAsUrls } from './imgManipulation';
 
 export default class Drawer extends React.Component{
 
@@ -21,61 +21,40 @@ export default class Drawer extends React.Component{
     getBaseState(){
         return {
             height: getCanvasSize().height,
+            // height of canvas
             baseHeight: getCanvasSize().height,
+            // height of visible part of canvas
             width: getCanvasSize().width,
+            // width of canvas
             isDrawing: false,
+            // flag is active when mouse key is pressed on canvas 
             currentHistory: [],
-            temporaryShapes: [],
-            historyActions: [],
-            canceledHistoryActions: [],
+            // history built by getCurrentHistoryAcActions()
+            temporaryShapes: {},
+            /* 
+            these shapes will display outside of the drawing layer
+            and they should be removed after an operation
+            */
+            historyActions: [], 
+            // actions that have been taken (REDO)
+            canceledHistoryActions: [], 
+            // actions that have been undone (UNDO)
             selection: [],
+            // shapes that are selected and that can be draged
             isDraggingSelection: false,
+            // flag is active when mouse key is pressed on selection rect
             stagePos: {x: 0,y: 0},
+            // the parameter is responsible for the position of the scope
             lastPointerPos: {x:0, y:0},
+            // position of the last click
             isDraggingStage: false,
-            renderOutOfViewElements: false 
+            // active when selected tool is "move"
+            renderOutOfViewElements: false
+            /*
+            if flag is active all shapes will be rendered
+            Otherwise, only visible shapes will be rendered
+            */
         }
-    }
-
-    getCurrentHistoryAcActions = () => {
-        const currentHistory = this.state.currentHistory.slice()
-        let history = currentHistory
-        let endIndex = 0 // for add last action
-        let removedShapesIds = []
-
-        //if (this.state.isDraggingSelection) return currentHistory
-
-
-        this.state.historyActions.forEach( (item) => {
-            switch (item.action) {
-                case 'add last':
-                    endIndex++
-                    break
-
-                case 'move':
-                    item.shapes.forEach( (shape) => {
-                        const id = shape.attrs.shapeId
-                        const pos = CanvasUtils.findShapes(history, {shapeId: id})[0].pos
-                        const oldPos = item.oldPos
-                        const newPos = item.newPos
-                        history = CanvasUtils.getHistoryWithChanges(
-                                                        history,
-                                                        {shapeId: id},
-                                                        {pos: {x: newPos.x - (oldPos.x - pos.x),
-                                                               y: newPos.y - (oldPos.y - pos.y) }}
-                                                        )
-                    } )
-                    break
-                case 'remove':
-                    item.shapes.forEach( i => { removedShapesIds.push(i.attrs.shapeId) } )
-                    break
-            }
-        } )
-
-        history = history.slice(0,endIndex) // accept add last changes
-        history = history.filter( i => !removedShapesIds.includes(i.shapeId) ) // accept remove changes
-
-        return history
     }
 
     addAction = (action = {action: 'add last'}) => {
@@ -89,8 +68,15 @@ export default class Drawer extends React.Component{
         if ( this.electronAPI !== undefined ) this.electronAPI.handleFileChange()
     }
 
-    acceptCurrentHistoryChanges = () => { 
-        let historyWithChanges = this.getCurrentHistoryAcActions()
+    getCurrentHistoryAcActions = () => {
+        // create deep copy of history to prevent mutations
+        let history = JSON.parse(JSON.stringify(this.state.currentHistory))
+
+        return CanvasUtils.getHistoryAcActions(history, this.state.historyActions)
+    }
+
+    acceptCurrentHistoryChanges = () => {
+        let historyWithChanges = CanvasUtils.getHistoryAcActions(this.state.currentHistory, this.state.historyActions)
         
         this.setState( () => {
             return {
@@ -99,7 +85,6 @@ export default class Drawer extends React.Component{
                 currentHistory: historyWithChanges
             }
         } )
-        
     }
 
 
@@ -114,7 +99,7 @@ export default class Drawer extends React.Component{
                 }
             } )
         }
-        }
+    }
         
     handleRedo = () => {
         let lastAction = this.state.canceledHistoryActions.at(-1)
@@ -141,182 +126,16 @@ export default class Drawer extends React.Component{
         this.stage.current.container().style.cursor = style
     }
 
-    setCursorForTool = () => {
-        const tool = this.props.tool
-        const setCursor = this.setCursor
+    setCursorForTool = () => setCursorForTool.call(this)
 
-        switch(tool){
-            case 'move':
-                setCursor('move')
-                break
-            case 'select':
-                setCursor('crosshair')
-                break
-            case 'rect':
-                setCursor('crosshair')
-                break
-            default:
-                setCursor()
-                break
-        }
-    }
-
-    handleMouseDown = (e) => {
-        const tool = this.props.tool
-        const color = this.props.color
-        const pos = e.target.getStage().getRelativePointerPosition()
-        const lineSize = this.props.lineSize
-        const lineType = this.props.lineType
-
-        // del select if drawing and
-        if (tool !== 'select') this.setState({temporaryShapes: {}})
-
-        if (['pen', 'eraser', 'line', 'arrow', 'dashed line'].includes(tool)){ 
-            //this.setCursor('crosshair')
-            this.setState({isDrawing: true})
-
-            flushSync( () => {
-                this.handleDrawAfterUndo() 
-            } )
-            
-            const type = ['pen', 'eraser', 'dashed line'].includes(tool) ? 'line': tool
-
-            this.setState({
-                currentHistory: [...this.state.currentHistory,
-                {   tool: tool,
-                    points: [pos.x, pos.y],
-                    type: type, 
-                    color: color,
-                    shapeId: uuid4(),
-                    pos: {x: 0, y: 0},
-                    lineSize: lineSize,
-                    lineType: lineType
-                }]
-            })
-
-            this.addAction()
-        }
-        else if ( ['rect', 'ellipse'].includes(tool) ){
-            this.setState({isDrawing: true})
-
-            flushSync( () => {
-                this.handleDrawAfterUndo() 
-            } )
-
-            this.setState({currentHistory:
-                            [...this.state.currentHistory,
-                            {
-                                type: tool,
-                                pos: pos,
-                                height: 0,
-                                width: 0,
-                                color: color,
-                                shapeId: uuid4(),
-                                lineSize: lineSize,
-                                lineType: lineType
-                            }
-                            ]
-            })
-
-            this.addAction()
-        }
-        else if (tool === 'select'){
-            // draw select if pos isnt on old one
-            if (e.target.attrs.id !== 'selectRect' && !this.state.isDraggingSelection) {
-                this.setState({isDrawing: true})
-
-                this.setState( state => {
-                    return {
-                        temporaryShapes: {...state.temporaryShapes, selectRect: {
-                            x: pos.x, 
-                            y: pos.y,
-                            height: 0,
-                            width: 0
-                        }}
-                    }
-                } )
-            }
-        }
-        else if (tool === 'move') {
-            this.setState({isDraggingStage: true})
-        }
-
-        this.setState({lastPointerPos: pos})
-    }
+    handleMouseDown = (e) => mouseDown.call(this, e)
     
-    handleMouseMove = (e) => {
-        const tool = this.props.tool
-        const stage = e.target.getStage();
-        const point = stage.getRelativePointerPosition();
+    handleMouseMove = (e) => mouseMove.call(this, e)
 
-
-        if (['pen', 'eraser'].includes(tool)){
-            if (!this.state.isDrawing) return;
-
-            let shapes = this.state.currentHistory
-            let lastLine = shapes.at(-1);
-            // add point
-            lastLine.points = lastLine.points.concat([point.x,
-                                                      point.y]);
-            // replace last
-            shapes.splice(shapes.length - 1, 1, lastLine);
-            this.setState({currentHistory: shapes.concat()});
-        }
-        else if (['arrow', 'line'].includes(tool)){
-            if (!this.state.isDrawing) return;
-
-            let shapes = this.state.currentHistory
-            let lastLine = shapes.at(-1)
-
-            if (lastLine.points.length > 2) lastLine.points = lastLine.points.slice(0,2)
-            lastLine.points = lastLine.points.concat([point.x, point.y])
-            
-            this.setState({currentHistory: [...shapes.slice(0,-1), lastLine]})
-        }
-        else if (['rect', 'ellipse'].includes(tool)){
-            if (!this.state.isDrawing) return;
-
-            let shapes = this.state.currentHistory
-            let rect = shapes.at(-1)
-            rect.width = point.x - rect.pos.x
-            rect.height = point.y - rect.pos.y
-
-            this.setState({currentHistory: shapes})
-        }
-        else if (tool === 'select'){
-            if (!this.state.isDrawing) return;
-
-            let selectRect = this.state.temporaryShapes.selectRect
-            selectRect.width = point.x - selectRect.x
-            selectRect.height = point.y - selectRect.y
-            
-            this.setState( state => {
-                return {
-                    temporaryShapes: {...state.temporaryShapes, selectRect: selectRect},
-                    selection: []
-                }
-            } )
-        }
-        else if (tool === 'move'){
-            if (!this.state.isDraggingStage) return
-
-            const lastPos = this.state.stagePos
-            const lastPointerPos = this.state.lastPointerPos
-            let newPos = {x: 0,y: 0}
-
-            newPos.y += lastPos.y + (point.y - lastPointerPos.y)
-            newPos.x += 0
-            if (newPos.y >= 0) newPos.y = 0
-            
-            this.setState({stagePos: newPos})
-
-            if ( (Math.abs(newPos.y) - this.state.height) >= 0 ) this.increaseHeight()
-        }
-
-    }
+    handleMouseUp = (e) => mouseUp.call(this, e)
 
     handleDownCanvasClick = (pointerPos) => {
-        // create new page if user is on edge
+        // create new page if user clicked on edge
         if (pointerPos.y >= this.state.height - 300) this.increaseHeight();
         boardEvents.emit('stageDragStoped', this.state.stagePos, this.state.height)
     }
@@ -329,302 +148,35 @@ export default class Drawer extends React.Component{
         this.setState({height: height})
     }
 
-    handleStopDrawing = (e) => {
-        boardEvents.emit('stageDragStoped', this.state.stagePos, this.state.height)
-        // stop drawing if we are not on canvas
-        // stop drawing    
-        const isDrawing = this.state.isDrawing
-        const tool = this.props.tool
-        const stage = e.target.getStage()
+    removeSelectRect = () => removeSelectRect.call(this)
 
+    handleSelectDragStart = () => selectDragStart.call(this)
 
-        if ('pen'=== tool && e.type !== 'mouseleave') {
-            let shapes = this.state.currentHistory
-            let lastEl = shapes.at(-1)
-            let points = lastEl.points
-            
-            if (points.length === 2) {
-                shapes.at(-1).points = points.concat([ points[0] + 1, points[1] + 1, points[0] - 1, points[1] ])
-                this.setState({currentHistory: shapes})
-            }
-        }
-        else if (tool === 'select'){
-            if (!isDrawing) return
+    handleSelectDragMove = (e) => selectDragMove.call(this, e)
 
-            
-            let shapes = stage.getChildren()[0].children
-            let box = this.state.temporaryShapes.selectRect
-
-            // offset negative wifth and height
-            if (box.width < 0) {
-                box.x += box.width
-                box.width = Math.abs(box.width)
-            }
-            if (box.height < 0){
-                box.y += box.height
-                box.height = Math.abs(box.height)
-            }
-
-            let selected = shapes.filter((shape) =>
-                {
-                    const shapeType = shape.attrs.tool
-                    if (shapeType === 'line' || shapeType === 'arrow' || shapeType === 'pen'){
-                        if (CanvasUtils.hasInterceptionWithLine(box, shape)) return shape
-                    }
-                    else{
-                        if (Konva.Util.haveIntersection(box, CanvasUtils.getClientRect(shape))) return shape
-                    }
-                    // if (Konva.Util.haveIntersection(box, CanvasUtils.getClientRect(shape))) return shape
-                }
-            );
-            this.setState({selection: selected})
-            if (selected.length === 0) this.setState(state => {
-                return {
-                    temporaryShapes: {
-                        ...state.temporaryShapes,
-                        selectRect: []
-                    }
-                }
-            })
-        }
-        else if (tool === 'move') this.setState({isDraggingStage: false})
-
-        this.setState({
-            isDrawing: false
-        })
-
-        
-    }
-
-    removeSelectRect = () => {
-        this.setState( state => {
-            return {
-                temporaryShapes: {
-                    ...state.temporaryShapes,
-                    selectRect: undefined
-                },
-                selection: []
-            }
-        } )
-    }
-
-    handleSelectDragStart = () => {
-        const state = this.state
-
-        if (state.selection.length > 0) {
-            flushSync( () => {
-                this.handleDrawAfterUndo()
-            } )
-
-            this.setState({isDraggingSelection: true})
-            
-            const selectRect = {...state.temporaryShapes.selectRect}
-            this.addAction({
-                action: 'move',
-                shapes: state.selection,
-                oldPos: {
-                            x: selectRect.x + state.stagePos.x,
-                            y: selectRect.y + state.stagePos.y
-                        },
-                newPos: 
-                        {
-                            x: selectRect.x + state.stagePos.x,
-                            y: selectRect.y + state.stagePos.y
-                        },
-            })
-        }
-        
-    }
-
-    handleSelectDragMove = (e) => {
-        if (!this.state.isDraggingSelection) return
-
-        this.setState( (state) => { 
-            //const relativePos = e.target.getRelativePointerPosition()
-            const pos = e.target._lastPos
-            let actions = state.historyActions
-            let temporaryShapes = state.temporaryShapes
-
-            temporaryShapes.selectRect.x = pos.x + Math.abs(this.state.stagePos.x)
-            temporaryShapes.selectRect.y = pos.y + Math.abs(this.state.stagePos.y)
-
-            actions.at(-1).newPos = pos
-
-            return {historyActions: actions,
-                    temporaryShapes: temporaryShapes
-            }
-        })
-    }
-
-    handleSelectDragEnd = () => {
-        this.setState({isDraggingSelection: false})
-    }
+    handleSelectDragEnd = () => this.setState({isDraggingSelection: false})
 
     paste = (url, size, delta = 20) => {
-        const canvasSize = getCanvasSize()
-        let scale = Math.min((canvasSize.width / size.width), (canvasSize.height / size.height))        
-        if (scale >= 1) scale = 1
-        const height = size.height * scale
-        const width = size.width * scale
-        const x = 0
-        const y = CanvasUtils.getLastY(this.getCurrentHistoryAcActions()) + delta
-
-       
-        flushSync( () => {
-            this.acceptCurrentHistoryChanges()
-            this.setState( state => {
-                return {
-                    currentHistory: [
-                        ...state.currentHistory,
-                        {
-                        type: 'img',
-                        pos: {
-                        x: x,
-                        y: y,
-                        },
-                        url: url,
-                        height: height,
-                        width: width,
-                        shapeId: uuid4()
-                        }
-                    ]
-                    }
-                } )
-            this.addAction()
-        } )
-
-            if (y + height > canvasSize.height) this.increaseHeight( Math.round(scale) )
-            
-            this.removeSelectRect()
+        paste.call(this, url, size, delta = 20)
     }
 
     runOption = async (o, data) => {
-        console.log(o)
-        switch (o) {
-            case 'newFile':
-                flushSync( () => { this.setState(this.getBaseState()) } )
-                this.electronAPI.hadleNewFile()
-                break
-            case 'selectSize':
-                boardEvents.emit('selectSize')
-                this.setState({baseHeight: this.getBaseState().height, width: this.getBaseState().width})
-                break
-            case 'openFile':   
-                try{
-                    const files = data.base64
-                    const type = data.type
-                    const path = data.path
-                    if (files.length > 0) {
-                        flushSync( () => this.setState(this.getBaseState()))
-
-                        switch(type){
-                            case 'pdf':
-                                const pdf = await CanvasUtils.getPdfAsBase64imgs(path)
-                                const imgs = pdf.imgs
-
-                                this.setState({baseHeight: pdf.size.height, width: pdf.size.width})
-                                setCanvasSize(pdf.size)
-                                
-                                for (let img of imgs){
-                                    this.paste(img, await CanvasUtils.getSizeOfBase64Img(img), 0 )
-                                }
-                                break
-                            case 'png':
-                                const size = await CanvasUtils.getSizeOfBase64Img(files[0])
-                                this.setState({baseHeight: size.height, width: size.width})
-                                setCanvasSize(size)
-
-                                for(let img of files){
-                                    this.paste(img, await CanvasUtils.getSizeOfBase64Img(img), 0 )
-                                }
-                                break
-                        }
-
-                        if (this.electronAPI) this.electronAPI.handleFileOpen()
-                        // set pos to last page
-                        const stagePos = this.state.stagePos
-                        stagePos.y = -CanvasUtils.getFreeY(this.getCurrentHistoryAcActions()) + this.state.baseHeight
-                        this.setState({ stagePos: stagePos })
-                        boardEvents.emit('stageDragStoped', this.state.stagePos, this.state.height)
-                    }
-                    
-                }
-                catch{
-                }
-                break
-            case 'saveFile':
-                // save by browser if there is no nodejs env
-                if (!this.electronAPI){
-                    (await CanvasUtils.getBase64imgsAsPdf(this.getStageAsUrls())).save('lesson')
-                }
-                else this.electronAPI.saveFile(await this.getStageAsUrls())
-                break;
-            case 'saveFileAs':
-                // save by browser if there is no nodejs env
-                if (!this.electronAPI){
-                    (await CanvasUtils.getBase64imgsAsPdf(await this.getStageAsUrls())).save('lesson')
-                }
-                else this.electronAPI.saveFileAs(await this.getStageAsUrls())
-                break;
-            case 'undo':
-                this.handleUndo()
-                this.removeSelectRect()
-                break
-            case 'redo':             
-                this.handleRedo()
-                this.removeSelectRect()
-                break
-            case 'del':
-                if (this.state.selection.length > 0) this.addAction({action:'remove', shapes: this.state.selection})
-                this.removeSelectRect()
-                break
-        }
+        runOption.call(this, o, data)
     }
 
-    getStageAsUrls = async () => {
-        flushSync( () => this.setState({renderOutOfViewElements: true}) )
-        const stagePos = this.state.stagePos
-        const width = this.state.width
-        const lastY = CanvasUtils.getLastY(this.getCurrentHistoryAcActions())
-
-
-        let urls = []
-        for (let y = stagePos.y; y <= lastY - Math.abs(stagePos.y); y += this.state.baseHeight){
-            if (y >= lastY - 5) break
-            urls.push(
-                this.stage.current.toDataURL({
-                    x: stagePos.x,
-                    y: y,
-                    width: width,
-                    height: this.state.baseHeight,
-                })
-            )
-        }
-        
-
-        flushSync( () => this.setState({renderOutOfViewElements: false}) )
-        return urls
+    getStageAsUrls = () => {
+        return getStageAsUrls.call(this)
     }
 
     copySelectionToClipBoard = () => {
-        let selectRect = this.state.temporaryShapes.selectRect
-        selectRect.x += 2
-        selectRect.y += 2 - Math.abs(this.state.stagePos.y)
-        selectRect.height -= 4
-        selectRect.width -= 4
-        navigator.clipboard.write([
-            new ClipboardItem({
-                'image/png': this.stage.current.toBlob(selectRect)
-            })
-        ]);
+        copySelectionToClipBoard.call(this)
     }
 
     componentDidMount = () => {
         // custom electron events listener
-        if (this.electronAPI !== undefined) {
+        run( () => {
             this.electronAPI.onMenuButtonClick( (_, o, d) => {this.runOption(o, d)} )
-        }
-        else console.warn('electronApi is not found')
+        } )
         // fbemitter event listeners
         boardEvents.addListener('undo', () => { this.runOption('undo') })
         boardEvents.addListener('redo', () => { this.runOption('redo') })
@@ -651,17 +203,6 @@ export default class Drawer extends React.Component{
             this.removeSelectRect()
         })
         
-    }
-
-    componentDidUpdate = () => {
-        //this.stage.current.children[0].cache()
-        //console.log(this.stage.current.children[1].children)
-        //console.log(this.context)
-        //if (this.context !== '') this.props.onOptionRan()
-    }
-
-    handleFieldOfViewChange = () => {
-        //console.log(this.stage.current.getClientRect())
     }
 
     render = () => {
@@ -700,8 +241,8 @@ export default class Drawer extends React.Component{
 
                 onStageMouseDown={this.handleMouseDown}
                 onStageMouseMove={this.handleMouseMove}
-                onStageMouseup={this.handleStopDrawing}
-                onStageMouseLeave={this.handleStopDrawing}
+                onStageMouseup={this.handleMouseUp}
+                onStageMouseLeave={this.handleMouseUp}
                 onStageMouseEnter={this.setCursorForTool}
                 
                 onSelectDragStart={this.handleSelectDragStart}
