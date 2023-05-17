@@ -73,7 +73,7 @@ export default async function(o, data){
         case 'saveFileAs':
             // save by browser if there is no nodejs 
             run( async () => {
-                    envthis.electronAPI.saveFileAs(await this.getStageAsUrls())
+                    this.electronAPI.saveFileAs(await this.getStageAsUrls())
                 }, 
                 async () => {
                     await CanvasUtils.getBase64imgsAsPdf(this.getStageAsUrls()).save('lesson')

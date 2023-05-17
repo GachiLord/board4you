@@ -15,7 +15,7 @@ export default class CanvasUtils{
                     break
                 case 'move':
                     item.shapes.forEach( (shape) => {
-                        const id = shape.attrs.shapeId
+                        const id = shape.shapeId
                         const pos = history[id].pos
                         const oldPos = item.oldPos
                         const newPos = item.newPos
@@ -33,10 +33,21 @@ export default class CanvasUtils{
         return history
     }
     
-    static getViewedHisotry(history, viewBox) {
+    static getViewedHistory(history, viewBox) {
         return history.filter( s => 
             (Util.haveIntersection(viewBox, this.getClientRect(s)) || s.type === 'img')
         )
+    }
+
+    static convertToShape(shapeObj){
+        const possibleFields = ['tool', 'type', 'color', 'shapeId', 'lineSize', 'lineType',
+                                'pos', 'height', 'width', 'radiusX', 'radiusY']
+        let shape = {}
+        for (const [key, value] of Object.entries(shapeObj)){
+            if (possibleFields.includes(key)) shape[key] = value
+        }
+
+        return shape
     }
 
     static getClientRect(shape){
