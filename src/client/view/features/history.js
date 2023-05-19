@@ -3,57 +3,49 @@ import { createSlice } from '@reduxjs/toolkit'
 export const historySlice = createSlice({
   name: 'history',
   initialState: {
-    currentHistory: [], // full history
-    historyActions: [], // actions that have been taken
-    canceledHistoryActions: [], // actions that have been undone (UNDO)
+    current: [], // actions that have been taken
+    undone: [], // actions that have been undone (UNDO)
   },
   reducers: {
-    addAction: (state, action) => {
-      state.historyActions.push(action.payload ? action.payload: {action: 'add last'})
+    addCurrent: (state, action) => {
+      state.current.push(action.payload)
     },
-    modifyAction: (state, action) => {
-      state.historyActions[action.payload.id] = action.payload.action
+    addUndone: (state, action) => {
+      state.undone.push(action.payload)
     },
-    addItem: (state, action) => {
-      state.currentHistory.push(action.payload)
-      state.historyActions.push({action: 'add last'})
+    modifyCurrent: (state, action) => {
+      state.current[action.payload.id] = action.payload.item
     },
-    modifyItem: (state, action) => {
-      state.currentHistory[action.payload.id] = action.payload.item
+    modufyLastCurrent: (state, action) => {
+      state.current[state.current.length - 1] = action.payload
+    },
+    modufyLastUndone: (state, action) => {
+      state.undone[state.undone.length - 1] = action.payload
+    },
+    modifyUndone: (state, action) => {
+      state.undone[action.payload.id] = action.payload.item
+    },
+    emptyUndone: state => {
+      state.undone = []
+    },
+    emptyCurrent: state => {
+      state.current = []
     },
     undo: state => {
-      const lastAction = this.state.historyActions.at(-1)
-
-      if (lastAction){
-        state.historyActions = state.historyActions.slice(0,-1),
-        state.canceledHistoryActions = [...state.canceledHistoryActions, lastAction]
-        state.currentHistory = CanvasUtils.getHistoryAcActions(state.currentHistory, state.historyActions)
-      }
+      const last = state.current.at(-1)
+      state.current.pop()
+      state.undone.push(last)
     },
     redo: state => {
-      const lastAction = this.state.canceledHistoryActions.at(-1)
-
-      if (lastAction){
-        historyActions = [...state.historyActions, lastAction],
-        canceledHistoryActions = state.canceledHistoryActions.slice(0,-1)
-        state.currentHistory = CanvasUtils.getHistoryAcActions(state.currentHistory, state.historyActions)
-      }
-    },
-    acceptChanges: state => {
-      const historyWithChanges = CanvasUtils.getHistoryAcActions(state.currentHistory, state.historyActions)
-
-      state.canceledHistoryActions = []
-      state.historyActions = historyWithChanges.map( () => {return {action: 'add last'}} )
-      state.currentHistory = historyWithChanges
-    },
-    clearUndone: state => { state.canceledHistoryActions = [] },
-    setHistory: (state, action) => {
-      state = action.payload
+      const last = state.undone.at(-1)
+      state.undone.pop()
+      state.current.push(last)
     }
   }
 })
 
 // Action creators are generated for each case reducer function
-export const { addAction, modifyAction, addItem, modifyItem, undo, redo, acceptChanges, setHistory, clearUndone } = historySlice.actions
+export const { addCurrent, addUndone, modifyCurrent, modifyUndone,
+  modufyLastCurrent, modufyLastUndone, emptyUndone, emptyCurrent, undo, redo } = historySlice.actions
 
 export default historySlice.reducer

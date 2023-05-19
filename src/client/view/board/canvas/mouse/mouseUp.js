@@ -1,61 +1,64 @@
-import CanvasUtils from "../../../../lib/CanvasUtils"
-import store from '../../../store/store'
-import { setDrawable, setDraggable } from '../../../features/stage'
-import { modifyItem } from '../../../features/history'
-import { modifySelection, destroy } from "../../../features/select"
+import { whenDraw } from "../../../../lib/twiks";
+import { setDrawable } from "../../../features/stage";
+import store from "../../../store/store";
+import CanvasUtils from '../../../../lib/CanvasUtils';
+import Konva from "konva";
 
 
 export default function(e, props){
-    // stop drawing if we are not on canvas
-    // stop drawing    
     const isDrawing = store.getState().stage.isDrawable
     const tool = props.tool
-    const stage = e.target.getStage()
 
-
-    if ('pen'=== tool){
-        let shapes = store.getState().history.currentHistory
-        let lastEl = {...shapes.at(-1)}
-        let points = lastEl.points
-        
-        if (points.length === 2){
-            lastEl.points = points.concat([ points[0] + 1, points[1] + 1, points[0] - 1, points[1] ])
-            store.dispatch(modifyItem({id: shapes.length - 1, item: lastEl}))
-        }
-    }
-    else if (tool === 'select' && isDrawing){
-        let shapes = stage.getChildren()[0].children
-        let box = {...store.getState().select.attrs}
-
-        // offset negative wifth and height
-        if (box.width < 0) {
-            box.x += box.width
-            box.width = Math.abs(box.width)
-        }
-        if (box.height < 0){
-            box.y += box.height
-            box.height = Math.abs(box.height)
-        }
-
-        let selected = [];
-        for (const shape of shapes){
-            const shapeType = shape.attrs.tool
-            if (shapeType === 'line' || shapeType === 'arrow' || shapeType === 'pen'){
-                if (CanvasUtils.hasInterceptionWithLine(box, shape)){
-                    selected.push(CanvasUtils.convertToShape(shape.attrs))
-                }
+    whenDraw( e, (_, __, canvas, temporary) => {
+        if ('pen'=== tool && isDrawing){
+            let lastLine = canvas.children.at(-1)
+            let points = lastLine.attrs.points
+            
+            if (points.length === 2){
+                lastLine.points([ points[0] + 1, points[1] + 1, points[0] - 1, points[1] ])
             }
-            else{
-                if (Konva.Util.haveIntersection(box, CanvasUtils.getClientRect(shape))){
-                    selected.push(CanvasUtils.convertToShape(shape.attrs))
-                }
-            }
+            // cache the line to improve perfomance
+            lastLine.cache()
         }
+        else if (tool === 'select' && isDrawing && temporary.children[0]){
+            let shapes = canvas.children
+            let box = temporary.children[0]
+    
+            // offset negative wifth and height
+            if (box.width < 0) {
+                box.x += box.width
+                box.width = Math.abs(box.width)
+            }
+            if (box.height < 0){
+                box.y += box.height
+                box.height = Math.abs(box.height)
+            }
+            
+            let selected = shapes.filter((shape) =>
+                {
+                    const shapeType = shape.attrs.tool
+                    if (shapeType === 'line' || shapeType === 'arrow' || shapeType === 'pen'){
+                        if (CanvasUtils.hasInterceptionWithLine(box, shape)) return shape
+                    }
+                    else{
+                        if (Konva.Util.haveIntersection(box, shape.getClientRect())) return shape
+                    }
+                    // if (Konva.Util.haveIntersection(box, CanvasUtils.getClientRect(shape))) return shape
+                }
+            );
+            console.log(selected)
+            selected.forEach( s => {
+                s.setAttr('draggable', true)
+                s.clearCache()
+            } )
+            const tr = new Konva.Transformer();
+            canvas.add(tr);
+            tr.nodes(selected)
+            box.destroy()
+        }
+        //else if (tool === 'move') this.setState({isDraggingStage: false})
+    } )
 
-        store.dispatch(modifySelection(selected))
-        if (selected.length === 0) store.dispatch(destroy())
-    }
-    else if (tool === 'move') store.dispatch(setDraggable(false))
 
     store.dispatch(setDrawable(false))
 }

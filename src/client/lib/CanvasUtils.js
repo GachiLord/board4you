@@ -70,8 +70,8 @@ export default class CanvasUtils{
             width: attrs.radiusY
         }
         // if shape is a line
-        let x = attrs.pos.x
-        let y = attrs.pos.y
+        let x = attrs.x
+        let y = attrs.y
         let minX = Math.min(...this.getCoorFromPoints(attrs.points, 'x'))
         let maxX = Math.max(...this.getCoorFromPoints(attrs.points, 'x'))
         let minY = Math.min(...this.getCoorFromPoints(attrs.points, 'y'))
@@ -89,11 +89,11 @@ export default class CanvasUtils{
         const attrs = line.attrs === undefined ? line: line.attrs
 
         for (let i = 0; i < attrs.points.length; i += 2){
-            const x = attrs.pos.x + attrs.points[i]
-            const y = attrs.pos.y + attrs.points[i+1]
+            const x = attrs.x + attrs.points[i]
+            const y = attrs.y + attrs.points[i+1]
 
-            if ( (x >= box.x && x <= (box.x + box.width))
-                && (y >= box.y && y <= (box.y + box.height)) ) return true
+            if ( (x >= box.attrs.x && x <= (box.attrs.x + box.attrs.width))
+                && (y >= box.attrs.y && y <= (box.attrs.y + box.attrs.height)) ) return true
         }
 
         return false
