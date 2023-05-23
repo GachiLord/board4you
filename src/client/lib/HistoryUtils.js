@@ -20,11 +20,9 @@ export default class historyUtils{
             case 'arrow':
                 return (
                     new Konva.Arrow({
-                        pos:shape.pos,
                         y:shape.pos.y,
                         x:shape.pos.x,
                         shapeId:shape.shapeId,
-                        key:shape.shapeId,
                         points:shape.points,
                         stroke:shape.color,
                         fill:shape.color,
@@ -32,12 +30,13 @@ export default class historyUtils{
                         tension:0.5,
                         lineCap:"round",
                         lineJoin:"round",
-                        hitStrokeWidth:30,
+                        hitStrokeWidth: shape.lineSize * 15,
                         shadowForStrokeEnabled:false,
                         globalCompositeOperation:'source-over',
                         tool:shape.tool,
                         dash:shape.lineType === 'general' ? []: [10, 10],
                         listening: true,
+                        connected: new Set()
                     })
                 )
         
@@ -51,12 +50,12 @@ export default class historyUtils{
                         y:shape.pos.y,
                         width:shape.width,
                         height:shape.height,
-                        key:shape.shapeId,
                         tool:shape.tool,
                         globalCompositeOperation:'destination-over',
                         applyCache: true,
                         applyHitFromCache: true,
                         listening: true,
+                        connected: new Set()
                     })
                 )
             case 'rect':
@@ -71,21 +70,19 @@ export default class historyUtils{
                         shadowForStrokeEnabled:false,
                         shapeId:shape.shapeId,
                         hitStrokeWidth:30,
-                        key:shape.shapeId,
                         globalCompositeOperation:'source-over',
                         tool:shape.tool,
                         dash:shape.lineType === 'general' ? []: [10, 10],
                         listening: true,
+                        connected: new Set()
                     })
                 )
             case 'line':
                 return (
                     new Konva.Line({
-                        pos:shape.pos,
                         y:shape.pos.y,
                         x:shape.pos.x,
                         shapeId:shape.shapeId,
-                        key:shape.shapeId,
                         points:shape.points,
                         stroke:shape.color,
                         strokeWidth:shape.lineSize,
@@ -93,31 +90,31 @@ export default class historyUtils{
                         tension:0.5,
                         lineCap:"round",
                         lineJoin:"round",
-                        hitStrokeWidth:30,
+                        hitStrokeWidth: shape.lineSize * 15,
                         shadowForStrokeEnabled:false,
-                        globalCompositeOperation:shape.tool === 'eraser' ? 'destination-out' : 'source-over',
+                        globalCompositeOperation: shape.tool === 'eraser' ? 'destination-out' : 'source-over',
                         tool:shape.tool,
-                        listening: true,
+                        listening: shape.tool !== 'eraser', // dont listen for eraser lines
+                        connected: new Set()
                     })
                 )
             case 'ellipse':
                 return (
                     new Konva.Ellipse({
-                        pos:shape.pos,
                         x:shape.pos.x,
                         y:shape.pos.y,
                         radiusX:Math.abs(shape.width),
                         radiusY:Math.abs(shape.height),
                         stroke:shape.color,
-                        hitStrokeWidth:30,
+                        hitStrokeWidth: 30,
                         strokeWidth:shape.lineSize,
                         shadowForStrokeEnabled:false,
                         shapeId:shape.shapeId,
-                        key:shape.shapeId,
                         globalCompositeOperation:'source-over',
                         tool:shape.tool,
                         dash:shape.lineType === 'general' ? []: [10, 10],
                         listening: true,
+                        connected: new Set()
                     })
                 )                
         }

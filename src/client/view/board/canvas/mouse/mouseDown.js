@@ -5,6 +5,7 @@ import {v4 as uuid4} from 'uuid'
 import store from "../../../store/store";
 import historyUtils from "../../../../lib/HistoryUtils";
 import Konva from "konva";
+import primaryColor from '../../../base/primaryColor'
 
 
 
@@ -18,9 +19,9 @@ export default function(e, props){
     const lineType = props.lineType
     const isDraggable = store.getState().stage.isDraggable
 
-    console.log(e.target)
-    whenDraw( e, (_, pos, canvas, temporary) => {
-        if ('move' !== tool) removeTransformers(canvas)
+
+    whenDraw( e, (stage, pos, canvas, temporary) => {
+        if (tool !== 'move') removeTransformers(canvas)
         // create shape
         let shape = null
         
@@ -56,22 +57,40 @@ export default function(e, props){
             store.dispatch(addCurrent({type: 'add', shape: shape}))
             canvas.add(historyUtils.toKonvaObject(shape))
         }
-        else if (tool === 'select'){
-            if (e.target.attrs.id !== 'selectRect' && !isDraggable){
+        else if (tool === 'select' && !isDraggable && e.target.attrs.id !== 'selectRect'){
+            // select multiple shapes
+            if ( e.target === stage ){
                 shape = new Konva.Rect({
                     x: pos.x, 
                     y: pos.y,
                     height: 0,
                     width: 0,
-                    stroke:'blue',
+                    stroke: primaryColor,
                     strokeWidth:2,
-                    opacity:0.5,
-                    dash:[20, 10],
+                    opacity:0.8,
+                    dash:[5, 5],
                     id:'selectRect',
-                    shadowForStrokeEnabled:false
+                    shadowForStrokeEnabled:false,
                 })
 
                 temporary.add(shape)
+            }
+            // select only clicked shape
+            else {
+                const connected = []
+                let resizable = null
+                // find shapes which have interception with clientRect
+                canvas.children.forEach(s => {
+                    resizable = e.target.attrs.connected.size === 0
+                    if (e.target.attrs.connected.has(s.attrs.shapeId)) connected.push(s)
+                })
+                // create transformer for them
+                const tr = new Konva.Transformer({
+                    resizeEnabled: resizable
+                })
+                canvas.add(tr)
+                e.target.setAttr('draggable', true)
+                tr.nodes([e.target, ...connected])
             }
         }
     } )

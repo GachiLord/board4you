@@ -31,7 +31,6 @@ export function removeTransformers(layer){
     layer.find('Transformer').forEach(t => {
         t.nodes().forEach( s => {
             s.setAttr('draggable', false)
-            //s.cache()
         } )
         t.detach()
         t.remove()

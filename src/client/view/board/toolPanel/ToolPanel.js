@@ -1,9 +1,9 @@
 import React, { Component } from "react";
 import ToolButton from "./ToolButton";
-import {BsArrowRight, BsArrowsMove, BsPen, BsEraser} from 'react-icons/bs'
+import {BsArrowRight, BsArrowsMove, BsPen, BsEraser, BsCursor} from 'react-icons/bs'
 import {AiOutlineLine} from 'react-icons/ai'
 import {IoSquareOutline} from 'react-icons/io5'
-import {RxGroup, RxCircle} from 'react-icons/rx'
+import {RxCircle} from 'react-icons/rx'
 
 
 export default class ToolPanel extends Component{
@@ -36,7 +36,7 @@ export default class ToolPanel extends Component{
                     onModeChange={this.handleModeChange} 
                     active={this.state.activeTool}
                     >
-                    <RxGroup />
+                    <BsCursor />
                 </ToolButton>
                 <ToolButton 
                     id="pen" 

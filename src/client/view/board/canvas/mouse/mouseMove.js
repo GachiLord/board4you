@@ -1,3 +1,4 @@
+import Konva from "konva";
 import { whenDraw } from "../../../../lib/twiks";
 import store from "../../../store/store";
 
@@ -5,9 +6,14 @@ export default function(e, props){
     const tool = props.tool
     const isDrawable = store.getState().stage.isDrawable
 
-    whenDraw( e, (_, pos, canvas, temporary) => {
+    whenDraw( e, (stage, pos, canvas, temporary) => {
         if (['pen', 'eraser'].includes(tool) && isDrawable){
+            const target = e.target
             const lastline = canvas.children.at(-1)
+            // add ref to eraser line if pointer is on shape
+            if (target !== stage && tool === 'eraser'){
+                target.attrs.connected.add(lastline.attrs.shapeId)
+            }
             // add points
             lastline.points(lastline.attrs.points.concat([pos.x, pos.y]))
         }

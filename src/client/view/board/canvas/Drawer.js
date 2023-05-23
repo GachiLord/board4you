@@ -1,8 +1,7 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef } from "react";
 import { mouseDown, mouseMove, mouseUp, mouseLeave } from './mouse/';
 import { useSelector } from "react-redux";
 import { Layer, Stage } from 'react-konva';
-import Generator from "../../../lib/Generator";
 
 
 
