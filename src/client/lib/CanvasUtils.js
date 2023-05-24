@@ -1,265 +1,130 @@
-import { Util } from 'konva/lib/Util'
-import { jsPDF } from "jspdf"
-import getCanvasSize from '../model/CommonGetCanvasSize'
-
 export default class CanvasUtils{
 
-    static getHistoryAcActions(history, actions){
-        let endIndex = 0 // for add last action
-        let removedShapesIds = [] // for remove action
+    static toKonvaObject(shape){
+        const commonAttrs = {
+            y: shape.y,
+            x: shape.x,
+            shapeId: shape.shapeId,
+            shadowForStrokeEnabled: false,
+            globalCompositeOperation: 'source-over',
+            tool: shape.tool,
+            lineSize: shape.lineSize,
+            color: shape.color,
+            lineType: shape.lineType,
+            // transform attrs
+            rotation: shape.rotation,
+            scaleX: shape.scaleX,
+            scaleY: shape.scaleY,
+            skewX: shape.skewX,
+            skewY: shape.skewY,
+            // shapes that are must be connected to this
+            connected: shape.connected ? shape.connected: new Set(),
+        }
 
-        actions.forEach( (item) => {
-            switch (item.action){
-                case 'add last':
-                    endIndex++
-                    break
-                case 'move':
-                    item.shapes.forEach( (shape) => {
-                        const id = shape.shapeId
-                        const pos = history[id].pos
-                        const oldPos = item.oldPos
-                        const newPos = item.newPos
-                        history[id].pos = {x: newPos.x - (oldPos.x - pos.x),
-                                           y: newPos.y - (oldPos.y - pos.y)}
-                    } )
-                    break
-                case 'remove':
-                    item.shapes.forEach( i => { removedShapesIds.push(i.attrs.shapeId) } )
-        }} )
-
-        history = history.slice(0,endIndex) // accept add last changes
-        history = history.filter( i => !removedShapesIds.includes(i.shapeId) ) // accept remove changes
-
-        return history
+        switch(shape.tool){
+            case 'arrow':
+                return (
+                    new Konva.Arrow({
+                        ...commonAttrs,
+                        points: shape.points,
+                        stroke: shape.color,
+                        fill: shape.color,
+                        strokeWidth: shape.lineSize,
+                        tension: 0.5,
+                        lineCap: "round",
+                        lineJoin: "round",
+                        hitStrokeWidth: shape.lineSize * 15,
+                        dash: shape.lineType === 'general' ? []: [10, 10],
+                        listening: true,
+                    })
+                )
+        
+            case 'img':
+                const img = new Image(shape.url)
+                return (
+                    new Konva.Image({
+                        ...commonAttrs,
+                        image:img,
+                        width:shape.width,
+                        height: shape.height,
+                        globalCompositeOperation: 'destination-over',
+                        applyCache: true,
+                        applyHitFromCache: true,
+                        listening: true,
+                    })
+                )
+            case 'rect':
+                return (
+                    new Konva.Rect({
+                        ...commonAttrs,
+                        width: shape.width,
+                        height: shape.height,
+                        stroke: shape.color,
+                        strokeWidth: shape.lineSize,
+                        hitStrokeWidth: 30,
+                        globalCompositeOperation: 'source-over',
+                        dash: shape.lineType === 'general' ? []: [10, 10],
+                        listening: true,
+                    })
+                )
+            case 'line':
+                return (
+                    new Konva.Line({
+                        ...commonAttrs,
+                        points:shape.points,
+                        stroke:shape.color,
+                        strokeWidth:shape.lineSize,
+                        dash:shape.lineType === 'general' ? []: [10, 10],
+                        tension:0.5,
+                        lineCap:"round",
+                        lineJoin:"round",
+                        hitStrokeWidth: shape.lineSize * 15,
+                        globalCompositeOperation: shape.tool === 'eraser' ? 'destination-out' : 'source-over',
+                        listening: shape.tool !== 'eraser', // dont listen for eraser lines
+                    })
+                )
+            case 'ellipse':
+                return (
+                    new Konva.Ellipse({
+                        ...commonAttrs,
+                        radiusX:Math.abs(shape.width),
+                        radiusY:Math.abs(shape.height),
+                        stroke:shape.color,
+                        hitStrokeWidth: 30,
+                        strokeWidth:shape.lineSize,
+                        dash:shape.lineType === 'general' ? []: [10, 10],
+                        listening: true,
+                    })
+                )                
+        }
     }
-    
-    static getViewedHistory(history, viewBox) {
-        return history.filter( s => 
-            (Util.haveIntersection(viewBox, this.getClientRect(s)) || s.type === 'img')
-        )
-    }
 
-    static convertToShape(shapeObj){
+    static toShape(shapeObj){
         const possibleFields = ['tool', 'type', 'color', 'shapeId', 'lineSize', 'lineType',
-                                'pos', 'height', 'width', 'radiusX', 'radiusY']
+                                'pos', 'height', 'width', 'radiusX', 'radiusY', 'rotation',
+                                'scaleX', 'scaleY', 'skewX', 'skewY', 'points'
+                               ]
         let shape = {}
-        for (const [key, value] of Object.entries(shapeObj)){
+        for (const [key, value] of Object.entries(shapeObj.attrs)){
             if (possibleFields.includes(key)) shape[key] = value
         }
 
         return shape
     }
 
-    static getClientRect(shape){
-        const attrs = shape.attrs === undefined ? shape: shape.attrs
+    static find(layer, attrs){
+        return layer.children.filter( c => {
+            let coincidence = 0
 
-        // if shape is a rect
-        if (Object.keys(attrs).includes('height')) {
-            return {
-                x: attrs.x,
-                y: attrs.y,
-                height: attrs.height,
-                width: attrs.width
+            for (const [key, value] of Object.entries(c.attrs)){
+                if (attrs[key] === value) coincidence++
             }
-        }
-        // if shape is a ellipse
-        else if (Object.keys(attrs).includes('radiusX')) return{
-            x: attrs.x,
-            y: attrs.y,
-            height: attrs.radiusX,
-            width: attrs.radiusY
-        }
-        // if shape is a line
-        let x = attrs.x
-        let y = attrs.y
-        let minX = Math.min(...this.getCoorFromPoints(attrs.points, 'x'))
-        let maxX = Math.max(...this.getCoorFromPoints(attrs.points, 'x'))
-        let minY = Math.min(...this.getCoorFromPoints(attrs.points, 'y'))
-        let maxY = Math.max(...this.getCoorFromPoints(attrs.points, 'y'))
 
-        return {
-            x: x + minX,
-            y: y + minY,
-            height: maxY - minY,
-            width: maxX - minX
-        }
-    }
-
-    static hasInterceptionWithLine(box, line){
-        const attrs = line.attrs === undefined ? line: line.attrs
-
-        for (let i = 0; i < attrs.points.length; i += 2){
-            const x = attrs.x + attrs.points[i]
-            const y = attrs.y + attrs.points[i+1]
-
-            if ( (x >= box.attrs.x && x <= (box.attrs.x + box.attrs.width))
-                && (y >= box.attrs.y && y <= (box.attrs.y + box.attrs.height)) ) return true
-        }
-
-        return false
-    }
-
-    static getCoorFromPoints = (points, coor) => {
-        return points.map(
-            (item, index) => {
-                if ((index+1) % 2 === 0){
-                    if (coor === 'y') return item
-                }
-                else{
-                    if (coor === 'x') return item
-                }
-            }
-        ).filter(i => {if (i !== undefined) return i})
-    }
-
-    static getFreeY = (history) => {
-        return CanvasUtils.getLastY(history) + 20
-    }
-
-    static getLastY = (history) => {
-        let y = 0
-
-        history.forEach( s => {
-            if (Object.keys(s).includes('height')){
-                if (s.pos.y + s.height > y) y = s.pos.y + s.height
-            }
-            else{
-                let yList = CanvasUtils.getCoorFromPoints(s.points, 'y')
-                let maxShapeY = Math.max(...yList) - s.pos.y
-                if (maxShapeY > y) y = maxShapeY
-            }
-        } ) 
-
-        return y
-    }
- 
-    static getSizeOfBase64Img = (uri) => {
-        return new Promise( (resolve, _) => {
-            let element = new Image()
-            element.onload = function(){
-                let size = {height: this.height !== NaN ? this.height: 0, width: this.width !== NaN ? this.width: 0}
-                element.remove()
-                resolve(size)
-            } 
-            element.src = uri
+            if (coincidence === Object.keys(attrs).length) return c
         } )
     }
 
-    static retrieveImageFromClipboardAsBase64(pasteEvent, callback, imageFormat = "image/png"){
-        if(pasteEvent.clipboardData == false){
-            if(typeof(callback) == "function"){
-                callback(undefined);
-            }
-        };
-
-        var items = pasteEvent.clipboardData.items;
-
-        if(items == undefined){
-            if(typeof(callback) == "function"){
-                callback(undefined);
-            }
-        };
-
-        for (var i = 0; i < items.length; i++) {
-            // Skip content if not image
-            if (items[i].type.indexOf("image") == -1) continue;
-            // Retrieve image on clipboard as blob
-            var blob = items[i].getAsFile();
-
-            // Create an abstract canvas and get context
-            var mycanvas = document.createElement("canvas");
-            var ctx = mycanvas.getContext('2d');
-            
-            // Create an image
-            var img = new Image();
-
-            // Once the image loads, render the img on the canvas
-            img.onload = function(){
-                // Update dimensions of the canvas with the dimensions of the image
-                mycanvas.width = this.width;
-                mycanvas.height = this.height;
-
-                // Draw the image
-                ctx.drawImage(img, 0, 0);
-
-                // Execute callback with the base64 URI of the image
-                if(typeof(callback) == "function"){
-                    callback(mycanvas.toDataURL(
-                        (imageFormat || "image/png")
-                    ),{height: mycanvas.height, width: mycanvas.width});
-                }
-            };
-
-            // Crossbrowser support for URL
-            var URLObj = window.URL || window.webkitURL;
-
-            // Creates a DOMString containing a URL representing the object given in the parameter
-            // namely the original Blob
-            img.src = URLObj.createObjectURL(blob);
-            img.remove()
-        }
-    }
-
-    static getBlobFromBase64 = async (base64) => {
-        return await fetch(base64)
-    }
-
-    static getPdfAsBase64imgs = async (path) => {
-        let doc = await pdfjsLib.getDocument({url:path}).promise
-        let imgs = []
-        let pagesWidth = []
-        let pagesHeight = []
-
-        for (let i = 1; i <= doc.numPages; i++){
-            let p = await doc.getPage(i)
-            const canvas = document.createElement('canvas')
-            const context = canvas.getContext('2d')
-            const viewport = p.getViewport({ scale: 1 })
-            
-            canvas.width = viewport.width
-            canvas.height = viewport.height
-
-            let renderTask = await p.render({
-                canvasContext: context,
-                viewport: viewport
-            }).promise
-
-            imgs.push(canvas.toDataURL())
-            canvas.remove()
-
-            pagesWidth.push(viewport.width)
-            pagesHeight.push(viewport.height)
-        }
-
-        return {imgs: imgs, size: {width: Math.max(...pagesWidth), height: Math.max(...pagesHeight)} }
-    }
-
-    static async getBase64imgsAsPdf(imgs){
-        const doc = new jsPDF({
-            orientation: 'l',
-            format: Object.values(getCanvasSize()),
-        })
-        imgs = await imgs
-
-        imgs.forEach( (item, index) => {
-            doc.addImage(item, 'PNG', 0, 0, getCanvasSize().width, getCanvasSize().height)
-            if (index < imgs.length - 1) doc.addPage(Object.values(getCanvasSize()), 'l')
-        } )
-        return doc
-    }
-
-    static async getImageFromUrl(url){
-        return new Promise( (res, rej) => {
-            let img = new Image()
-    
-            img.onError = function() {
-                rej('Cannot load image')
-            };
-            img.onload = function() {
-                res(img);
-            };        
-            img.src = url;
-        } )
-        
+    static findOne(layer, attrs){
+        return CanvasUtils.find(layer, attrs)[0]
     }
 }

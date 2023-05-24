@@ -1,4 +1,3 @@
-import Konva from "konva";
 import { whenDraw } from "../../../../lib/twiks";
 import store from "../../../store/store";
 

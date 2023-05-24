@@ -3,7 +3,7 @@ import { setDrawable } from "../../../features/stage";
 import { addCurrent } from '../../../features/history'
 import {v4 as uuid4} from 'uuid'
 import store from "../../../store/store";
-import historyUtils from "../../../../lib/HistoryUtils";
+import CanvasUtils from "../../../../lib/CanvasUtils";
 import Konva from "konva";
 import primaryColor from '../../../base/primaryColor'
 
@@ -32,20 +32,20 @@ export default function(e, props){
             shape = {
                 tool: tool,
                 points: [pos.x, pos.y],
-                type: type,
+                tool: type,
                 color: color,
                 shapeId: uuid4(),
-                pos: {x: 0, y: 0},
+                x: 0,
+                y: 0,
                 lineSize: lineSize,
                 lineType: lineType
             }
 
-            store.dispatch(addCurrent({type: 'add', shape: shape}))
-            canvas.add(historyUtils.toKonvaObject(shape))
+            canvas.add(CanvasUtils.toKonvaObject(shape))
         }
         else if ( ['rect', 'ellipse'].includes(tool) ){
             shape = {
-                type: tool,
+                tool: tool,
                 pos: pos,
                 height: 0,
                 width: 0,
@@ -55,7 +55,7 @@ export default function(e, props){
                 lineType: lineType
             }
             store.dispatch(addCurrent({type: 'add', shape: shape}))
-            canvas.add(historyUtils.toKonvaObject(shape))
+            canvas.add(CanvasUtils.toKonvaObject(shape))
         }
         else if (tool === 'select' && !isDraggable && e.target.attrs.id !== 'selectRect'){
             // select multiple shapes

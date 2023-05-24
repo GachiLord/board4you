@@ -1,5 +1,7 @@
+import CanvasUtils from "../../../../lib/CanvasUtils";
 import { whenDraw } from "../../../../lib/twiks";
 import { setDrawable } from "../../../features/stage";
+import { addCurrent } from "../../../features/history";
 import store from "../../../store/store";
 import Konva from "konva";
 
@@ -18,6 +20,8 @@ export default function(e, props){
             }
             // cache the line to improve perfomance
             lastLine.cache()
+            // add line to history
+            store.dispatch(addCurrent({type: 'add', shape: CanvasUtils.toShape(lastLine)}))
         }
         else if (tool === 'select' && isDrawing && temporary.children[0]){
             let shapes = canvas.children
@@ -39,7 +43,7 @@ export default function(e, props){
             // find shapes which have interception with clientRect
             shapes.forEach( shape => {
                 if (Konva.Util.haveIntersection(clientRect, shape.getClientRect())){
-                    resizable = shape.attrs.connected.size === 0
+                    resizable = shape.attrs.connected.size === 0 && resizable !== false
 
                     selected.push(shape)
                     shapes.forEach(i => {
