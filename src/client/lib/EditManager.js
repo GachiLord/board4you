@@ -27,7 +27,7 @@ export default class EditManager{
         const lastEdit = store.getState().history.current.at(-1)
         if (!lastEdit) return
 
-        this.#cancelEdit(lastEdit)
+        this.cancelEdit(lastEdit)
         store.dispatch(undo())
     }
 
@@ -35,11 +35,11 @@ export default class EditManager{
         const lastEdit = store.getState().history.undone.at(-1)
         if (!lastEdit) return
 
-        this.#applyEdit(lastEdit)
+        this.applyEdit(lastEdit)
         store.dispatch(redo())
     }
 
-    #applyEdit(edit){
+    applyEdit(edit){
         switch(edit.type){
             case 'add':
                 const shapeToAdd = CanvasUtils.toKonvaObject(edit.shape)
@@ -47,30 +47,37 @@ export default class EditManager{
                 this.layer.add(shapeToAdd)
                 break
             case 'remove':
-                const shapeToRemove = CanvasUtils.findOne(this.layer, {shapeId: edit.shapeId})
-                shapeToRemove.destroy()
+                edit.shapes.forEach( shape => {
+                    CanvasUtils.findOne(this.layer, {shapeId: shape.shapeId}).destroy()
+                } )
                 break
             case 'modify':
-                const shapeToModify = CanvasUtils.findOne(this.layer, {shapeId: edit.shapeId})
-                shapeToModify.setAttrs(edit.current)
+                edit.current.forEach( (attrs) => {
+                    const shapeToModify = CanvasUtils.findOne(this.layer, {shapeId: attrs.shapeId})
+                    shapeToModify.setAttrs({ ...attrs, connected: new Set(...attrs.connected) })
+                } )    
                 break
         }
     }
 
-    #cancelEdit(edit){
+    cancelEdit(edit){
         switch(edit.type){
             case 'add':
                 const shapeToRemove = CanvasUtils.findOne(this.layer, {shapeId: edit.shape.shapeId})
                 shapeToRemove.destroy()
                 break
             case 'remove':
-                const shapeToAdd = CanvasUtils.toKonvaObject(edit.shape)
-                shapeToAdd.cache()
-                this.layer.add(shapeToAdd)
+                edit.shapes.forEach( shape => {
+                    const shapeToAdd = CanvasUtils.toKonvaObject(shape)
+                    shapeToAdd.cache()
+                    this.layer.add(shapeToAdd)
+                } )
                 break
             case 'modify':
-                const shapeToModify = CanvasUtils.findOne(this.layer, {shapeId: edit.shapeId})
-                shapeToModify.setAttrs(edit.previous)
+                edit.initial.forEach( (attrs) => {
+                    const shapeToModify = CanvasUtils.findOne(this.layer, {shapeId: attrs.shapeId})
+                    shapeToModify.setAttrs({ ...attrs, connected: new Set(...attrs.connected) })
+                } )
                 break
         }
     }

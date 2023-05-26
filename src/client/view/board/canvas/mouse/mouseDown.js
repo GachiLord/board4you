@@ -1,11 +1,13 @@
 import { whenDraw, removeTransformers } from "../../../../lib/twiks";
 import { setDrawable } from "../../../features/stage";
-import { addCurrent } from '../../../features/history'
+import { emptyUndone } from '../../../features/history'
+import { setSelection } from "../../../features/select";
 import {v4 as uuid4} from 'uuid'
 import store from "../../../store/store";
 import CanvasUtils from "../../../../lib/CanvasUtils";
 import Konva from "konva";
 import primaryColor from '../../../base/primaryColor'
+import shapeChange from "./shapeChange";
 
 
 
@@ -21,6 +23,9 @@ export default function(e, props){
 
 
     whenDraw( e, (stage, pos, canvas, temporary) => {
+        const undone = store.getState().history.undone.at(-1)
+        // empty undone if it exists and tool is not select
+        if (undone && tool !== 'select' && tool !== 'move') store.dispatch(emptyUndone())
         if (tool !== 'move') removeTransformers(canvas)
         // create shape
         let shape = null
@@ -33,7 +38,7 @@ export default function(e, props){
                 tool: tool,
                 points: [pos.x, pos.y],
                 tool: type,
-                color: color,
+                color: tool !== 'eraser' ? color: '#ffffff',
                 shapeId: uuid4(),
                 x: 0,
                 y: 0,
@@ -43,18 +48,32 @@ export default function(e, props){
 
             canvas.add(CanvasUtils.toKonvaObject(shape))
         }
-        else if ( ['rect', 'ellipse'].includes(tool) ){
+        else if (tool === 'rect'){
             shape = {
                 tool: tool,
-                pos: pos,
+                x: pos.x,
+                y: pos.y,
                 height: 0,
                 width: 0,
                 color: color,
                 shapeId: uuid4(),
                 lineSize: lineSize,
-                lineType: lineType
+                lineType: lineType,
             }
-            store.dispatch(addCurrent({type: 'add', shape: shape}))
+            canvas.add(CanvasUtils.toKonvaObject(shape))
+        }
+        else if (tool === 'ellipse'){
+            shape = {
+                tool: tool,
+                x: pos.x,
+                y: pos.y,
+                radiusY: 0,
+                radiusX: 0,
+                color: color,
+                shapeId: uuid4(),
+                lineSize: lineSize,
+                lineType: lineType,
+            }
             canvas.add(CanvasUtils.toKonvaObject(shape))
         }
         else if (tool === 'select' && !isDraggable && e.target.attrs.id !== 'selectRect'){
@@ -90,7 +109,12 @@ export default function(e, props){
                 })
                 canvas.add(tr)
                 e.target.setAttr('draggable', true)
-                tr.nodes([e.target, ...connected])
+                const shapesToSelect = [e.target, ...connected]
+                tr.nodes(shapesToSelect)
+                // add listener for transform and drag
+                shapeChange(tr)
+                // add selected to selection
+                store.dispatch(setSelection(shapesToSelect.map( s => CanvasUtils.toShape(s) )))
             }
         }
     } )

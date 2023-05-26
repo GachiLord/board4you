@@ -1,9 +1,9 @@
-import EditManager from "./EditManager"
+import { emptySelection } from "../view/features/select"
 import store from "../view/store/store"
-import { emptyUndone } from "../view/features/history"
+import EditManager from "./EditManager"
 
 
-export function run(f, g = () => console.warn('electronApi is not found')){
+export function run(f = (electronAPI) => {}, g = () => console.warn('electronApi is not found')){
     if (window.electronAPI){
         f(window.electronAPI)
     }
@@ -11,10 +11,7 @@ export function run(f, g = () => console.warn('electronApi is not found')){
 }
 
 export function whenDraw(event, f = (stage, relativePointerPosition, drawnShapes, temporaryShapes, editManager) => {}){
-    const undone = store.getState().history.undone.at(-1)
     const stage = getStage(event)
-    // empty undone if it exists
-    if (undone) store.dispatch(emptyUndone())
     // do nothing if clicked on stage or draggable shape
     if (event.target.attrs.draggable && event.target !== stage) return
     f(stage,
@@ -37,6 +34,9 @@ export function emptyLayer(layer){
 
 export function removeTransformers(layer){
     layer.find('Transformer').forEach(t => {
+        // empty selection
+        store.dispatch(emptySelection())
+        // detach nodes
         t.nodes().forEach( s => {
             s.setAttr('draggable', false)
         } )

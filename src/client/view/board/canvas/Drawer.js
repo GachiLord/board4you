@@ -4,21 +4,40 @@ import { useSelector } from "react-redux";
 import { Layer, Stage } from 'react-konva';
 import boardEvents from "../../base/boardEvents";
 import EditManager from "../../../lib/EditManager";
+import { removeTransformers, run } from "../../../lib/twiks";
+import runCommand from "./native/runCommand";
 
 
 
 export default function(props){
     const stage = useRef({children: []})
-    // define redux reducers
     const stageState = useSelector(state => state.stage)
-    // listen for board events
+    
     useEffect(() => {
-        const editManager = new EditManager(stage.current.children[0])
+        const canvas = stage.current.children[0]
+        const editManager = new EditManager(canvas)
+        // listen for board events 
         boardEvents.addListener('undo', () => {
+            removeTransformers(canvas)
             editManager.undo()
         })
         boardEvents.addListener('redo', () => {
+            removeTransformers(canvas)
             editManager.redo()
+        })
+        // web event listeners
+        window.addEventListener('paste', (e) => {
+            // implement
+        })
+        window.addEventListener('copy', () => {
+            // implement
+        })
+        window.addEventListener('cut', () => {
+            // implement
+        })
+        // listen for native events
+        run( electron => {
+            electron.onMenuButtonClick( (_, o, d) => {runCommand(canvas, o, d)} )
         })
     }, [])
 
@@ -37,8 +56,8 @@ export default function(props){
                 draggable={props.tool === 'move'}
                 dragBoundFunc={stageDragBound}
             >
-                <Layer/>
-                <Layer></Layer>
+                <Layer />
+                <Layer />
             </Stage>
         </div>
     )

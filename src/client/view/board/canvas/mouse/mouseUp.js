@@ -1,9 +1,11 @@
 import CanvasUtils from "../../../../lib/CanvasUtils";
 import { whenDraw } from "../../../../lib/twiks";
 import { setDrawable } from "../../../features/stage";
+import { setSelection } from "../../../features/select";
 import { addCurrent } from "../../../features/history";
 import store from "../../../store/store";
 import Konva from "konva";
+import shapeChange from "./shapeChange";
 
 
 export default function(e, props){
@@ -11,7 +13,7 @@ export default function(e, props){
     const tool = props.tool
 
     whenDraw( e, (_, __, canvas, temporary) => {
-        if ('pen'=== tool && isDrawing){
+        if (['pen', 'eraser', 'line', 'arrow', 'dashed', 'line'].includes(tool) && isDrawing){
             let lastLine = canvas.children.at(-1)
             let points = lastLine.attrs.points
             
@@ -22,6 +24,10 @@ export default function(e, props){
             lastLine.cache()
             // add line to history
             store.dispatch(addCurrent({type: 'add', shape: CanvasUtils.toShape(lastLine)}))
+        }
+        else if (['rect', 'ellipse'].includes(tool) && isDrawing){
+            let lastShape = canvas.children.at(-1)
+            store.dispatch(addCurrent({type: 'add', shape: CanvasUtils.toShape(lastShape)}))
         }
         else if (tool === 'select' && isDrawing && temporary.children[0]){
             let shapes = canvas.children
@@ -55,11 +61,17 @@ export default function(e, props){
                 s.setAttr('draggable', true)
             } )
             // create transformer for them
-            const tr = new Konva.Transformer({
-                resizeEnabled: resizable
-            });
-            canvas.add(tr);
-            tr.nodes(selected)
+            if (selected.length !== 0){
+                const tr = new Konva.Transformer({
+                    resizeEnabled: resizable
+                });
+                canvas.add(tr);
+                tr.nodes(selected)
+                // add listener for transform and drag
+                shapeChange(tr)
+                // add selected to selection
+                store.dispatch(setSelection(selected.map( s => CanvasUtils.toShape(s) )))
+            }
             box.destroy()
         }
     } )

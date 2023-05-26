@@ -1,5 +1,10 @@
 export default class CanvasUtils{
 
+    static #possibleFields = ['tool', 'type', 'color', 'shapeId', 'lineSize', 'lineType',
+                              'pos', 'height', 'width', 'radiusX', 'radiusY', 'rotation',
+                              'scaleX', 'scaleY', 'skewX', 'skewY', 'points', 'x', 'y', 'connected'
+                             ]
+
     static toKonvaObject(shape){
         const commonAttrs = {
             y: shape.y,
@@ -12,13 +17,13 @@ export default class CanvasUtils{
             color: shape.color,
             lineType: shape.lineType,
             // transform attrs
-            rotation: shape.rotation,
-            scaleX: shape.scaleX,
-            scaleY: shape.scaleY,
-            skewX: shape.skewX,
-            skewY: shape.skewY,
+            rotation: shape.rotation ? shape.rotation: 0,
+            scaleX: shape.scaleX ? shape.scaleX: 1,
+            scaleY: shape.scaleY ? shape.scaleY: 1,
+            skewX: shape.skewX ? shape.skewX: 0,
+            skewY: shape.skewY ? shape.skewY: 0,
             // shapes that are must be connected to this
-            connected: shape.connected ? shape.connected: new Set(),
+            connected: shape.connected ? new Set(...shape.connected): new Set(),
         }
 
         switch(shape.tool){
@@ -87,8 +92,8 @@ export default class CanvasUtils{
                 return (
                     new Konva.Ellipse({
                         ...commonAttrs,
-                        radiusX:Math.abs(shape.width),
-                        radiusY:Math.abs(shape.height),
+                        radiusX:Math.abs(shape.radiusX),
+                        radiusY:Math.abs(shape.radiusY),
                         stroke:shape.color,
                         hitStrokeWidth: 30,
                         strokeWidth:shape.lineSize,
@@ -100,16 +105,29 @@ export default class CanvasUtils{
     }
 
     static toShape(shapeObj){
-        const possibleFields = ['tool', 'type', 'color', 'shapeId', 'lineSize', 'lineType',
-                                'pos', 'height', 'width', 'radiusX', 'radiusY', 'rotation',
-                                'scaleX', 'scaleY', 'skewX', 'skewY', 'points'
-                               ]
+        const possibleFields = CanvasUtils.#possibleFields
         let shape = {}
         for (const [key, value] of Object.entries(shapeObj.attrs)){
-            if (possibleFields.includes(key)) shape[key] = value
+            if (!possibleFields.includes(key)) continue
+
+            if (key !== 'connected') shape[key] = value
+            else shape[key] = [...value]
         }
 
         return shape
+    }
+
+    static retrivePossibleFields(attrs){
+        const possibleFields = {}
+
+        for (const [key, value] of Object.entries(attrs)){
+            if (!CanvasUtils.#possibleFields.includes(key)) continue
+
+            if (key !== 'connected') possibleFields[key] = value
+            else possibleFields[key] = [...value]
+        }
+
+        return possibleFields
     }
 
     static find(layer, attrs){

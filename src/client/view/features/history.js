@@ -1,5 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit'
 
+
 export const historySlice = createSlice({
   name: 'history',
   initialState: {
@@ -16,10 +17,10 @@ export const historySlice = createSlice({
     modifyCurrent: (state, action) => {
       state.current[action.payload.id] = action.payload.item
     },
-    modufyLastCurrent: (state, action) => {
+    modifyLastCurrent: (state, action) => {
       state.current[state.current.length - 1] = action.payload
     },
-    modufyLastUndone: (state, action) => {
+    modifyLastUndone: (state, action) => {
       state.undone[state.undone.length - 1] = action.payload
     },
     modifyUndone: (state, action) => {
@@ -46,6 +47,6 @@ export const historySlice = createSlice({
 
 // Action creators are generated for each case reducer function
 export const { addCurrent, addUndone, modifyCurrent, modifyUndone,
-  modufyLastCurrent, modufyLastUndone, emptyUndone, emptyCurrent, undo, redo } = historySlice.actions
+  modifyLastCurrent, modifyLastUndone, emptyUndone, emptyCurrent, undo, redo } = historySlice.actions
 
 export default historySlice.reducer
