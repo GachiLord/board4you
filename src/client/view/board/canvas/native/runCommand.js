@@ -3,6 +3,10 @@ import store from '../../../store/store';
 import { addCurrent } from '../../../features/history';
 import { emptySelection } from '../../../features/select';
 import EditManager from '../../../../lib/EditManager';
+import paste from './paste';
+import { v4 as uuid4 } from 'uuid';
+import CanvasUtils from '../../../../lib/CanvasUtils';
+
 
 
 export default async function(canvas, o, data){
@@ -57,6 +61,34 @@ export default async function(canvas, o, data){
                 store.dispatch(emptySelection())
                 removeTransformers(canvas)
             }
+            break
+        case 'paste':
+            const img = await paste(data)
+            if (!img) return
+
+            const pos = store.getState().stage.stagePos
+            const shape = {
+                tool: 'img',
+                x: pos.x,
+                y: Math.abs(pos.y),
+                url: img.url,
+                height: img.size.height,
+                width: img.size.width,
+                shapeId: uuid4()
+            }
+            const edit = {
+                type: 'add',
+                shape: shape
+            }
+
+            editManager.applyEdit(edit)
+            store.dispatch(addCurrent(edit))
+            break
+        case 'copy':
+
+            break
+        case 'cut':
+            
             break
     }
 }

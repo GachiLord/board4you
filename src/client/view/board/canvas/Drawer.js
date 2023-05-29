@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from "react";
-import { mouseDown, mouseMove, mouseUp, mouseLeave, stageDragBound } from './mouse/';
+import { mouseDown, mouseMove, mouseUp, mouseLeave, stageDragBound, stageDragEnd } from './mouse/';
 import { useSelector } from "react-redux";
 import { Layer, Stage } from 'react-konva';
 import boardEvents from "../../base/boardEvents";
 import EditManager from "../../../lib/EditManager";
 import { removeTransformers, run } from "../../../lib/twiks";
 import runCommand from "./native/runCommand";
+import { setStagePos } from '../../features/stage';
 
 
 
@@ -27,13 +28,13 @@ export default function(props){
         })
         // web event listeners
         window.addEventListener('paste', (e) => {
-            // implement
+            runCommand(canvas, 'paste', e)
         })
-        window.addEventListener('copy', () => {
-            // implement
+        window.addEventListener('copy', (e) => {
+            runCommand(canvas, 'copy', e)
         })
-        window.addEventListener('cut', () => {
-            // implement
+        window.addEventListener('cut', (e) => {
+            runCommand(canvas, 'cut', e)
         })
         // listen for native events
         run( electron => {
@@ -49,12 +50,15 @@ export default function(props){
                 height={stageState.height}
                 width={stageState.width}
                 className="border"
+                // mouse
                 onMouseDown={(e) => mouseDown(e, props)}
                 onMouseMove={(e) => mouseMove(e, props)}
                 onMouseUp={(e) => mouseUp(e, props)}
                 onMouseLeave={(e) => mouseLeave(e, props)}
+                // drag
                 draggable={props.tool === 'move'}
                 dragBoundFunc={stageDragBound}
+                onDragEnd={stageDragEnd}
             >
                 <Layer />
                 <Layer />

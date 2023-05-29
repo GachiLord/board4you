@@ -1,3 +1,5 @@
+import ImageUtils from "./ImageUtils"
+
 export default class CanvasUtils{
 
     static #possibleFields = ['tool', 'type', 'color', 'shapeId', 'lineSize', 'lineType',
@@ -45,7 +47,9 @@ export default class CanvasUtils{
                 )
         
             case 'img':
-                const img = new Image(shape.url)
+                const img = new Image(shape.width, shape.height)
+                img.src = shape.url
+
                 return (
                     new Konva.Image({
                         ...commonAttrs,

@@ -1,6 +1,6 @@
 import CanvasUtils from "./CanvasUtils";
 import store from "../view/store/store";
-import { addCurrent, addUndone, emptyUndone, undo, redo } from "../view/features/history";
+import { emptyUndone, undo, redo } from "../view/features/history";
 
 
 export default class EditManager{
@@ -43,7 +43,7 @@ export default class EditManager{
         switch(edit.type){
             case 'add':
                 const shapeToAdd = CanvasUtils.toKonvaObject(edit.shape)
-                shapeToAdd.cache()
+                if (edit.shape.tool !== 'img') shapeToAdd.cache()
                 this.layer.add(shapeToAdd)
                 break
             case 'remove':
