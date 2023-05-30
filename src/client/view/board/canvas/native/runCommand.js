@@ -70,6 +70,7 @@ export default async function(canvas, o, data){
         const pos = store.getState().stage.stagePos
         const shape = {
             tool: 'img',
+            type: 'img',
             x: pos.x,
             y: Math.abs(pos.y),
             url: img.url,
