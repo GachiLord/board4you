@@ -1,11 +1,16 @@
-import { whenDraw } from "../../../../lib/twiks";
-import store from "../../../store/store";
+import { whenDraw } from "../../../../../lib/twiks";
+import store from "../../../../store/store";
+import heightChange from "../func/heightChange";
 
 export default function(e, props){
     const tool = props.tool
     const isDrawable = store.getState().stage.isDrawable
 
     whenDraw( e, (stage, pos, canvas, temporary) => {
+        // update dividing lines if neccesary
+        if (tool === 'move') heightChange(stage.children[2])
+
+        // handle tools usage
         if (['pen', 'eraser'].includes(tool) && isDrawable){
             const target = e.target
             const lastline = canvas.children.at(-1)

@@ -1,10 +1,10 @@
-import CanvasUtils from "../../../../lib/CanvasUtils";
-import { whenDraw } from "../../../../lib/twiks";
-import { setDrawable } from "../../../features/stage";
-import { addCurrent } from "../../../features/history";
-import store from "../../../store/store";
+import CanvasUtils from "../../../../../lib/CanvasUtils";
+import { whenDraw } from "../../../../../lib/twiks";
+import { setDrawable } from "../../../../features/stage";
+import { addCurrent } from "../../../../features/history";
+import store from "../../../../store/store";
 import Konva from "konva";
-import Selection from "../../../../lib/Selection";
+import Selection from "../../../../../lib/Selection";
 
 
 export default function(e, props){

@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import { Layer, Stage } from 'react-konva';
 import boardEvents from "../../base/boardEvents";
 import EditManager from "../../../lib/EditManager";
-import { removeTransformers, run } from "../../../lib/twiks";
+import { run } from "../../../lib/twiks";
 import runCommand from "./native/runCommand";
 import Selection from "../../../lib/Selection";
 
@@ -47,7 +47,7 @@ export default function(props){
         <div className="d-flex justify-content-center">
             <Stage
                 ref={stage}
-                height={stageState.height}
+                height={stageState.baseHeight}
                 width={stageState.width}
                 className="border"
                 // mouse
@@ -61,7 +61,12 @@ export default function(props){
                 onDragEnd={stageDragEnd}
             >
                 <Layer />
-                <Layer />
+                <Layer
+                    listening={false}
+                />
+                <Layer 
+                    listening={false}
+                />
             </Stage>
         </div>
     )

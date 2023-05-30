@@ -1,12 +1,12 @@
-import { whenDraw } from "../../../../lib/twiks";
-import { setDrawable } from "../../../features/stage";
-import { emptyUndone } from '../../../features/history'
+import { whenDraw } from "../../../../../lib/twiks";
+import { setDrawable } from "../../../../features/stage";
+import { emptyUndone } from '../../../../features/history'
 import {v4 as uuid4} from 'uuid'
-import store from "../../../store/store";
-import CanvasUtils from "../../../../lib/CanvasUtils";
+import store from "../../../../store/store";
+import CanvasUtils from "../../../../../lib/CanvasUtils";
 import Konva from "konva";
-import primaryColor from '../../../base/primaryColor'
-import Selection from "../../../../lib/Selection";
+import primaryColor from '../../../../base/primaryColor'
+import Selection from "../../../../../lib/Selection";
 
 
 

@@ -1,7 +1,7 @@
 import Konva from "konva";
 import store from "../view/store/store";
 import { setSelection, emptySelection } from "../view/features/select";
-import shapeChange from "../view/board/canvas/mouse/shapeChange";
+import shapeChange from "../view/board/canvas/mouse/func/shapeChange";
 import CanvasUtils from "./CanvasUtils";
 
 

@@ -1,5 +1,3 @@
-import { emptySelection } from "../view/features/select"
-import store from "../view/store/store"
 import EditManager from "./EditManager"
 
 

@@ -1,5 +1,5 @@
-import store from "../../../store/store"
-import { setStagePos } from "../../../features/stage"
+import store from "../../../../store/store"
+import { setStagePos } from "../../../../features/stage"
 
 
 export default function(e){

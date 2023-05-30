@@ -1,7 +1,7 @@
-import CanvasUtils from "../../../../lib/CanvasUtils";
-import store from "../../../store/store";
-import { addCurrent, emptyUndone } from "../../../features/history";
-import { setSelection } from "../../../features/select";
+import CanvasUtils from "../../../../../lib/CanvasUtils";
+import store from "../../../../store/store";
+import { addCurrent, emptyUndone } from "../../../../features/history";
+import { setSelection } from "../../../../features/select";
 
 
 
