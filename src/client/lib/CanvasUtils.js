@@ -1,5 +1,3 @@
-import ImageUtils from "./ImageUtils"
-
 export default class CanvasUtils{
 
     static #possibleFields = ['tool', 'type', 'color', 'shapeId', 'lineSize', 'lineType',

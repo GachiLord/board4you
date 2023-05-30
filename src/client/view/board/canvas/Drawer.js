@@ -6,7 +6,6 @@ import boardEvents from "../../base/boardEvents";
 import EditManager from "../../../lib/EditManager";
 import { removeTransformers, run } from "../../../lib/twiks";
 import runCommand from "./native/runCommand";
-import { setStagePos } from '../../features/stage';
 
 
 

@@ -28,7 +28,7 @@ export function getStage(event){
 
 export function emptyLayer(layer){
     layer.children.forEach(s => {
-        s.remove()
+        s.destroy()
     });
 }
 
@@ -41,6 +41,6 @@ export function removeTransformers(layer){
             s.setAttr('draggable', false)
         } )
         t.detach()
-        t.remove()
+        t.destroy()
     });
 }
