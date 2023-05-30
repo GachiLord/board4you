@@ -29,18 +29,5 @@ export function getStage(event){
 export function emptyLayer(layer){
     layer.children.forEach(s => {
         s.destroy()
-    });
-}
-
-export function removeTransformers(layer){
-    layer.find('Transformer').forEach(t => {
-        // empty selection
-        store.dispatch(emptySelection())
-        // detach nodes
-        t.nodes().forEach( s => {
-            s.setAttr('draggable', false)
-        } )
-        t.detach()
-        t.destroy()
-    });
+    })
 }

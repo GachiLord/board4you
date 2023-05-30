@@ -6,6 +6,7 @@ import boardEvents from "../../base/boardEvents";
 import EditManager from "../../../lib/EditManager";
 import { removeTransformers, run } from "../../../lib/twiks";
 import runCommand from "./native/runCommand";
+import Selection from "../../../lib/Selection";
 
 
 
@@ -18,11 +19,11 @@ export default function(props){
         const editManager = new EditManager(canvas)
         // listen for board events 
         boardEvents.addListener('undo', () => {
-            removeTransformers(canvas)
+            Selection.destroy(canvas)
             editManager.undo()
         })
         boardEvents.addListener('redo', () => {
-            removeTransformers(canvas)
+            Selection.destroy(canvas)
             editManager.redo()
         })
         // web event listeners

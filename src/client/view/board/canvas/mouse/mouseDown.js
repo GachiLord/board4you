@@ -1,13 +1,12 @@
-import { whenDraw, removeTransformers } from "../../../../lib/twiks";
+import { whenDraw } from "../../../../lib/twiks";
 import { setDrawable } from "../../../features/stage";
 import { emptyUndone } from '../../../features/history'
-import { setSelection } from "../../../features/select";
 import {v4 as uuid4} from 'uuid'
 import store from "../../../store/store";
 import CanvasUtils from "../../../../lib/CanvasUtils";
 import Konva from "konva";
 import primaryColor from '../../../base/primaryColor'
-import shapeChange from "./shapeChange";
+import Selection from "../../../../lib/Selection";
 
 
 
@@ -26,7 +25,7 @@ export default function(e, props){
         const undone = store.getState().history.undone.at(-1)
         // empty undone if it exists and tool is not select
         if (undone && tool !== 'select' && tool !== 'move') store.dispatch(emptyUndone())
-        if (tool !== 'move') removeTransformers(canvas)
+        if (tool !== 'move') Selection.destroy(canvas)
         // create shape
         let shape = null
         
@@ -97,24 +96,12 @@ export default function(e, props){
             // select only clicked shape
             else {
                 const connected = []
-                let resizable = null
                 // find shapes which have interception with clientRect
                 canvas.children.forEach(s => {
-                    resizable = e.target.attrs.connected.size === 0
                     if (e.target.attrs.connected.has(s.attrs.shapeId)) connected.push(s)
                 })
                 // create transformer for them
-                const tr = new Konva.Transformer({
-                    resizeEnabled: resizable
-                })
-                canvas.add(tr)
-                e.target.setAttr('draggable', true)
-                const shapesToSelect = [e.target, ...connected]
-                tr.nodes(shapesToSelect)
-                // add listener for transform and drag
-                shapeChange(tr)
-                // add selected to selection
-                store.dispatch(setSelection(shapesToSelect.map( s => CanvasUtils.toShape(s) )))
+                Selection.create([e.target, ...connected])
             }
         }
     } )

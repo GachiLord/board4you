@@ -1,12 +1,11 @@
-import { removeTransformers } from '../../../../lib/twiks';
 import store from '../../../store/store';
 import { addCurrent } from '../../../features/history';
 import { emptySelection } from '../../../features/select';
 import EditManager from '../../../../lib/EditManager';
 import paste from './paste';
 import { v4 as uuid4 } from 'uuid';
-import Konva from 'konva';
 import writeToClipboard from './writeToClipboard';
+import Selection from '../../../../lib/Selection';
 
 
 
@@ -44,11 +43,11 @@ export default async function(canvas, o, data){
         // )
     }
     if (o === 'undo'){
-        removeTransformers(canvas)
+        Selection.destroy(canvas)
         editManager.undo()
     }
     if (o === 'redo'){
-        removeTransformers(canvas)
+        Selection.destroy(canvas)
         editManager.redo()
     }             
     if (o === 'del'){
@@ -61,7 +60,7 @@ export default async function(canvas, o, data){
             editManager.applyEdit(edit)
             store.dispatch(addCurrent(edit))
             store.dispatch(emptySelection())
-            removeTransformers(canvas)
+            Selection.destroy(canvas)
         }
     }
     if (o === 'paste'){

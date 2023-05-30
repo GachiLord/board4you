@@ -1,11 +1,10 @@
 import CanvasUtils from "../../../../lib/CanvasUtils";
 import { whenDraw } from "../../../../lib/twiks";
 import { setDrawable } from "../../../features/stage";
-import { setSelection } from "../../../features/select";
 import { addCurrent } from "../../../features/history";
 import store from "../../../store/store";
 import Konva from "konva";
-import shapeChange from "./shapeChange";
+import Selection from "../../../../lib/Selection";
 
 
 export default function(e, props){
@@ -35,7 +34,7 @@ export default function(e, props){
             const clientRect = box.getClientRect()
     
             // offset negative wifth and height
-            if (clientRect.width < 0) {
+            if (clientRect.width < 0){
                 clientRect.x += box.width
                 clientRect.width = Math.abs(clientRect.width)
             }
@@ -44,7 +43,7 @@ export default function(e, props){
                 clientRect.height = Math.abs(clientRect.height)
             }
             
-            let selected = []
+            const selected = []
             let resizable = null
             // find shapes which have interception with clientRect
             shapes.forEach( shape => {
@@ -57,20 +56,9 @@ export default function(e, props){
                     })
                 }
             } )
-            selected.forEach( s => {
-                s.setAttr('draggable', true)
-            } )
             // create transformer for them
             if (selected.length !== 0){
-                const tr = new Konva.Transformer({
-                    resizeEnabled: resizable
-                });
-                canvas.add(tr);
-                tr.nodes(selected)
-                // add listener for transform and drag
-                shapeChange(tr)
-                // add selected to selection
-                store.dispatch(setSelection(selected.map( s => CanvasUtils.toShape(s) )))
+                Selection.create(selected)
             }
             box.destroy()
         }
