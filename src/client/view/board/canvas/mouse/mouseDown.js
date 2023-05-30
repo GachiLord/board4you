@@ -36,7 +36,7 @@ export default function(e, props){
             shape = {
                 tool: tool,
                 points: [pos.x, pos.y],
-                tool: type,
+                type: type,
                 color: tool !== 'eraser' ? color: '#ffffff',
                 shapeId: uuid4(),
                 x: 0,
@@ -50,6 +50,7 @@ export default function(e, props){
         else if (tool === 'rect'){
             shape = {
                 tool: tool,
+                type: tool,
                 x: pos.x,
                 y: pos.y,
                 height: 0,
@@ -64,6 +65,7 @@ export default function(e, props){
         else if (tool === 'ellipse'){
             shape = {
                 tool: tool,
+                type: tool,
                 x: pos.x,
                 y: pos.y,
                 radiusY: 0,

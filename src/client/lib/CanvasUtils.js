@@ -13,6 +13,7 @@ export default class CanvasUtils{
             shadowForStrokeEnabled: false,
             globalCompositeOperation: 'source-over',
             tool: shape.tool,
+            type: shape.type,
             lineSize: shape.lineSize,
             color: shape.color,
             lineType: shape.lineType,
@@ -26,7 +27,7 @@ export default class CanvasUtils{
             connected: shape.connected ? new Set(...shape.connected): new Set(),
         }
 
-        switch(shape.tool){
+        switch(shape.type){
             case 'arrow':
                 return (
                     new Konva.Arrow({

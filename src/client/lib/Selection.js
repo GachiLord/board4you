@@ -10,15 +10,15 @@ export default class Selection{
     static create(shapes){
         if (shapes.length !== 0){
             const canvas = shapes[0].parent
-            let resizable = null
+            let transformable = null
             // make them draggable
             shapes.forEach( shape => {
                 shape.setAttr('draggable', true)
-                resizable = shape.attrs.connected.size === 0 && resizable !== false
+                transformable = shape.attrs.connected.size === 0 && transformable !== false
             } )
-
             const tr = new Konva.Transformer({
-                resizeEnabled: resizable
+                resizeEnabled: transformable,
+                rotateEnabled: transformable
             });
             canvas.add(tr);
             tr.nodes(shapes)
