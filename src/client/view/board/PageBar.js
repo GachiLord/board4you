@@ -1,33 +1,20 @@
-import React, { useEffect, useState } from "react";
-import useLocalStorageState from "use-local-storage-state";
-import getCanvasSize from "../../model/CommonGetCanvasSize";
+import React from "react";
+import { useDispatch, useSelector } from "react-redux";
 import boardEvents from "../base/boardEvents";
+import { setStagePos } from "../features/stage";
 
 
 export default function(){
-    const [pageIndex, setPageIndex] = useState(1)
-    const [maxPageIndex, setMaxPageIndex] = useState(1)
-    const [size] = useLocalStorageState('CanvasSize', {
-        defaultValue: getCanvasSize()
-    })
+    const dispatch = useDispatch() 
+    const stage = useSelector(state => state.stage)
+    const pageIndex = Math.round( Math.abs(stage.stagePos.y) / stage.baseHeight ) + 1
+    const maxPageIndex = Math.floor(stage.height / stage.baseHeight) - 1
 
-    const handlePageChange = (newIndex) => {
-        setPageIndex(newIndex)
+    const handlePageChange = (e) => {
+        const newStagePos = { x: 0, y: - stage.baseHeight * (e.target.value - 1) }
+        boardEvents.emit('pageSetted', newStagePos)
+        dispatch( setStagePos(newStagePos) )
     }
-    const ChangePageIndex = (e) => {
-        const newIndex = Number(e.target.value)
-        handlePageChange(newIndex)
-        boardEvents.emit('pageSetted', { x: 0, y: - size.height * (newIndex - 1) })
-    }
-
-    useEffect( () => {
-        boardEvents.addListener('stageDragStoped', (pos) => {
-            if (pos.y !== 0) handlePageChange(Math.round( Math.abs(pos.y) / size.height ) + 1)
-        })
-        boardEvents.addListener('stageDragStoped', (_, height) => {
-            if (height !== 0) setMaxPageIndex(Math.round(height / size.height))
-        })
-    } )
 
 
     let pagesIndexes = new Array(Math.max(maxPageIndex, pageIndex)).fill(1)
@@ -38,7 +25,7 @@ export default function(){
                 value={pageIndex} 
                 className="form-select form-select-sm"
                 style={ {width: '5em'} }
-                onChange={ChangePageIndex}
+                onChange={handlePageChange}
             >
                 { pagesIndexes.map( i => <option value={i} key={i}>{i}</option> ) }
             </select>

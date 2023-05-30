@@ -7,6 +7,7 @@ import EditManager from "../../../lib/EditManager";
 import { run } from "../../../lib/twiks";
 import runCommand from "./native/runCommand";
 import Selection from "../../../lib/Selection";
+import store from "../../store/store";
 
 
 
@@ -25,6 +26,9 @@ export default function(props){
         boardEvents.addListener('redo', () => {
             Selection.destroy(canvas)
             editManager.redo()
+        })
+        boardEvents.addListener('pageSetted', (pos) => {
+            stage.current.position(pos)
         })
         // web event listeners
         window.addEventListener('paste', (e) => {
