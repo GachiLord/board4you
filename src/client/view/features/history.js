@@ -32,6 +32,10 @@ export const historySlice = createSlice({
     emptyCurrent: state => {
       state.current = []
     },
+    emptyHistory: state => { 
+      state.current = []
+      state.undone = []  
+    },
     undo: state => {
       const last = state.current.at(-1)
       state.current.pop()
@@ -46,7 +50,7 @@ export const historySlice = createSlice({
 })
 
 // Action creators are generated for each case reducer function
-export const { addCurrent, addUndone, modifyCurrent, modifyUndone,
+export const { addCurrent, addUndone, modifyCurrent, modifyUndone, emptyHistory,
   modifyLastCurrent, modifyLastUndone, emptyUndone, emptyCurrent, undo, redo } = historySlice.actions
 
 export default historySlice.reducer

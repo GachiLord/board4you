@@ -1,5 +1,5 @@
 import CanvasUtils from "../../../../../lib/CanvasUtils";
-import { whenDraw } from "../../../../../lib/twiks";
+import { itemIn, whenDraw } from "../../../../../lib/twiks";
 import { setDrawable } from "../../../../features/stage";
 import { addCurrent } from "../../../../features/history";
 import store from "../../../../store/store";
@@ -12,7 +12,7 @@ export default function(e, props){
     const tool = props.tool
 
     whenDraw( e, (_, __, canvas, temporary) => {
-        if (['pen', 'eraser', 'line', 'arrow', 'dashed', 'line'].includes(tool) && isDrawing){
+        if (itemIn(tool, 'pen', 'eraser', 'line', 'arrow', 'dashed', 'line') && isDrawing){
             let lastLine = canvas.children.at(-1)
             let points = lastLine.attrs.points
             
@@ -24,7 +24,7 @@ export default function(e, props){
             // add line to history
             store.dispatch(addCurrent({type: 'add', shape: CanvasUtils.toShape(lastLine)}))
         }
-        else if (['rect', 'ellipse'].includes(tool) && isDrawing){
+        else if (itemIn(tool, 'rect', 'ellipse') && isDrawing){
             let lastShape = canvas.children.at(-1)
             store.dispatch(addCurrent({type: 'add', shape: CanvasUtils.toShape(lastShape)}))
         }

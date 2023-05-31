@@ -1,3 +1,7 @@
+import jsPDF from "jspdf"
+import store from "../view/store/store"
+
+
 export default class ImageUtils{
 
     static getSizeOfBase64Img = (uri) => {
@@ -56,16 +60,18 @@ export default class ImageUtils{
         return {imgs: imgs, size: {width: Math.max(...pagesWidth), height: Math.max(...pagesHeight)} }
     }
 
-    static async base64imgsToPdf(imgs){
+    static async base64imgsToPdfObject(imgs){
+        const stage = store.getState().stage
+        const size = [stage.width, stage.baseHeight]
         const doc = new jsPDF({
             orientation: 'l',
-            format: Object.values(getCanvasSize()),
+            format: size
         })
         imgs = await imgs
 
         imgs.forEach( (item, index) => {
-            doc.addImage(item, 'PNG', 0, 0, getCanvasSize().width, getCanvasSize().height)
-            if (index < imgs.length - 1) doc.addPage(Object.values(getCanvasSize()), 'l')
+            doc.addImage(item, 'PNG', 0, 0, stage.width, stage.baseHeight)
+            if (index < imgs.length - 1) doc.addPage(size, 'l')
         } )
         return doc
     }

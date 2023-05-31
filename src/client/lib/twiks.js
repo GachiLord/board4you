@@ -24,8 +24,6 @@ export function getStage(event){
     return event.target.getStage()
 }
 
-export function emptyLayer(layer){
-    layer.children.forEach(s => {
-        s.destroy()
-    })
+export function itemIn(item, ...items){
+    return items.includes(item)
 }

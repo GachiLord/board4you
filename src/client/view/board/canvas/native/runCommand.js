@@ -1,23 +1,31 @@
 import store from '../../../store/store';
-import { addCurrent } from '../../../features/history';
+import { addCurrent, emptyHistory } from '../../../features/history';
 import { emptySelection } from '../../../features/select';
 import EditManager from '../../../../lib/EditManager';
 import paste from './paste';
 import { v4 as uuid4 } from 'uuid';
 import writeToClipboard from './writeToClipboard';
 import Selection from '../../../../lib/Selection';
-import CanvasUtils from '../../../../lib/CanvasUtils';
 import boardEvents from '../../../base/boardEvents';
+import layerToUrls from './layerToUrls';
+import ImageUtils from '../../../../lib/ImageUtils';
+import { setStagePos } from '../../../features/stage';
 
 
 
 export default async function(stage, o, data){
     console.log(o)
     const canvas = stage.children[0]
+    const temporaryLayer = stage.children[1]
     const editManager = new EditManager(canvas)
 
     if (o === 'newFile'){
-
+        store.dispatch(emptyHistory())
+        canvas.destroyChildren()
+        temporaryLayer.destroyChildren()
+        // update stagePos
+        store.dispatch(setStagePos({x: 0, y: 0}))
+        stage.position({x: 0, y: 0})
     }
     if (o === 'selectSize'){
         boardEvents.emit('selectSize')
@@ -26,8 +34,6 @@ export default async function(stage, o, data){
 
     }   
     if (o === 'saveFile'){
-        console.log(CanvasUtils.findLastY(canvas))
-
         // save by browser if there is no nodejs env
         // run( async () => {
         //         this.electronAPI.saveFile(await this.getStageAsUrls())

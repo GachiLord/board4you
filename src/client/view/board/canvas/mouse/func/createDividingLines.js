@@ -7,8 +7,6 @@ export default function(linesLayer){
     const maxHeight = stage.height
     const baseHeight = stage.baseHeight
 
-    linesLayer.destroyChildren()
-
     for (let height = baseHeight; height < maxHeight; height += baseHeight){
         linesLayer.add(new Konva.Line({
             points: [0, height, width, height],

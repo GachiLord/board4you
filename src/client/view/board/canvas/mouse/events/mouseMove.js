@@ -1,6 +1,7 @@
 import { whenDraw } from "../../../../../lib/twiks";
 import store from "../../../../store/store";
 import createDividingLine from "../func/createDividingLine";
+import { itemIn } from "../../../../../lib/twiks";
 
 export default function(e, props){
     const tool = props.tool
@@ -11,7 +12,8 @@ export default function(e, props){
         if (tool === 'move') createDividingLine(stage.children[2])
 
         // handle tools usage
-        if (['pen', 'eraser'].includes(tool) && isDrawable){
+        
+        if (itemIn(tool, 'pen', 'eraser') && isDrawable){
             const target = e.target
             const lastline = canvas.children.at(-1)
             // add ref to eraser line if pointer is on shape
@@ -21,7 +23,8 @@ export default function(e, props){
             // add points
             lastline.points(lastline.attrs.points.concat([pos.x, pos.y]))
         }
-        else if (['arrow', 'line'].includes(tool) && isDrawable){
+        
+        else if (itemIn(tool, 'arrow', 'line') && isDrawable){
             let lastLine = canvas.children.at(-1)
     
             if (lastLine.attrs.points.length > 2) lastLine.points(lastLine.attrs.points.slice(0,2))

@@ -32,7 +32,9 @@ export default function(props){
             stage.current.position(pos)
         })
         boardEvents.addListener('sizeHasChanged', () => {
-            createDividingLines(stage.current.children[2])
+            const linesLayer = stage.current.children[2]
+            linesLayer.destroyChildren(linesLayer)
+            createDividingLines(linesLayer)
         })
         // web event listeners
         window.addEventListener('paste', (e) => {
@@ -68,11 +70,13 @@ export default function(props){
                 dragBoundFunc={stageDragBound}
                 onDragEnd={stageDragEnd}
             >
-                <Layer />
+                <Layer name="canvas"/>
                 <Layer
+                    name="temporary"
                     listening={false}
                 />
                 <Layer 
+                    name="dividing lines"
                     listening={false}
                 />
             </Stage>

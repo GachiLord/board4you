@@ -1,4 +1,4 @@
-import { whenDraw } from "../../../../../lib/twiks";
+import { itemIn, whenDraw } from "../../../../../lib/twiks";
 import { setDrawable } from "../../../../features/stage";
 import { emptyUndone } from '../../../../features/history'
 import {v4 as uuid4} from 'uuid'
@@ -30,8 +30,8 @@ export default function(e, props){
         let shape = null
         
         // create shape considering the tool
-        if (['pen', 'eraser', 'line', 'arrow', 'dashed line'].includes(tool)){
-            const type = ['pen', 'eraser', 'dashed line'].includes(tool) ? 'line': tool
+        if (itemIn(tool, 'pen', 'eraser', 'line', 'arrow', 'dashed line')){
+            const type = itemIn(tool, 'pen', 'eraser', 'dashed line') ? 'line': tool
 
             shape = {
                 tool: tool,

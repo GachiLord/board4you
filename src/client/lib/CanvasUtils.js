@@ -155,8 +155,9 @@ export default class CanvasUtils{
         layer.children.forEach( shape => {
             if (shape.getType() === 'Group') return
             const s = shape.attrs
+            const keys = Object.keys(s)
 
-            if (Object.keys(s).includes('height')){
+            if (keys.includes('height') || keys.includes('radiusY')){
                 if (s.y + s.height > y) y = s.y + s.height
             }
             else{
