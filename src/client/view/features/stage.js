@@ -30,13 +30,9 @@ export const stageSlice = createSlice({
         setHeight: (state, action) => {state.height = action.payload},
         setBaseHeight: (state, action) => {
             state.baseHeight = action.payload
-            // update value in localStorage
-            setCanvasSize(action.payload)
         },
         setWidth: (state, action) => {
             state.width = action.payload
-            // update value in localStorage
-            setCanvasSize(action.payload)
         },
         setStagePos: (state, action) => { state.stagePos = action.payload },
         setLastPointerPos: (state, action) => { state.lastPointerPos = action.payload },

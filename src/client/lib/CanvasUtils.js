@@ -148,4 +148,37 @@ export default class CanvasUtils{
     static findOne(layer, attrs){
         return CanvasUtils.find(layer, attrs)[0]
     }
+
+    static findLastY(layer){
+        let y = 0
+
+        layer.children.forEach( shape => {
+            if (shape.getType() === 'Group') return
+            const s = shape.attrs
+
+            if (Object.keys(s).includes('height')){
+                if (s.y + s.height > y) y = s.y + s.height
+            }
+            else{
+                let yList = CanvasUtils.getCoorFromPoints(s.points, 'y')
+                let maxShapeY = Math.max(...yList) + s.y
+                if (maxShapeY > y) y = maxShapeY
+            }
+        } ) 
+
+        return y
+    }
+
+    static getCoorFromPoints = (points, coor) => {
+        return points.map(
+            (item, index) => {
+                if ((index+1) % 2 === 0){
+                    if (coor === 'y') return item
+                }
+                else{
+                    if (coor === 'x') return item
+                }
+            }
+        ).filter(i => {if (i !== undefined) return i})
+    }
 }

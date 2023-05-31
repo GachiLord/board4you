@@ -4,8 +4,9 @@ import Modal from 'react-bootstrap/Modal'
 import boardEvents from '../base/boardEvents'
 import useLocalStorageState from 'use-local-storage-state'
 import Form from 'react-bootstrap/Form';
-import InputGroup from 'react-bootstrap/InputGroup';
+import InputGroup from 'react-bootstrap/InputGroup'
 import getCanvasSize from '../../model/CommonGetCanvasSize'
+import setCanvasSize from '../../model/setCanvasSize'
 
 
 
@@ -16,8 +17,8 @@ export default function() {
     const [show, setShow] = useState(false)
     const handleClose = () => { 
         setShow(false)
-        boardEvents.emit('SizeHasChanged')
-        if (window.electronAPI) window.electronAPI.setCanvasSize(size)
+        setCanvasSize(size)
+        boardEvents.emit('sizeHasChanged')
       }
     const handleShow = () => setShow(true)
     const loc = localizationCfg

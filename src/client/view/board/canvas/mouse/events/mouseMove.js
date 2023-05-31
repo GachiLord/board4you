@@ -1,6 +1,6 @@
 import { whenDraw } from "../../../../../lib/twiks";
 import store from "../../../../store/store";
-import heightChange from "../func/heightChange";
+import createDividingLine from "../func/createDividingLine";
 
 export default function(e, props){
     const tool = props.tool
@@ -8,7 +8,7 @@ export default function(e, props){
 
     whenDraw( e, (stage, pos, canvas, temporary) => {
         // update dividing lines if neccesary
-        if (tool === 'move') heightChange(stage.children[2])
+        if (tool === 'move') createDividingLine(stage.children[2])
 
         // handle tools usage
         if (['pen', 'eraser'].includes(tool) && isDrawable){

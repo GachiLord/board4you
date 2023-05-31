@@ -6,23 +6,28 @@ import paste from './paste';
 import { v4 as uuid4 } from 'uuid';
 import writeToClipboard from './writeToClipboard';
 import Selection from '../../../../lib/Selection';
+import CanvasUtils from '../../../../lib/CanvasUtils';
+import boardEvents from '../../../base/boardEvents';
 
 
 
-export default async function(canvas, o, data){
+export default async function(stage, o, data){
     console.log(o)
+    const canvas = stage.children[0]
     const editManager = new EditManager(canvas)
 
     if (o === 'newFile'){
 
     }
     if (o === 'selectSize'){
-
+        boardEvents.emit('selectSize')
     }
     if (o === 'openFile'){
 
     }   
     if (o === 'saveFile'){
+        console.log(CanvasUtils.findLastY(canvas))
+
         // save by browser if there is no nodejs env
         // run( async () => {
         //         this.electronAPI.saveFile(await this.getStageAsUrls())

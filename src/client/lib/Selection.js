@@ -5,7 +5,6 @@ import shapeChange from "../view/board/canvas/mouse/func/shapeChange";
 import CanvasUtils from "./CanvasUtils";
 
 
-
 export default class Selection{
     static create(shapes){
         if (shapes.length !== 0){

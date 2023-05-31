@@ -8,6 +8,7 @@ import { run } from "../../../lib/twiks";
 import runCommand from "./native/runCommand";
 import Selection from "../../../lib/Selection";
 import store from "../../store/store";
+import createDividingLines from "./mouse/func/createDividingLines";
 
 
 
@@ -30,19 +31,22 @@ export default function(props){
         boardEvents.addListener('pageSetted', (pos) => {
             stage.current.position(pos)
         })
+        boardEvents.addListener('sizeHasChanged', () => {
+            createDividingLines(stage.current.children[2])
+        })
         // web event listeners
         window.addEventListener('paste', (e) => {
-            runCommand(canvas, 'paste', e)
+            runCommand(stage.current, 'paste', e)
         })
         window.addEventListener('copy', (e) => {
-            runCommand(canvas, 'copy', e)
+            runCommand(stage.current, 'copy', e)
         })
         window.addEventListener('cut', (e) => {
-            runCommand(canvas, 'cut', e)
+            runCommand(stage.current, 'cut', e)
         })
         // listen for native events
         run( electron => {
-            electron.onMenuButtonClick( (_, o, d) => {runCommand(canvas, o, d)} )
+            electron.onMenuButtonClick( (_, o, d) => {runCommand(stage.current, o, d)} )
         })
     }, [])
 
