@@ -1,5 +1,5 @@
 import store from '../../../store/store';
-import { addCurrent, emptyHistory } from '../../../features/history';
+import { addCurrent } from '../../../features/history';
 import { emptySelection } from '../../../features/select';
 import EditManager from '../../../../lib/EditManager';
 import paste from './paste';
@@ -13,6 +13,9 @@ import renderAll from '../image/renderAll';
 import renderVisible from '../image/renderVisible';
 import ImageUtils from '../../../../lib/ImageUtils'
 import { run } from '../../../../lib/twiks';
+import clearCanvas from '../image/clearCanvas';
+import insertImage from '../image/insertImage';
+import openFile from './openFile';
 
 
 
@@ -23,9 +26,7 @@ export default async function(stage, o, data){
     const editManager = new EditManager(canvas)
 
     if (o === 'newFile'){
-        store.dispatch(emptyHistory())
-        canvas.destroyChildren()
-        temporaryLayer.destroyChildren()
+        clearCanvas(canvas, temporaryLayer)
         // update stagePos
         store.dispatch(setStagePos({x: 0, y: 0}))
         stage.position({x: 0, y: 0})
@@ -34,7 +35,7 @@ export default async function(stage, o, data){
         boardEvents.emit('selectSize')
     }
     if (o === 'openFile'){
-
+        openFile(data, canvas, temporaryLayer, editManager)
     }   
     if (o === 'saveFile'){
         renderAll(canvas)
@@ -84,27 +85,7 @@ export default async function(stage, o, data){
         }
     }
     if (o === 'paste'){
-        const img = await paste(data)
-        if (!img) return
-
-        const pos = store.getState().stage.stagePos
-        const shape = {
-            tool: 'img',
-            type: 'img',
-            x: pos.x,
-            y: Math.abs(pos.y),
-            url: img.url,
-            height: img.size.height,
-            width: img.size.width,
-            shapeId: uuid4()
-        }
-        const edit = {
-            type: 'add',
-            shape: shape
-        }
-
-        editManager.applyEdit(edit)
-        store.dispatch(addCurrent(edit))
+        insertImage(data, editManager)
     }
     if (o === 'copy' || o === 'cut'){
         const transformer = canvas.find('Transformer')[0]
