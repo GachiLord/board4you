@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { mouseDown, mouseMove, mouseUp, mouseLeave, stageDragBound, stageDragEnd } from './mouse/';
+import { mouseDown, mouseMove, mouseUp, mouseLeave, stageDragBound, stageDragEnd, stageDragMove } from './mouse/';
 import { useSelector } from "react-redux";
 import { Layer, Stage } from 'react-konva';
 import boardEvents from "../../base/boardEvents";
@@ -7,9 +7,8 @@ import EditManager from "../../../lib/EditManager";
 import { run } from "../../../lib/twiks";
 import runCommand from "./native/runCommand";
 import Selection from "../../../lib/Selection";
-import store from "../../store/store";
 import createDividingLines from "./mouse/func/createDividingLines";
-
+import renderVisible from "./image/renderVisible";
 
 
 export default function(props){
@@ -30,6 +29,7 @@ export default function(props){
         })
         boardEvents.addListener('pageSetted', (pos) => {
             stage.current.position(pos)
+            renderVisible(canvas)
         })
         boardEvents.addListener('sizeHasChanged', () => {
             const linesLayer = stage.current.children[2]
@@ -68,6 +68,7 @@ export default function(props){
                 // drag
                 draggable={props.tool === 'move'}
                 dragBoundFunc={stageDragBound}
+                onDragMove={stageDragMove}
                 onDragEnd={stageDragEnd}
             >
                 <Layer name="canvas"/>

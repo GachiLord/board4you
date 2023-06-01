@@ -7,8 +7,6 @@ import { v4 as uuid4 } from 'uuid';
 import writeToClipboard from './writeToClipboard';
 import Selection from '../../../../lib/Selection';
 import boardEvents from '../../../base/boardEvents';
-import layerToUrls from './layerToUrls';
-import ImageUtils from '../../../../lib/ImageUtils';
 import { setStagePos } from '../../../features/stage';
 
 

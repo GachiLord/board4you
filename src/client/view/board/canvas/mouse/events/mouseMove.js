@@ -3,6 +3,7 @@ import store from "../../../../store/store";
 import createDividingLine from "../func/createDividingLine";
 import { itemIn } from "../../../../../lib/twiks";
 
+
 export default function(e, props){
     const tool = props.tool
     const isDrawable = store.getState().stage.isDrawable
@@ -12,7 +13,6 @@ export default function(e, props){
         if (tool === 'move') createDividingLine(stage.children[2])
 
         // handle tools usage
-        
         if (itemIn(tool, 'pen', 'eraser') && isDrawable){
             const target = e.target
             const lastline = canvas.children.at(-1)

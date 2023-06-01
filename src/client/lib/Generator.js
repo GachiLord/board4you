@@ -1,4 +1,4 @@
-import historyUtils from "./HistoryUtils"
+import CanvasUtils from "./CanvasUtils"
 import { v4 as uuid4 } from "uuid"
 
 
@@ -18,11 +18,11 @@ export default class Generator{
         return coors
     }
 
-    getRandromLinesObjects(amount = 1, length = 50){
+    getRandomLinesObjects(amount = 1, length = 50){
         let lines = []
 
         for (let i = 0; i < amount; i++){
-            lines.push(historyUtils.toKonvaObject(
+            lines.push(CanvasUtils.toKonvaObject(
                 {   
                     tool: 'pen',
                     points: this.#getRandomCoors(length),
