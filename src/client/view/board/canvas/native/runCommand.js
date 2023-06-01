@@ -8,6 +8,11 @@ import writeToClipboard from './writeToClipboard';
 import Selection from '../../../../lib/Selection';
 import boardEvents from '../../../base/boardEvents';
 import { setStagePos } from '../../../features/stage';
+import layerToUrls from '../image/layerToUrls'
+import renderAll from '../image/renderAll';
+import renderVisible from '../image/renderVisible';
+import ImageUtils from '../../../../lib/ImageUtils'
+import { run } from '../../../../lib/twiks';
 
 
 
@@ -32,24 +37,30 @@ export default async function(stage, o, data){
 
     }   
     if (o === 'saveFile'){
+        renderAll(canvas)
         // save by browser if there is no nodejs env
-        // run( async () => {
-        //         this.electronAPI.saveFile(await this.getStageAsUrls())
-        //     }, 
-        //     async () => {
-        //         await CanvasUtils.getBase64imgsAsPdf(this.getStageAsUrls()).save('lesson')
-        //     }
-        // )
+        run( (api) => {
+                api.saveFile(layerToUrls(canvas, temporaryLayer))
+            }, 
+            async () => {
+                const pdf = await ImageUtils.base64imgsToPdfObject(layerToUrls(canvas, temporaryLayer))
+                pdf.save('lesson')
+            }
+        )
+        renderVisible(canvas)
     }
     if (o === 'saveFileAs'){
+        renderAll(canvas)
         // save by browser if there is no nodejs 
-        // run( async () => {
-        //         this.electronAPI.saveFileAs(await this.getStageAsUrls())
-        //     }, 
-        //     async () => {
-        //         await CanvasUtils.getBase64imgsAsPdf(this.getStageAsUrls()).save('lesson')
-        //     }
-        // )
+        run( (api) => {
+                api.saveFileAs(layerToUrls(canvas, temporaryLayer))
+            }, 
+            async () => {
+                const pdf = await ImageUtils.base64imgsToPdfObject(layerToUrls(canvas, temporaryLayer))
+                pdf.save('lesson')
+            }
+        )
+        renderVisible(canvas)
     }
     if (o === 'undo'){
         Selection.destroy(canvas)

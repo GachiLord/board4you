@@ -12,8 +12,8 @@ export default function(layer, temporaryLayer){
 
 
     let urls = []
-    for (let y = stagePos.y; y <= lastY - Math.abs(stagePos.y); y += baseHeight){
-        // add background becase of png output
+    for (let y = stagePos.y; y <= lastY + stagePos.y; y += baseHeight){
+        // add background because of png output
         const background = new Konva.Rect({
             x: stagePos.x,
             y: y,

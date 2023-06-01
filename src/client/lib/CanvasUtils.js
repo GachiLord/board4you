@@ -157,8 +157,11 @@ export default class CanvasUtils{
             const s = shape.attrs
             const keys = Object.keys(s)
 
-            if (keys.includes('height') || keys.includes('radiusY')){
+            if (keys.includes('height')){
                 if (s.y + s.height > y) y = s.y + s.height
+            }
+            else if (keys.includes('radiusY')){
+                if (s.y + s.radiusY > y) y = s.y + s.radiusY
             }
             else{
                 let yList = CanvasUtils.getCoorFromPoints(s.points, 'y')
