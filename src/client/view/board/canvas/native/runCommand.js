@@ -26,6 +26,9 @@ export default async function(stage, o, data){
     const editManager = new EditManager(canvas)
 
     if (o === 'newFile'){
+        run( api => {
+            api.hadleNewFile()
+        } )
         clearCanvas(canvas, temporaryLayer)
         // update stagePos
         store.dispatch(setStagePos({x: 0, y: 0}))

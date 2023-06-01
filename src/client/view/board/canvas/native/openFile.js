@@ -1,4 +1,3 @@
-import CanvasUtils from "../../../../lib/CanvasUtils"
 import clearCanvas from "../image/clearCanvas"
 import ImageUtils from "../../../../lib/ImageUtils"
 import store from "../../../store/store"

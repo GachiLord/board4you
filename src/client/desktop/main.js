@@ -7,6 +7,7 @@ const isMac = process.platform === 'darwin'
 const path = require('path')
 const ElectronFileManager = require('../model/ElectronFileManager')
 const getLocalization = require('../lib/CommonGetLocalizationCfg')
+const getAppTittle = require('../lib/CommonGetAppTittle')
 
 // state vars
 let currentFilePath = null
@@ -43,7 +44,8 @@ function createWindow() {
       let opened = await ElectronFileManager.openFilesAsBase64Images()
 
       win.webContents.send('onMenuButtonClick', 'openFile', opened )
-      currentFilePath = (opened) ? opened.path: undefined
+      currentFilePath = opened ? opened.path: undefined
+      globalThis.appWindow.setTitle(getAppTittle(opened && opened.path))
       fileHasChanged = false
     }
 
@@ -57,6 +59,7 @@ function createWindow() {
       if (exitAlert()) e.preventDefault()
       win.webContents.send('onMenuButtonClick', 'newFile')
       currentFilePath = null 
+      globalThis.appWindow.setTitle(getAppTittle())
     }
     else win.webContents.send('onMenuButtonClick', 'newFile')
   }
@@ -156,7 +159,10 @@ app.whenReady().then(() => {
     globalThis.CanvasSize = value
   } )
 
-  ipcMain.on('newFile', () => currentFilePath = null)
+  ipcMain.on('newFile', () => {
+    currentFilePath = null
+    globalThis.appWindow.setTitle(getAppTittle())
+  })
 
   ipcMain.on('saveFileAs', async (_, data) => {
     fileIsSaving = true
@@ -174,6 +180,7 @@ app.whenReady().then(() => {
     if (currentFilePath) currentFilePath = await ElectronFileManager.saveBase64(data, currentFilePath)
     else currentFilePath = await ElectronFileManager.saveBase64As(data)
 
+    globalThis.appWindow.setTitle(getAppTittle(currentFilePath))
     fileHasChanged = false
     fileIsSaving = false
   })
