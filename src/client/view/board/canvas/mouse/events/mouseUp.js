@@ -1,5 +1,5 @@
 import CanvasUtils from "../../../../../lib/CanvasUtils";
-import { itemIn, whenDraw } from "../../../../../lib/twiks";
+import { itemIn, run, whenDraw } from "../../../../../lib/twiks";
 import { setDrawable } from "../../../../features/stage";
 import { addCurrent } from "../../../../features/history";
 import store from "../../../../store/store";
@@ -12,6 +12,10 @@ export default function(e, props){
     const tool = props.tool
 
     whenDraw( e, (_, __, canvas, temporary) => {
+        run( api => {
+            if (!itemIn(tool, 'move', 'select')) api.handleFileChange()
+        } )
+
         if (itemIn(tool, 'pen', 'eraser', 'line', 'arrow', 'dashed', 'line') && isDrawing){
             let lastLine = canvas.children.at(-1)
             let points = lastLine.attrs.points

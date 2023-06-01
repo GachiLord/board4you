@@ -69,10 +69,18 @@ export default async function(stage, o, data){
     if (o === 'undo'){
         Selection.destroy(canvas)
         editManager.undo()
+
+        run( api => {
+            api.handleFileChange()
+        } )
     }
     if (o === 'redo'){
         Selection.destroy(canvas)
         editManager.redo()
+
+        run( api => {
+            api.handleFileChange()
+        } )
     }             
     if (o === 'del'){
         const selection = store.getState().select.selection
@@ -85,15 +93,26 @@ export default async function(stage, o, data){
             store.dispatch(addCurrent(edit))
             store.dispatch(emptySelection())
             Selection.destroy(canvas)
+
+            run( api => {
+                api.handleFileChange()
+            } )
         }
     }
     if (o === 'paste'){
         insertImage(data, editManager)
+        run( api => {
+            api.handleFileChange()
+        } )
     }
     if (o === 'copy' || o === 'cut'){
         const transformer = canvas.find('Transformer')[0]
         if (transformer){
             writeToClipboard(transformer, o === 'cut')
+
+            run( api => {
+                api.handleFileChange()
+            } )
         }
     }
 }

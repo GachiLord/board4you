@@ -22,10 +22,18 @@ export default function(props){
         boardEvents.addListener('undo', () => {
             Selection.destroy(canvas)
             editManager.undo()
+
+            run( api => {
+                api.handleFileChange()
+            } )
         })
         boardEvents.addListener('redo', () => {
             Selection.destroy(canvas)
             editManager.redo()
+            
+            run( api => {
+                api.handleFileChange()
+            } )
         })
         boardEvents.addListener('pageSetted', (pos) => {
             stage.current.position(pos)
