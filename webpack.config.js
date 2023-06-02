@@ -5,7 +5,7 @@ const path = require('path');
 module.exports = (env) => {
   return {
     entry: {
-      desktop: './src/client/desktop/index.js',
+      desktop: './src/desktop/renderer/index.js',
     },
     output: {
       filename: '[name].js',
