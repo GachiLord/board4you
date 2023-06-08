@@ -5,7 +5,7 @@ const AdmZip = require("adm-zip")
 const getCanvasSize = require('../common/getCanvasSize')
 
 
-module.exports = class ElectronFileManager{
+module.exports = class FileManager{
 
     static async openFilesAsBase64Images(){
         const dialogResult = await dialog.showOpenDialog(globalThis.appWindow, { 
@@ -17,26 +17,27 @@ module.exports = class ElectronFileManager{
         if (dialogResult.canceled) return
 
         const path = dialogResult.filePaths[0]
-        let extention = ElectronFileManager.getFileExtension(path)
-        let base64Files = []
+        return FileManager.getFileAsBase64Imgs(path)
+    }
 
+    static getFileAsBase64Imgs(path){
+        let extention = FileManager.getFileExtension(path)
+        let base64Files = []
         
         if (extention === 'zip'){
             let zip = new AdmZip(path)
             zip.getEntries().forEach(e => {
-                base64Files.push(ElectronFileManager.getFullBase64(zip.readFile(e).toString('base64')))
+                base64Files.push(FileManager.getFullBase64(zip.readFile(e).toString('base64')))
             })
             extention = 'png'
         }
-        else base64Files.push(ElectronFileManager.getBase64ofFile(path))
+        else base64Files.push(FileManager.getBase64ofFile(path))
         
         // remove empty pages
         base64Files = new Array(...new Set(base64Files))
 
         return {base64: base64Files, path: path, type: extention}
     }
-
-    
 
     static getFileExtension(filePath) {
         let extention = filePath.split('.')
@@ -62,7 +63,7 @@ module.exports = class ElectronFileManager{
     static async saveBase64(base64files, filePath) {
         const canvasSize = getCanvasSize()
         // file and info
-        let extention = ElectronFileManager.getFileExtension(filePath)
+        let extention = FileManager.getFileExtension(filePath)
         let uniqueBase64Files = new Array(...new Set(base64files))
         // create stream and promise for finish evt
         const fsStream = fs.createWriteStream(filePath)
@@ -77,7 +78,7 @@ module.exports = class ElectronFileManager{
         else {
             let zip = new AdmZip()
             uniqueBase64Files.forEach( (base64, i) => {
-                base64 = ElectronFileManager.getOnlyBase64Value(base64)
+                base64 = FileManager.getOnlyBase64Value(base64)
                 zip.addFile(`lesson${i+1}.png`, Buffer.from(base64, 'base64'))
             } )
             fsStream.write(zip.toBuffer())
@@ -96,7 +97,7 @@ module.exports = class ElectronFileManager{
         })
         if (pathDialog.canceled) return
 
-        return await ElectronFileManager.saveBase64(base64file, pathDialog.filePath)
+        return await FileManager.saveBase64(base64file, pathDialog.filePath)
     }
      
 }

@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React from "react";
 import Drawer from "./canvas/Drawer";
 import ToolPanel from "./toolPanel/ToolPanel";
 import UndoRedoBar from "./undoRedoBar/UndoRedoBar"
@@ -8,7 +8,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 
 
-export default function(){
+export default function Editor(){
 
     const currentTool = useSelector((state: RootState) => state.tool.active)
     const toolSettings = useSelector((state: RootState) => state.toolSettings)

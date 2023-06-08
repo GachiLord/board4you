@@ -9,6 +9,14 @@ const ElectronFileManager = require('./FileManager')
 const getLocalization = require('../common/getLocalizationCfg')
 const getAppTittle = require('../common/getAppTittle')
 const getTemplate = require('./getTemplate')
+const getPathFromArgs = require("./getPathFromArgs")
+const FileManager = require("./FileManager")
+
+
+// prepare args
+if (app.isPackaged) {
+  process.argv.unshift(null)
+}
 
 // state vars
 let currentFilePath = null
@@ -41,7 +49,7 @@ function createWindow() {
   }
 
   async function handleOpenFile(){
-    let open = async () => {
+    const open = async () => {
       let opened = await ElectronFileManager.openFilesAsBase64Images()
 
       win.webContents.send('onMenuButtonClick', 'openFile', opened )
@@ -83,8 +91,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // localization setup
   globalThis.localizationCfg = getLocalization(app.getLocale())
 
+  // mac stuff
   if (isMac) app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
@@ -92,6 +102,15 @@ app.whenReady().then(() => {
   })
   else createWindow()
 
+  // open with if there is path in args
+  globalThis.appWindow.webContents.once('dom-ready', () => {
+    currentFilePath = getPathFromArgs(process.argv)
+    if (currentFilePath){
+      const opened = FileManager.getFileAsBase64Imgs(currentFilePath)
+      globalThis.appWindow.webContents.send('onMenuButtonClick', 'openFile', opened )
+      globalThis.appWindow.setTitle(getAppTittle(currentFilePath))
+    }
+  });
   // msgs listeners  
 
   ipcMain.on('setCanvasSize', ( _, value ) => {

@@ -12,6 +12,23 @@
     "release": "electron-builder -wl"
   },
   "build": {
+    "fileAssociations": [
+      {
+        "ext": "png",
+        "description": "Png File",
+        "role": "Editor"
+      },
+      {
+        "ext": "pdf",
+        "name": "pdf File",
+        "role": "Editor"
+      },
+      {
+        "ext": "zip",
+        "name": "Zip File",
+        "role": "Editor"
+      }
+    ],
     "appId": "board4you",
     "publish": [
       "github"
