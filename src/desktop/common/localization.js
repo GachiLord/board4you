@@ -1,5 +1,7 @@
 module.exports = {
     en: {
+        //common
+        loading: 'Loading',        
         // exit alert
         exitAlertMsg: 'Continue editing or close the file without saving?',
         exitAlertOptions: ['Continue', 'Do not save'],
@@ -54,6 +56,8 @@ module.exports = {
         eraser: 'eraser',
     },
     ru: {
+        //common
+        loading: 'Загрузка',
         // exit alert
         exitAlertMsg: 'Продолжить редактирование или закрыть файл без сохранения?',
         exitAlertOptions: ['Продолжить', 'Не сохранять'],
