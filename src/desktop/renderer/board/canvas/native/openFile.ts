@@ -30,7 +30,12 @@ export default async function(data: {base64: string[], type: string, path: strin
             resultSize = pdf.size
             // add pages
             for (const img of imgs){
-                insertImage({url: img, size: pdf.size} , editManager, { x: 0, y: y })
+                insertImage({
+                    data: {url: img, size: pdf.size}, 
+                    editManager: editManager, 
+                    pos: { x: 0, y: y }, 
+                    maxSize: pdf.size
+                })
                 y += pdf.size.height
             }
             y -= pdf.size.height
@@ -41,7 +46,12 @@ export default async function(data: {base64: string[], type: string, path: strin
             resultSize = size
 
             for(const img of files){
-                insertImage(img, editManager, { x: 0, y: y })
+                insertImage({
+                    data: img, 
+                    editManager: editManager, 
+                    pos: { x: 0, y: y }, 
+                    maxSize: size
+                })
                 y += size.height
             }
         }

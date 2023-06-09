@@ -100,7 +100,7 @@ export default async function(stage: Konva.Stage, o: string, data: electronData|
         }
     }
     if (o === 'paste' && data instanceof ClipboardEvent){
-        insertImage(data, editManager)
+        insertImage({data: data, editManager: editManager})
         run( api => {
             api.handleFileChange()
         } )

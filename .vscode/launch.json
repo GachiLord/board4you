@@ -21,7 +21,7 @@
             "request": "launch",
             "cwd": "${workspaceFolder}",
             "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electronmon",
-            "args" : ["."],
+            "args" : [".", "/home/oleg/Рабочий стол/lesson.pdf"],
             "outputCapture": "std",
             "skipFiles": [
                 "<node_internals>/**"

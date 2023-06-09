@@ -102,7 +102,7 @@ app.whenReady().then(() => {
   })
   else createWindow()
 
-  // open with if there is path in args
+  // open with if there is a file path in args
   globalThis.appWindow.webContents.once('dom-ready', () => {
     currentFilePath = getPathFromArgs(process.argv)
     if (currentFilePath){

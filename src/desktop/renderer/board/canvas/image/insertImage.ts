@@ -7,11 +7,22 @@ import { ICoor } from "../../../base/typing/ICoor"
 import EditManager, { Edit } from "../../../lib/EditManager"
 import IImage from "./IImage"
 import IShape from "../../../base/typing/IShape"
+import ISize from "../../../base/typing/ISize"
 
 
+interface IInsertProps{
+    data: ClipboardEvent|string|IImage, 
+    editManager: EditManager, 
+    pos?: ICoor,
+    maxSize?: ISize
+}
 
-export default async function(data: ClipboardEvent|string|IImage, editManager: EditManager, pos: ICoor|undefined = undefined){
+export default async function(insertProps: IInsertProps){
     const stage = store.getState().stage
+    const maxSize = insertProps.maxSize ? insertProps.maxSize: {height: stage.baseHeight, width: stage.width}
+    const data = insertProps.data
+    const editManager = insertProps.editManager
+
     let img: IImage = null
     if (data instanceof ClipboardEvent){
         img = await paste(data)
@@ -23,6 +34,7 @@ export default async function(data: ClipboardEvent|string|IImage, editManager: E
 
     if (!img) return
 
+    let pos = insertProps.pos
     if (!pos){
         pos = {...stage.stagePos}
         pos.y = Math.abs(pos.y)
@@ -34,8 +46,8 @@ export default async function(data: ClipboardEvent|string|IImage, editManager: E
         x: pos.x,
         y: pos.y,
         url: img.url,
-        height: Math.min(img.size.height, stage.baseHeight),
-        width: Math.min(img.size.width, stage.width),
+        height: Math.min(img.size.height, maxSize.height),
+        width: Math.min(img.size.width, maxSize.width),
         shapeId: uuid4(),
         connected: []
     }

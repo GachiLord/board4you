@@ -20,7 +20,7 @@ export default function(e: KonvaEventObject<MouseEvent>, props: IDrawerProps){
 
     whenDraw( e, (_, __, canvas, temporary) => {
         run( api => {
-            if (!itemIn(tool, 'move', 'select')) api.handleFileChange()
+            if (!itemIn(tool, 'move', 'select') && e.type !== 'mouseleave') api.handleFileChange()
         } )
 
         if (itemIn(tool, 'pen', 'eraser', 'arrow', 'line') && isDrawing){

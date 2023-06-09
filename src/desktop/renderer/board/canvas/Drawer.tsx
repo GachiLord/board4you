@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { mouseDown, mouseMove, mouseUp, mouseLeave, stageDragBound, stageDragEnd, stageDragMove } from './mouse';
+import { mouseDown, mouseMove, mouseUpLeave, stageDragBound, stageDragEnd, stageDragMove } from './mouse';
 import { useSelector } from "react-redux";
 import { Layer, Stage } from 'react-konva';
 import boardEvents from "../../base/constants/boardEvents";
@@ -82,8 +82,8 @@ export default function Drawer(props: IDrawerProps){
                 // mouse
                 onMouseDown={(e) => mouseDown(e, props)}
                 onMouseMove={(e) => mouseMove(e, props)}
-                onMouseUp={(e) => mouseUp(e, props)}
-                onMouseLeave={() => mouseLeave()}
+                onMouseUp={(e) => mouseUpLeave(e, props)}
+                onMouseLeave={(e) => mouseUpLeave(e, props)}
                 // drag
                 draggable={props.tool === 'move'}
                 dragBoundFunc={stageDragBound}
