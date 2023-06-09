@@ -3,6 +3,7 @@ import store from "../store/store";
 import { emptyUndone, undo, redo } from "../features/history";
 import Konva from "konva";
 import IShape from "../base/typing/IShape";
+import { itemIn } from "./twiks";
 
 
 export interface IAdd{
@@ -66,7 +67,7 @@ export default class EditManager{
         switch(edit.type){
             case 'add':{
                 const shapeToAdd = CanvasUtils.toKonvaObject(edit.shape)
-                if (edit.shape.tool !== 'img') shapeToAdd.cache()
+                if (!itemIn(edit.shape.tool, 'img', 'rect')) shapeToAdd.cache()
                 this.layer.add(shapeToAdd)
                 break
             }

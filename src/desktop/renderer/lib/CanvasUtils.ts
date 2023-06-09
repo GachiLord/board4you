@@ -142,7 +142,7 @@ export default class CanvasUtils{
             url: shapeObj.attrs.connected.url
         }
         for( const key of Object.keys(shape)){
-            if (shape[key] === undefined) delete shape[key]
+            if (shape[key] == undefined) delete shape[key]
         }
 
         return shape
