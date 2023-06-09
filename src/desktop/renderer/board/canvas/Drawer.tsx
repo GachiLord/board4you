@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { mouseDown, mouseMove, mouseUpLeave, stageDragBound, stageDragEnd, stageDragMove } from './mouse';
+import { mouseDown, mouseEnter, mouseMove, mouseUpLeave, stageDragBound, stageDragEnd, stageDragMove } from './mouse';
 import { useSelector } from "react-redux";
 import { Layer, Stage } from 'react-konva';
 import boardEvents from "../../base/constants/boardEvents";
@@ -80,6 +80,7 @@ export default function Drawer(props: IDrawerProps){
                 width={stageState.width}
                 className="border"
                 // mouse
+                onMouseEnter={(e) => mouseEnter(e, props)}
                 onMouseDown={(e) => mouseDown(e, props)}
                 onMouseMove={(e) => mouseMove(e, props)}
                 onMouseUp={(e) => mouseUpLeave(e, props)}

@@ -12,15 +12,19 @@ import { Rect } from "konva/lib/shapes/Rect";
 import { Ellipse } from "konva/lib/shapes/Ellipse";
 import { IRect } from "konva/lib/types";
 import { Arrow } from "konva/lib/shapes/Arrow";
+import { setCursor } from "../func/cursor";
 
 
 export default function(e: KonvaEventObject<MouseEvent>, props: IDrawerProps){
     const isDrawing = store.getState().stage.isDrawable
     const tool = props.tool
 
-    whenDraw( e, (_, __, canvas, temporary) => {
+    whenDraw( e, (stage, _, canvas, temporary) => {
+        const isMouseLeave = e.type === 'mouseleave'
+
+        if (isMouseLeave) setCursor(stage)
         run( api => {
-            if (!itemIn(tool, 'move', 'select') && e.type !== 'mouseleave') api.handleFileChange()
+            if (!itemIn(tool, 'move', 'select') && isMouseLeave) api.handleFileChange()
         } )
 
         if (itemIn(tool, 'pen', 'eraser', 'arrow', 'line') && isDrawing){
