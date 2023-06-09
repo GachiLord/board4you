@@ -24,7 +24,7 @@ export default function(e: KonvaEventObject<MouseEvent>, props: IDrawerProps){
 
         if (isMouseLeave) setCursor(stage)
         run( api => {
-            if (!itemIn(tool, 'move', 'select') && isMouseLeave) api.handleFileChange()
+            if (!itemIn(tool, 'move', 'select') && !isMouseLeave) api.handleFileChange()
         } )
 
         if (itemIn(tool, 'pen', 'eraser', 'arrow', 'line') && isDrawing){
