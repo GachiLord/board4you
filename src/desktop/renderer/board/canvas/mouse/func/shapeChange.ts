@@ -4,6 +4,7 @@ import { addCurrent, emptyUndone } from "../../../../features/history";
 import { setSelection } from "../../../../features/select";
 import Konva from "konva";
 import IShape from "../../../../base/typing/IShape";
+import { run } from "../../../../lib/twiks";
 
 
 
@@ -49,5 +50,9 @@ async function changeHandler(transformer: Konva.Transformer){
             initial: initial,
             current: current
         }))
+        // hadnle file change
+        run( api => {
+            api.handleFileChange()
+        } )
     })
 }
