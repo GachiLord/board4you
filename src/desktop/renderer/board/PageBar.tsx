@@ -9,7 +9,7 @@ export default function PageBar(){
     const dispatch = useDispatch() 
     const stage = useSelector((state: RootState) => state.stage)
     const pageIndex = Math.round( Math.abs(stage.stagePos.y) / stage.baseHeight ) + 1
-    const maxPageIndex = Math.floor(stage.height / stage.baseHeight) - 1
+    const maxPageIndex = Math.floor(stage.height / stage.baseHeight)
 
     const handlePageChange = (e: ChangeEvent<HTMLSelectElement>) => {
         // get valid page index

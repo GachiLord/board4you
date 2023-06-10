@@ -1,5 +1,4 @@
 import store from "../../../../store/store";
-import createDividingLine from "../func/createDividingLine";
 import { itemIn, whenDraw } from "../../../../lib/twiks";
 import { IDrawerProps } from "../../Drawer";
 import { KonvaEventObject } from "konva/lib/Node";
@@ -14,9 +13,6 @@ export default function(e: KonvaEventObject<MouseEvent>, props: IDrawerProps){
     const isDrawable = store.getState().stage.isDrawable
 
     whenDraw( e, (stage, pos, canvas, temporary) => {
-        // update dividing lines if neccesary
-        if (tool === 'move') createDividingLine(stage.children[2])
-
         // handle tools usage
         if (itemIn(tool, 'pen', 'eraser') && isDrawable){
             const target = e.target

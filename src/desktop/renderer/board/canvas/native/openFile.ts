@@ -59,6 +59,8 @@ export default async function(data: {base64: string[], type: string, path: strin
         store.dispatch(setBaseHeight(resultSize.height))
         store.dispatch(setWidth(resultSize.width))
         setCanvasSize(resultSize)
+        // update height
+        store.dispatch(setHeight(y + resultSize.height))
         // make the Drawer redraw dividing lines
         boardEvents.emit('sizeHasChanged', {width: resultSize.width, height: y + resultSize.height, baseHeight: resultSize.height})
 
@@ -68,7 +70,5 @@ export default async function(data: {base64: string[], type: string, path: strin
         // set pos to last page
         store.dispatch(setStagePos({x: 0, y: -y}))
         boardEvents.emit('pageSetted', {x: 0, y: -y})
-        // update height
-        store.dispatch(setHeight(y + resultSize.height))
     }
 }
