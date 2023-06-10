@@ -8,8 +8,8 @@
     "dev": "webpack -w --mode=development",
     "electron": "electronmon .",
     "start": "webpack serve --open --mode=development",
-    "buildApp": "electron-builder -wl",
-    "release": "electron-builder -wl"
+    "buildApp": "webpack build --mode=production --no-devtool; electron-builder -wl",
+    "release": "webpack build --mode=production --no-devtool; electron-builder -wl"
   },
   "build": {
     "fileAssociations": [
