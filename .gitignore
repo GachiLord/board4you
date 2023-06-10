@@ -3,3 +3,4 @@ out/
 dist/
 bundles/*.js
 bundles/*.js.LICENSE.txt
+.env
