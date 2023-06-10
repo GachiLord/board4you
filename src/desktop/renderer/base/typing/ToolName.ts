@@ -1,0 +1,1 @@
+export type ToolName = 'pen' | 'line' | 'arrow' | 'rect' | 'ellipse' | 'eraser' | 'move' | 'select' | 'img'

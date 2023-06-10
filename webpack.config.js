@@ -1,15 +1,19 @@
 const path = require('path');
-// const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 
-module.exports = (env) => {
+module.exports = () => {
   return {
     entry: {
-      desktop: './src/client/desktop/index.js',
+      desktop: './src/desktop/renderer/index.tsx',
+      'pdf': 'pdfjs-dist/legacy/build/pdf',
+      'pdf.worker': 'pdfjs-dist/build/pdf.worker.min'
     },
     output: {
       filename: '[name].js',
       path: path.resolve(__dirname, 'bundles'),
+    },
+    resolve: {
+      extensions: ['.ts', '.tsx', '.js', '.jsx'],    
     },
     devtool: 'inline-source-map',
     devServer: {
@@ -28,9 +32,14 @@ module.exports = (env) => {
           use: {
             loader: "babel-loader",
             options: {
-              "presets": ["@babel/preset-react"]
+              "presets": ["@babel/preset-typescript"]
             }
           }
+        },
+        {
+          test: /\.tsx?$/,
+          use: 'ts-loader',
+          exclude: /node_modules/,
         },
         {
           test: /\.css$/i,
@@ -42,9 +51,5 @@ module.exports = (env) => {
         }
       ]
     },
-    // // do not use analyzer in prod
-    // plugins: !env['--no-plugin'] && [
-    //   new BundleAnalyzerPlugin()
-    // ]
   };
 }
