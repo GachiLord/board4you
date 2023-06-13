@@ -1,4 +1,5 @@
 import getAppTittle from "../../../../src/desktop/common/getAppTittle";
+import path from 'node:path'
 
 
 test('should work with link when "/" at the end', () => {
@@ -31,5 +32,11 @@ test('should return default tittle when empty string', () => {
 
 test('should return default tittle when string = "/"', () => {
     expect(getAppTittle('/')).toBe('board4you')
+})
+
+test('should work like path.basename()', () => {
+    const testCase = '/src/desktop/common/getAppTittle.ts'
+
+    expect(getAppTittle(testCase)).toBe(path.basename(testCase))
 })
 
