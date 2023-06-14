@@ -30,7 +30,7 @@ export default function(e: KonvaEventObject<MouseEvent>, props: IDrawerProps){
         if (itemIn(tool, 'pen', 'eraser', 'arrow', 'line') && isDrawing){
             const lastLine: unknown = canvas.children.at(-1)
             // validate lastLine
-            if (!(lastLine instanceof Line || lastLine instanceof Arrow)) throw new Error('last created element must be a Line or an Arrow')
+            if (!(lastLine instanceof Line || lastLine instanceof Arrow)) throw new TypeError('last created element must be a Line or an Arrow')
             // save
             const points = lastLine.attrs.points
             
@@ -45,7 +45,7 @@ export default function(e: KonvaEventObject<MouseEvent>, props: IDrawerProps){
         else if (itemIn(tool, 'rect', 'ellipse') && isDrawing){
             const lastShape: unknown = canvas.children.at(-1)
             // validate lastLine
-            if (!(lastShape instanceof Rect || lastShape instanceof Ellipse)) throw new Error('last created element must be an Ellipse or Rect')
+            if (!(lastShape instanceof Rect || lastShape instanceof Ellipse)) throw new TypeError('last created element must be an Ellipse or Rect')
             // save
             store.dispatch(addCurrent({type: 'add', shape: CanvasUtils.toShape(lastShape)}))
         }
@@ -53,7 +53,7 @@ export default function(e: KonvaEventObject<MouseEvent>, props: IDrawerProps){
             const shapes = canvas.children
             const box = temporary.children[0]
             // validate
-            if (!(box instanceof Konva.Rect)) throw new Error(`last created temporary shape must be a Rect`)
+            if (!(box instanceof Konva.Rect)) throw new TypeError(`last created temporary shape must be a Rect`)
             const clientRect: IRect = box.getClientRect()
     
             // offset negative wifth and height
