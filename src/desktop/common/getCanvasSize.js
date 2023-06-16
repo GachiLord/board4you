@@ -1,3 +1,10 @@
+/**
+ * This function returns current canvas size. It works in nodejs and browser.
+ * If there is no saved size it returns default one
+ * 
+ * @name getCanvasSize
+ * @returns {{height: number, width: number}}
+ */
 module.exports = function(){
     let exp = {height: 920, width: 1720}
 

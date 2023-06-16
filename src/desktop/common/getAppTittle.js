@@ -1,3 +1,10 @@
+/**
+ * This function returns current file or page name
+ * 
+ * @name getAppTittle
+ * @param {string} path
+ * @returns {string}
+ */
 module.exports = function(path, defaultTittle = 'board4you'){
     if (typeof path === 'string'){
         const parsed = path.split(/\/|\\/gm)
