@@ -8,7 +8,7 @@ import { Container } from "konva/lib/Container"
 
 export default class CanvasUtils{
 
-    static #possibleFields = ['tool', 'type', 'color', 'shapeId', 'lineSize', 'lineType',
+    static readonly #possibleFields = ['tool', 'type', 'color', 'shapeId', 'lineSize', 'lineType',
                               'height', 'width', 'radiusX', 'radiusY', 'rotation',
                               'scaleX', 'scaleY', 'skewX', 'skewY', 'points', 'x', 'y', 'connected'
                              ]
@@ -141,7 +141,7 @@ export default class CanvasUtils{
             connected: [...shapeObj.attrs.connected],
             url: shapeObj.attrs.connected.url
         }
-        for( const key of Object.keys(shape)){
+        for(const key of Object.keys(shape)){
             if (shape[key] == undefined) delete shape[key]
         }
 
