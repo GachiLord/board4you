@@ -214,7 +214,7 @@ export default class CanvasUtils{
     }
 
     /**
-     * It returns the maximum shape`s y-coordinate found
+     * It returns the maximum shape`s y-coordinate in layer found
      */
     static findLastY(layer: Konva.Layer){
         let y = 0
