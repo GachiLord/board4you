@@ -9,8 +9,13 @@ export default class Persister{
     }
 
     static load(reducerName: string, defaultState: object){
-        const state = JSON.parse(localStorage.getItem(reducerName))
+        try{
+            const state = JSON.parse(localStorage.getItem(reducerName))
 
-        return state ? state: defaultState
+            return state ? state: defaultState
+        }
+        catch{
+            return defaultState
+        }
     }
 }

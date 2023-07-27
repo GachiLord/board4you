@@ -5,8 +5,26 @@ const AdmZip = require("adm-zip")
 const getCanvasSize = require('../common/getCanvasSize')
 
 
+/**
+ * `FileManager` contains several static methods for working with files, such as opening
+ * files as base64 images, getting the file extension, and saving base64 files. * 
+ */
 module.exports = class FileManager{
 
+    /**
+     * `static async openFilesAsBase64Images()` is a static method of the `FileManager` class that opens a dialog box to select
+     * files with extensions of `pdf`, `png`, or `zip`. It returns a promise that resolves to an object containing an array of
+     * base64-encoded images, the path of the selected file, and the file extension. If the dialog is canceled, it returns
+     * nothing.
+     * 
+     * @async
+     * @method
+     * @name openFilesAsBase64Images
+     * @kind method
+     * @memberof <unknown>.FileManager
+     * @static
+     * @returns {Promise<{ base64: string[]; path: string; type: 'pdf'|'png'|'zip'; }>}
+     */
     static async openFilesAsBase64Images(){
         const dialogResult = await dialog.showOpenDialog(globalThis.appWindow, { 
             properties: ['openFile'],
@@ -20,6 +38,19 @@ module.exports = class FileManager{
         return FileManager.getFileAsBase64Imgs(path)
     }
 
+    /**
+     * `static getFileAsBase64Imgs(path)` is a static method of the `FileManager` class that takes a file path as an argument
+     * and returns an object containing an array of base64-encoded images, the path of the selected file, and the file
+     * extension. It also removes any duplicate images from the array.
+     * 
+     * @method
+     * @name getFileAsBase64Imgs
+     * @kind method
+     * @memberof <unknown>.FileManager
+     * @static
+     * @param {string} path
+     * @returns {{ base64: string[]; path: string; type: 'pdf'|'png'|'zip'; }}
+     */
     static getFileAsBase64Imgs(path){
         let extention = FileManager.getFileExtension(path)
         let base64Files = []
@@ -39,27 +70,92 @@ module.exports = class FileManager{
         return {base64: base64Files, path: path, type: extention}
     }
 
+    /**
+     * `static getFileExtension(filePath)` is a static method of the `FileManager` class that takes a file path as an argument
+     * and returns the file extension of the file.
+     * 
+     * @method
+     * @name getFileExtension
+     * @kind method
+     * @memberof <unknown>.FileManager
+     * @static
+     * @param {string} filePath
+     * @returns {string}
+     */
     static getFileExtension(filePath) {
         let extention = filePath.split('.')
         return extention.length > 1 ? extention.at(-1): 'zip'
     }
 
-    static getBase64ofFile(file){
-        switch(this.getFileExtension(file)){
+    /**
+     * `static getBase64ofFile(file)` is a static method of the `FileManager` class that takes a file path as an argument and
+     * returns a base64-encoded string of the file.
+     * 
+     * @method
+     * @name getBase64ofFile
+     * @kind method
+     * @memberof <unknown>.FileManager
+     * @static
+     * @param {string} path
+     * @returns {string}
+     */
+    static getBase64ofFile(path){
+        switch(this.getFileExtension(path)){
             case 'png':
-                return "data:image/png;base64,"+fs.readFileSync(file, 'base64');
+                return "data:image/png;base64,"+fs.readFileSync(path, 'base64');
             case 'pdf':
-                return "pdfData:pdf;base64,"+fs.readFileSync(file, 'base64');
+                return "pdfData:pdf;base64,"+fs.readFileSync(path, 'base64');
         }
         
     }
 
+    /**
+     * `static getFullBase64(base64Value)` is a static method of the `FileManager` class that takes a base64-encoded string as
+     * an argument and returns a new base64-encoded string with the prefix `data:image/png;base64,`. This method is used to
+     * ensure that the base64-encoded string is in the correct format for displaying images in the application.
+     * 
+     * @method
+     * @name getFullBase64
+     * @kind method
+     * @memberof <unknown>.FileManager
+     * @static
+     * @param {string} base64Value
+     * @returns {string}
+     */
     static getFullBase64(base64Value) { return "data:image/png;base64," + base64Value }
 
+    /**
+     * `static getOnlyBase64Value(base64)` is a static method of the `FileManager` class that takes a base64-encoded string as
+     * an argument and returns a new string with the prefix `data:.*base64,` removed. This method is used to extract only the
+     * base64-encoded value from a string that contains additional information such as the data type and encoding.
+     * 
+     * @method
+     * @name getOnlyBase64Value
+     * @kind method
+     * @memberof <unknown>.FileManager
+     * @static
+     * @param {string} base64
+     * @returns {string}
+     */
     static getOnlyBase64Value(base64){
         return base64.replace(/data:.*base64,/, '')
     }
 
+    /**
+     * `static async saveBase64(base64files, filePath)` is a static method of the `FileManager` class that takes an array of
+     * base64-encoded images and a file path as arguments. It saves the base64-encoded images as either a PDF or a ZIP file at
+     * the specified file path.
+     * 
+     * @async
+     * @method
+     * @name saveBase64
+     * @kind method
+     * @memberof <unknown>.FileManager
+     * @static
+     * @param {string[]} base64files
+     * @param {string} filePath
+     * @returns {Promise<string>}
+     */
     static async saveBase64(base64files, filePath) {
         const canvasSize = getCanvasSize()
         // file and info
@@ -88,6 +184,20 @@ module.exports = class FileManager{
         return await finish
     }
 
+    /**
+     * `static async saveBase64As(base64file)` is a static method of the `FileManager` class that opens a dialog box to save a
+     * base64-encoded file as either a PDF or a ZIP file. It returns a promise that resolves to the file path of the saved
+     * file.
+     * 
+     * @async
+     * @method
+     * @name saveBase64As
+     * @kind method
+     * @memberof <unknown>.FileManager
+     * @static
+     * @param {string} base64file
+     * @returns {Promise<string>}
+     */
     static async saveBase64As(base64file) {
         const pathDialog = await dialog.showSaveDialog(globalThis.appWindow, {
             title: globalThis.localizationCfg.savePdfOrZip,

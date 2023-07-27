@@ -1,5 +1,11 @@
 const cfg = require('./localization')
 
+/**
+ * This function returns localization config according locale name string
+ * @name getLocalizationCfg
+ * @param {string} locale 
+ * @returns {object}
+ */
 module.exports = function(locale){
     const locales = Object.keys(cfg)
     const checkMatch = (s) => {

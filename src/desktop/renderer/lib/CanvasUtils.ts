@@ -8,11 +8,14 @@ import { Container } from "konva/lib/Container"
 
 export default class CanvasUtils{
 
-    static #possibleFields = ['tool', 'type', 'color', 'shapeId', 'lineSize', 'lineType',
+    static readonly #possibleFields = ['tool', 'type', 'color', 'shapeId', 'lineSize', 'lineType',
                               'height', 'width', 'radiusX', 'radiusY', 'rotation',
                               'scaleX', 'scaleY', 'skewX', 'skewY', 'points', 'x', 'y', 'connected'
                              ]
 
+    /**
+     * It converts Shape to konva.Shape
+     */
     static toKonvaObject(shape: IShape){
         const globalCompositeOperation: GlobalCompositeOperation = 'source-over'
         const commonAttrs = {
@@ -118,6 +121,13 @@ export default class CanvasUtils{
         }
     }
 
+    /**
+     * `static toShape(shapeObj: Konva.Shape)` is a static method of the `CanvasUtils` class that takes a `Konva.Shape` object
+     * as an argument and returns an `IShape` object. It extracts the relevant attributes from the `Konva.Shape` object and
+     * creates a new `IShape` object with those attributes. It also removes any undefined attributes from the `IShape` object
+     * before returning it.
+     * 
+     */
     static toShape(shapeObj: Konva.Shape){
         const shape:IShape = {
             tool: shapeObj.attrs.tool,
@@ -141,13 +151,19 @@ export default class CanvasUtils{
             connected: [...shapeObj.attrs.connected],
             url: shapeObj.attrs.connected.url
         }
-        for( const key of Object.keys(shape)){
+        for(const key of Object.keys(shape)){
             if (shape[key] == undefined) delete shape[key]
         }
 
         return shape
     }
 
+    /**
+     * `static retrivePossibleFields(attrs: object)` is a static method of the `CanvasUtils` class that takes an
+     * object `attrs` as an argument. It returns a new object that contains only the properties of `attrs` that are included in
+     * the `CanvasUtils.#possibleFields` array.
+     * 
+     */
     static retrivePossibleFields(attrs: object): object{
         const possibleFields = new Map()
 
@@ -161,6 +177,10 @@ export default class CanvasUtils{
         return Object.fromEntries(possibleFields)
     }
 
+    /**
+     * It searchs shapes with the same attrs as in args. Does not work with objects in attrs
+     * 
+     */
     static find(layer: Konva.Layer, attrs: ShapeConfig){
         return layer.children.filter( c => {
             let coincidence = 0
@@ -173,10 +193,16 @@ export default class CanvasUtils{
         } )
     }
 
+    /**
+     * Works like CanvasUtils.find() but returnes only the first found shape. Does not work with objects in attrs
+     */
     static findOne(layer: Konva.Layer, attrs: ShapeConfig): Shape|Group|undefined{
         return CanvasUtils.find(layer, attrs)[0]
     }
 
+    /**
+     * It searches shapes which attr value in valueList. Does not work with objects in valueList
+     */
     static findFew(layer: Konva.Layer|Container<Node|Group>, attr: string, valueList: unknown[]){
         const searchResult: (Shape|Group)[] = []
 
@@ -187,6 +213,9 @@ export default class CanvasUtils{
         return searchResult
     }
 
+    /**
+     * It returns the maximum shape`s y-coordinate in layer found
+     */
     static findLastY(layer: Konva.Layer){
         let y = 0
 
@@ -211,6 +240,10 @@ export default class CanvasUtils{
         return y
     }
 
+    /**
+     * It returns an array of numbers that represent either the x or y coordinates of
+     * the points in the `points` array, depending on the value of `coor`.
+     */
     static getCoorFromPoints = (points: number[], coor: 'x' | 'y') => {
         return points.map(
             (item, index) => {

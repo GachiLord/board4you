@@ -1,5 +1,5 @@
 # Board4you
-Board4you is a whiteboard app built with Electron, React, react-icons, konva and bootstrap.
+Board4you is a whiteboard app built with Electron, React, Redux Toolkit, react-icons, konva and bootstrap.
 
 ![Img](/screenshot.png)
 
@@ -8,4 +8,4 @@ Board4you is a whiteboard app built with Electron, React, react-icons, konva and
 - export to pdf or zip
 - auto update
 - cross-platform(windows and linux)
-- tool customisation
+- tool customization

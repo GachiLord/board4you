@@ -5,7 +5,7 @@ import CanvasUtils from "../../../lib/CanvasUtils"
 import Konva from "konva"
 
 
-export default function(transformer: Konva.Transformer, destroySelection = false){
+export default async function(transformer: Konva.Transformer, destroySelection = false){
     const canvas = transformer.parent
     const group = new Konva.Group()
     // add transformer nodes to group
@@ -14,7 +14,7 @@ export default function(transformer: Konva.Transformer, destroySelection = false
     } )
     canvas.add(group)
     // copy group to clipboard
-    const blob = group.toBlob()
+    const blob = await group.toBlob()
     if (blob instanceof Blob){
         navigator.clipboard.write([
             new ClipboardItem({
