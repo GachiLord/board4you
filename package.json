@@ -1,6 +1,6 @@
 {
   "name": "board4you",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "client side of board4you",
   "main": "./src/desktop/main/main.js",
   "scripts": {
