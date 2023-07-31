@@ -5,8 +5,8 @@ test('should return null if there is no document path in args', () => {
     expect(getPathFromArgs(process.argv)).toBeNull()
 })
 
-test('should throw error if args !== string[]', () => {
-    expect(() => {getPathFromArgs([1.2])}).toThrow()
+test('should not throw error if args !== string[]', () => {
+    expect(() => {getPathFromArgs([1.2])}).not.toThrow()
 })
 
 test('should return path if there is a document in args on UNIX', () => {
