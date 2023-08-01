@@ -1,5 +1,4 @@
 import Konva from "konva";
-import { Util } from "konva/lib/Util";
 
 export default function(layer: Konva.Layer){
     const stage = layer.getParent()
@@ -9,7 +8,7 @@ export default function(layer: Konva.Layer){
     layer.children.forEach(shape => {
         const clientRect = shape.getClientRect(); clientRect.y = clientRect.y + stagePos.y
 
-        const haveIntersection = Util.haveIntersection(clientRect, box)
+        const haveIntersection = Konva.Util.haveIntersection(clientRect, box)
         if (!haveIntersection) shape.hide()
         if (!shape.isVisible() && haveIntersection) shape.show()
     })
