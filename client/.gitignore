@@ -1,7 +1,0 @@
-node_modules
-out/
-dist/
-bundles/*.js
-bundles/*.js.LICENSE.txt
-bundles/desktop/*.js
-electron-builder.env
