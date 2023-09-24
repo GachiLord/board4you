@@ -1,7 +1,8 @@
 node_modules
-out/
-dist/
-bundles/*.js
-bundles/*.js.LICENSE.txt
-bundles/desktop/*.js
+client/out/
+client/dist/
+client/public/*.js
+client/public/*.js.LICENSE.txt
+client/public/*.js
 electron-builder.env
+target/
