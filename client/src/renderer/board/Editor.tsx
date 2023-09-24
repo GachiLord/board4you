@@ -33,6 +33,7 @@ export default function Editor(){
                     color={toolSettings[currentTool].lineColor}
                     lineType={toolSettings[currentTool].lineType}
                     lineSize={toolSettings[currentTool].lineSize}
+                    mode="shared"
                 />
             </div>
             <SizeDialog />

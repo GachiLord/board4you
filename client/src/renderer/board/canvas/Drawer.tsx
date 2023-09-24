@@ -14,13 +14,15 @@ import { RootState } from "../../store/store";
 import Konva from "konva";
 import { ICoor } from "../../base/typing/ICoor";
 import sizeChange from "./mouse/func/sizeChange";
+import BoardManager from "../../lib/BoardManager";
 
 
 export interface IDrawerProps{
     tool: ToolName,
     color: string,
     lineType: lineType,
-    lineSize: number
+    lineSize: number,
+    mode: 'local'|'shared'
 }
 
 export default function Drawer(props: IDrawerProps){
@@ -28,6 +30,12 @@ export default function Drawer(props: IDrawerProps){
     const stageState = useSelector((state: RootState) => state.stage)
     
     useEffect(() => {
+        // create webSocket manager
+        const boardManager = new BoardManager({
+            handlers: {}
+        })
+        boardManager.connect()
+        // create canvas and editManager
         const canvas: Konva.Layer = stage.current.children[0]
         const editManager = new EditManager(canvas)
         // listen for board events 

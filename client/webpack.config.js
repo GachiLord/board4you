@@ -4,13 +4,13 @@ const path = require('path');
 module.exports = () => {
   return {
     entry: {
-      desktop: './src/entries/editor.tsx',
+      web: './src/entries/web.tsx',
       'pdf': 'pdfjs-dist/legacy/build/pdf',
       'pdf.worker': 'pdfjs-dist/build/pdf.worker.min'
     },
     output: {
       filename: '[name].js',
-      path: path.resolve(__dirname, 'bundles'),
+      path: path.resolve(__dirname, 'public'),
     },
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.jsx'],    
