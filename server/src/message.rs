@@ -14,9 +14,8 @@ enum BoardMessage{
     Push { private_key: String, data: Vec<String> },
     Pull { current_len: usize, undone_len: usize },
     // info msgs
-    Info { status: String, reason: String }
+    Info { status: String, payload: String }
 }
-
 
 pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: &Rooms) {
     // looks weird

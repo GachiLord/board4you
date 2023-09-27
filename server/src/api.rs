@@ -32,7 +32,6 @@ pub fn room_filter(rooms: Rooms) -> impl Filter<Extract = impl warp::Reply, Erro
 
 #[derive(Deserialize, Serialize)]
 struct RoomInitials {
-    author_id: usize,
     current: Vec<String>,
     undone: Vec<String>
 }
