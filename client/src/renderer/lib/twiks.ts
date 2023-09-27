@@ -51,3 +51,10 @@ export function getStage(event: KonvaEventObject<MouseEvent>){
 export function itemIn(item: unknown, ...items: unknown[]){
     return items.includes(item)
 }
+
+export async function doRequest(path: string, body: object, method: 'POST'|'GET' = 'POST'){
+    return await (await fetch(`${location.protocol}://${location.host}/${path}`, {
+        method: method,
+        body: JSON.stringify(body)
+    })).json()
+}
