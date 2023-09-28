@@ -53,8 +53,9 @@ export function itemIn(item: unknown, ...items: unknown[]){
 }
 
 export async function doRequest(path: string, body: object, method: 'POST'|'GET' = 'POST'){
-    return await (await fetch(`${location.protocol}://${location.host}/${path}`, {
+    const response = await fetch(`${location.origin}/${path}`, {
         method: method,
         body: JSON.stringify(body)
-    })).json()
+    })
+    return await response.json()
 }

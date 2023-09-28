@@ -45,11 +45,11 @@ export interface RoomInfo{ public_id: string, private_id: string }
 // board manager
 export default class BoardManager{
     url: string
-    rws: ReconnectingWebSocket|undefined
+    rws: ReconnectingWebSocket|null
     handlers: Handlers = {}
     status: BoardStatus = {
         connected: false,
-        roomId: undefined
+        roomId: null
     }
 
     constructor(options: BoardOptions){
@@ -76,20 +76,25 @@ export default class BoardManager{
         if (this.handlers.onMessage) this.handlers.onMessage(e.data)
     }
 
-    connect(){
-        this.rws = new ReconnectingWebSocket(this.url, [], {
-            connectionTimeout: 1000,
-            maxRetries: 10,
-        });
-
-        this.rws.addEventListener('open', this.#openHandler)
-        this.rws.addEventListener('close', this.#closeHandler)
-        this.rws.addEventListener('error', this.#errorHandler)
-        this.rws.addEventListener('message', this.#messageHandler)
+    async connect(): Promise<Event>{
+        return new Promise(res => {
+            this.rws = new ReconnectingWebSocket(this.url, [], {
+                connectionTimeout: 1000,
+                maxRetries: 10,
+            });
+    
+            this.rws.addEventListener('open', (e) => {
+                this.#openHandler(e)
+                res(e)
+            })
+            this.rws.addEventListener('close', this.#closeHandler)
+            this.rws.addEventListener('error', this.#errorHandler)
+            this.rws.addEventListener('message', this.#messageHandler)
+        })
     }
 
     disconnect(){
-        if (this.rws === undefined) throw new Error('cannot disconnect without a connection')
+        if (this.rws === null) throw new Error('cannot disconnect without a connection')
         // remove listeners
         this.rws.removeEventListener('open', this.#openHandler)
         this.rws.removeEventListener('close', this.#closeHandler)
@@ -126,21 +131,25 @@ export default class BoardManager{
         } )
     }
 
-    async createRoom(history: IHistoryState){
+    quitRoom(roomId: string){
+        this.send('Quit', { room_id: roomId })
+    }
+
+    static async createRoom(history: IHistoryState): Promise<RoomInfo>{
         const roomInitials = {
             current: history.current.map( i => JSON.stringify(i) ),
             undone: history.undone.map( i => JSON.stringify(i) )
         }
 
-        return await (await doRequest('rooms/create', roomInitials)).json()
+        return doRequest('rooms/create', roomInitials)
     }
 
-    async deleteRoom(roomId: string, privateId: string): Promise<Info>{
-        return await doRequest('rooms/delete', { room_id: roomId, private_id: privateId })
+    static async deleteRoom(roomId: string, privateId: string): Promise<Info>{
+        return doRequest('rooms/delete', { room_id: roomId, private_id: privateId })
     }
     
     send(messageType: MessageType, data: BoardMessage ){
-        if (this.rws === undefined) throw new Error('cannot send without a connection')
+        if (this.rws === null) throw new Error('cannot send without a connection')
 
         const msg = new Map()
         msg.set(messageType, data)

@@ -25,7 +25,7 @@ root.render(
             <Routes>
                 <Route path="/" element={<Home />} />
                 <Route index element={<Home />} />
-                <Route path="edit" element={<Editor />} />
+                <Route path="edit/:roomId?" element={<Editor />} />
                 <Route path="view" element={<Viewer />} />
                 <Route path="*" element={<>404</>} />
             </Routes>

@@ -1,7 +1,7 @@
 import React from "react";
 import {IconContext} from "react-icons";
 
-export default function (props: any){
+export default function IconWrap(props: any){
     return (
         <IconContext.Provider value={props.style}>
             <div onClick={props.onClick}>

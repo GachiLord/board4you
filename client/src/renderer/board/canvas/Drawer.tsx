@@ -10,11 +10,14 @@ import Selection from "../../lib/Selection";
 import renderVisible from "./image/renderVisible";
 import { ToolName } from "../../base/typing/ToolName";
 import { lineType } from "../../features/toolSettings";
-import { RootState } from "../../store/store";
+import store, { RootState } from "../../store/store";
 import Konva from "konva";
 import { ICoor } from "../../base/typing/ICoor";
 import sizeChange from "./mouse/func/sizeChange";
 import BoardManager from "../../lib/BoardManager";
+import { useParams } from "react-router";
+import { useDispatch } from "react-redux";
+import { setMode } from "../../features/board";
 
 
 export interface IDrawerProps{
@@ -22,24 +25,40 @@ export interface IDrawerProps{
     color: string,
     lineType: lineType,
     lineSize: number,
-    mode: 'local'|'shared'
 }
 
 export default function Drawer(props: IDrawerProps){
+    const dispatch = useDispatch()
     const stage = useRef<Konva.Stage | null>(null)
     const stageState = useSelector((state: RootState) => state.stage)
+    const mode = useSelector((state: RootState) => state.board.mode)
+    const { roomId } = useParams()
     
     useEffect(() => {
         // create webSocket manager
         const boardManager = new BoardManager({
             handlers: {}
         })
-        boardManager.connect()
+        // create room if mode has changed
+        if (mode === 'shared' && !roomId){
+            // implement loading logic!
+            const history = store.getState().history
+            BoardManager.createRoom({current: history.current, undone: history.undone}).then( roomInfo => {
+                location.pathname = `edit/${roomInfo.public_id}`
+            } )
+        }
+        // join room if there is a roomId
+        if (roomId){
+            dispatch(setMode('shared'))
+            boardManager.connect().then( () => {
+                boardManager.joinRoom(roomId)
+            } )
+        }
         // create canvas and editManager
         const canvas: Konva.Layer = stage.current.children[0]
         const editManager = new EditManager(canvas)
-        // listen for board events 
-        boardEvents.addListener('undo', () => {
+        // listen for board events
+        const undoSub = boardEvents.addListener('undo', () => {
             Selection.destroy(canvas)
             editManager.undo()
 
@@ -47,7 +66,7 @@ export default function Drawer(props: IDrawerProps){
                 api.handleFileChange()
             } )
         })
-        boardEvents.addListener('redo', () => {
+        const redoSub = boardEvents.addListener('redo', () => {
             Selection.destroy(canvas)
             editManager.redo()
             
@@ -55,29 +74,46 @@ export default function Drawer(props: IDrawerProps){
                 api.handleFileChange()
             } )
         })
-        boardEvents.addListener('pageSetted', (pos: ICoor) => {
+        const pageSettedSub = boardEvents.addListener('pageSetted', (pos: ICoor) => {
             stage.current.position(pos)
             renderVisible(canvas)
         })
-        boardEvents.addListener('sizeHasChanged', (size: undefined|{ width: number, height: number, baseHeight: number }) => {
+        const sizeHasChangedSub = boardEvents.addListener('sizeHasChanged', (size: undefined|{ width: number, height: number, baseHeight: number }) => {
             const linesLayer = stage.current.children[2]
             sizeChange(linesLayer, size)
         })
         // web event listeners
-        window.addEventListener('paste', (e) => {
+        // paste
+        const handlePaste = (e: ClipboardEvent) => {
             runCommand(stage.current, 'paste', e)
-        })
-        window.addEventListener('copy', (e) => {
+        }
+        window.addEventListener('paste', handlePaste)
+        // copy
+        const handleCopy = (e: ClipboardEvent) => {
             runCommand(stage.current, 'copy', e)
-        })
-        window.addEventListener('cut', (e) => {
+        }
+        window.addEventListener('copy', handleCopy)
+        // cut
+        const handleCut = (e: ClipboardEvent) => {
             runCommand(stage.current, 'cut', e)
-        })
+        }
+        window.addEventListener('cut', handleCut)
         // listen for native events
         run( electron => {
             electron.onMenuButtonClick( (_, o, d) => {runCommand(stage.current, o, d)} )
         })
-    }, [])
+        // remove all listeners on unmount
+        return () => {
+            // boardevents
+            [undoSub, redoSub, pageSettedSub, sizeHasChangedSub].forEach( s => s.remove() )
+            // web events
+            window.removeEventListener('paste', handlePaste)
+            window.removeEventListener('copy', handleCopy)
+            window.removeEventListener('cut', handleCut)
+            // disconnect
+            if (boardManager.status.connected) boardManager.disconnect()
+        }
+    }, [mode])
 
 
     return (

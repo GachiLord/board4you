@@ -17,7 +17,7 @@ pub fn room_filter(rooms: Rooms) -> impl Filter<Extract = impl warp::Reply, Erro
     let create = room_base
         .and(warp::path("create"))
         .and(warp::post())
-        .and(as_string(CONTENT_LENGTH_LIMIT))
+        .and(as_string(1024 * 1024 * 16))
         .and(with_rooms(rooms.clone()))
         .and_then(create_room);
     let delete = room_base
