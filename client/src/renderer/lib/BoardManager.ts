@@ -118,7 +118,7 @@ export default class BoardManager{
             // set connection waiter
             const waiter = ( e: MessageEvent<string> ) => {
                 const response = JSON.parse(e.data)
-                    if (response.status === "ok"){
+                    if (response.status === "ok" && response.action === 'Join'){
                         // clear listeners
                         clearTimeout(timeout)
                         this.rws?.removeEventListener('message', waiter)

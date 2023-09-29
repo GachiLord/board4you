@@ -14,7 +14,7 @@ enum BoardMessage{
     Push { private_key: String, data: Vec<String> },
     Pull { current_len: usize, undone_len: usize },
     // info msgs
-    Info { status: String, payload: String }
+    Info { status: String, action: String, payload: String }
 }
 
 pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: &Rooms) {
@@ -39,12 +39,12 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 Some(r) => {
                     r.add_user(user_id);
                     let _ = client.send(Message::text(
-                        json!({"status": "ok", "payload": "connected to the room"}).to_string()
+                        json!({"status": "ok", "action":"Join", "payload": "connected to the room"}).to_string()
                     ));
                 },
                 None => {
                     let _ = client.send(Message::text(
-                        json!({"status": "bad", "payload": "no such room"}).to_string()
+                        json!({"status": "bad", "action":"Join", "payload": "no such room"}).to_string()
                     ));
                 }
             }
@@ -58,19 +58,19 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 Some(r) => {
                     r.remove_user(user_id);
                     let _ = client.send(Message::text(
-                        json!({"status": "ok", "payload": "disconnected from the room"}).to_string()
+                        json!({"status": "ok", "action":"Quit", "payload": "disconnected from the room"}).to_string()
                     ));
                 },
                 None => {
                     let _ = client.send(Message::text(
-                        json!({"status": "bad", "payload": "no such room"}).to_string()
+                        json!({"status": "bad", "action":"Quit", "payload": "no such room"}).to_string()
                     ));
                 }
             }
         },
         _ => {
             let _ = client.send(Message::text(
-                json!({"status": "bad", "payload": "no such method"}).to_string()
+                json!({"status": "bad", "action":"Unknown", "payload": "no such method"}).to_string()
             ));
         }
     }

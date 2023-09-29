@@ -18,6 +18,8 @@ import BoardManager from "../../lib/BoardManager";
 import { useParams } from "react-router";
 import { useDispatch } from "react-redux";
 import { setMode } from "../../features/board";
+import { setRoom } from "../../features/rooms";
+import Persister from "../../lib/Persister";
 
 
 export interface IDrawerProps{
@@ -32,19 +34,24 @@ export default function Drawer(props: IDrawerProps){
     const stage = useRef<Konva.Stage | null>(null)
     const stageState = useSelector((state: RootState) => state.stage)
     const mode = useSelector((state: RootState) => state.board.mode)
+    const rooms = useSelector((state: RootState) => state.rooms)
     const { roomId } = useParams()
     
     useEffect(() => {
+        new Persister(store, 'rooms')
         // create webSocket manager
         const boardManager = new BoardManager({
             handlers: {}
         })
-        // create room if mode has changed
+        // create room if mode has changed and we are not going to edit existing one 
         if (mode === 'shared' && !roomId){
             // implement loading logic!
             const history = store.getState().history
             BoardManager.createRoom({current: history.current, undone: history.undone}).then( roomInfo => {
-                location.pathname = `edit/${roomInfo.public_id}`
+                // replace current location to prevent share button blocking
+                location.replace(`${location.origin}/edit/${roomInfo.public_id}`)
+                // save privateId to continue editing after reload
+                dispatch(setRoom({ publicId: roomInfo.public_id, privateId: roomInfo.private_id }))
             } )
         }
         // join room if there is a roomId
