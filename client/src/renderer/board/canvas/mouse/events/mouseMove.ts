@@ -6,13 +6,14 @@ import { Line } from "konva/lib/shapes/Line";
 import { Rect } from "konva/lib/shapes/Rect";
 import { Ellipse } from "konva/lib/shapes/Ellipse";
 import { Arrow } from "konva/lib/shapes/Arrow";
+import BoardManager from "../../../../lib/BoardManager";
 
 
-export default function(e: KonvaEventObject<MouseEvent>, props: IDrawerProps){
+export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardManager, props: IDrawerProps){
     const tool = props.tool
     const isDrawable = store.getState().stage.isDrawable
 
-    whenDraw( e, (stage, pos, canvas, temporary) => {
+    whenDraw( e, boardManager, ({stage, pos, canvas, temporary}) => {
         // handle tools usage
         if (itemIn(tool, 'pen', 'eraser') && isDrawable){
             const target = e.target

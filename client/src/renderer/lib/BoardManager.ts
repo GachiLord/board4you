@@ -12,25 +12,26 @@ interface Handlers{
 
 interface BoardOptions{
     url?: string,
-    handlers: Handlers
+    handlers?: Handlers
 }
 
 interface BoardStatus{
     connected: boolean,
-    roomId: string|undefined
+    roomId: string|null
 }
 
 // board message schemes
-export interface Join { room_id: string }
-export interface Quit { room_id: string }
+export interface Join { public_id: string }
+export interface Quit { public_id: string }
 // implement UpdateAction: { private_key: string, action_id: string,  }
-export interface Undo { private_key: string, action_id: string }
-export interface Redo { private_key: string, action_id: string }
-export interface Push { private_key: string, data: Array<string> }
+export interface Undo { public_id: string, private_id: string, action_id: string }
+export interface Redo { public_id: string, private_id: string, action_id: string }
+export interface Push { public_id: string, private_id: string, data: Array<string> }
 export interface Pull { current_len: number, undone_len: number }
 export interface Info { status: string, payload: string }
+export interface PushData{ action: string, data: string[] }
 // board message
-export type BoardMessage = Join | Quit | Undo | Redo | Push | Pull | Info
+export type BoardMessage = Join | Quit | Undo | Redo | Push | Pull | Info | PushData
 export type MessageType = 'Join' | 'Quit' | 'Undo' | 'Redo' | 'Push' | 'Pull' | 'Info'
 // errors
 export class TimeOutError extends Error{
@@ -52,9 +53,8 @@ export default class BoardManager{
         roomId: null
     }
 
-    constructor(options: BoardOptions){
-        this.url = options.url ?? `ws://${location.host}/board`
-        this.handlers = options.handlers
+    constructor(options?: BoardOptions){
+        this.url = options?.url ?? `ws://${location.host}/board`
     }
 
     #openHandler = (e: Event) => {
@@ -103,8 +103,9 @@ export default class BoardManager{
         // update status
         this.status = {
             connected: false,
-            roomId: undefined
+            roomId: null
         }
+        console.log(1)
         // close connection
         this.rws.close()
     }
@@ -119,6 +120,8 @@ export default class BoardManager{
             const waiter = ( e: MessageEvent<string> ) => {
                 const response = JSON.parse(e.data)
                     if (response.status === "ok" && response.action === 'Join'){
+                        // add status
+                        this.status.roomId = response.payload.public_id
                         // clear listeners
                         clearTimeout(timeout)
                         this.rws?.removeEventListener('message', waiter)
@@ -127,12 +130,12 @@ export default class BoardManager{
             }
             this.rws?.addEventListener('message', waiter)
             // do request
-            this.send('Join', { room_id: roomId })            
+            this.send('Join', { public_id: roomId })            
         } )
     }
 
     quitRoom(roomId: string){
-        this.send('Quit', { room_id: roomId })
+        this.send('Quit', { public_id: roomId })
     }
 
     static async createRoom(history: IHistoryState): Promise<RoomInfo>{

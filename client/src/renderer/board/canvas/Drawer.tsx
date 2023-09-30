@@ -20,6 +20,7 @@ import { useDispatch } from "react-redux";
 import { setMode } from "../../features/board";
 import { setRoom } from "../../features/rooms";
 import Persister from "../../lib/Persister";
+import handlePush from "./share/handlePush";
 
 
 export interface IDrawerProps{
@@ -29,20 +30,22 @@ export interface IDrawerProps{
     lineSize: number,
 }
 
+// create webSocket manager
+const boardManager = new BoardManager()
+// persist rooms state
+new Persister(store, 'rooms')
+
 export default function Drawer(props: IDrawerProps){
     const dispatch = useDispatch()
     const stage = useRef<Konva.Stage | null>(null)
     const stageState = useSelector((state: RootState) => state.stage)
     const mode = useSelector((state: RootState) => state.board.mode)
-    const rooms = useSelector((state: RootState) => state.rooms)
     const { roomId } = useParams()
     
     useEffect(() => {
-        new Persister(store, 'rooms')
-        // create webSocket manager
-        const boardManager = new BoardManager({
-            handlers: {}
-        })
+        // create canvas and editManager
+        const canvas: Konva.Layer = stage.current.children[0]
+        const editManager = new EditManager(canvas)
         // create room if mode has changed and we are not going to edit existing one 
         if (mode === 'shared' && !roomId){
             // implement loading logic!
@@ -54,16 +57,25 @@ export default function Drawer(props: IDrawerProps){
                 dispatch(setRoom({ publicId: roomInfo.public_id, privateId: roomInfo.private_id }))
             } )
         }
-        // join room if there is a roomId
+        // update mode to run effect again
         if (roomId){
             dispatch(setMode('shared'))
+        }
+        // join room if mode is shared
+        if (mode === 'shared'){
             boardManager.connect().then( () => {
                 boardManager.joinRoom(roomId)
             } )
         }
-        // create canvas and editManager
-        const canvas: Konva.Layer = stage.current.children[0]
-        const editManager = new EditManager(canvas)
+        // listen for Push msgs
+        boardManager.handlers.onMessage = (msg) => {
+            const parsed = JSON.parse(msg)
+            switch(Object.keys(parsed)[0]){
+                case 'PushData':{
+                    handlePush(editManager, parsed.PushData.data)
+                }
+            }
+        }        
         // listen for board events
         const undoSub = boardEvents.addListener('undo', () => {
             Selection.destroy(canvas)
@@ -117,6 +129,8 @@ export default function Drawer(props: IDrawerProps){
             window.removeEventListener('paste', handlePaste)
             window.removeEventListener('copy', handleCopy)
             window.removeEventListener('cut', handleCut)
+            // set local mode
+            dispatch(setMode('local'))
             // disconnect
             if (boardManager.status.connected) boardManager.disconnect()
         }
@@ -131,15 +145,15 @@ export default function Drawer(props: IDrawerProps){
                 width={stageState.width}
                 className="border"
                 // mouse
-                onMouseEnter={(e) => mouseEnter(e, props)}
-                onMouseDown={(e) => mouseDown(e, props)}
-                onMouseMove={(e) => mouseMove(e, props)}
-                onMouseUp={(e) => mouseUpLeave(e, props)}
-                onMouseLeave={(e) => mouseUpLeave(e, props)}
+                onMouseEnter={(e) => mouseEnter(e, boardManager, props)}
+                onMouseDown={(e) => mouseDown(e, boardManager, props)}
+                onMouseMove={(e) => mouseMove(e, boardManager, props)}
+                onMouseUp={(e) => mouseUpLeave(e, boardManager, props)}
+                onMouseLeave={(e) => mouseUpLeave(e, boardManager, props)}
                 // drag
                 draggable={props.tool === 'move'}
                 dragBoundFunc={stageDragBound}
-                onDragMove={stageDragMove}
+                onDragMove={(e) => stageDragMove(e, boardManager)}
                 onDragEnd={stageDragEnd}
             >
                 <Layer name="canvas"/>
