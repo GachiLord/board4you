@@ -6,9 +6,12 @@ import {IoSquareOutline} from 'react-icons/io5'
 import {RxCircle} from 'react-icons/rx'
 import Persister from "../../lib/Persister";
 import store from "../../store/store";
+import ShareBar from "../ShareBar";
+import Settings from "../settings/Settings";
+import Hr from "../../base/components/Hr";
 
 
-export default function(){
+export default function ToolPanel(){
     useEffect( () => {
         new Persister(store, 'toolSettings')
     }, [] )
@@ -44,6 +47,9 @@ export default function(){
                 >
                     <BsEraser />
                 </ToolButton>
+                <Hr />
+                <ShareBar />
+                <Settings />
             </div>
     )
 }

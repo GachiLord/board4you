@@ -13,13 +13,30 @@ import { Ellipse } from "konva/lib/shapes/Ellipse";
 import { IRect } from "konva/lib/types";
 import { Arrow } from "konva/lib/shapes/Arrow";
 import { setCursor } from "../func/cursor";
+import BoardManager from "../../../../lib/BoardManager";
+import { Edit } from "../../../../lib/EditManager";
+import { convertToStrings } from "../../share/convert";
 
 
-export default function(e: KonvaEventObject<MouseEvent>, props: IDrawerProps){
-    const isDrawing = store.getState().stage.isDrawable
+export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardManager, props: IDrawerProps){
+    const state = store.getState()
+    const isShared = state.board.mode === 'shared'
+    const isDrawing = state.stage.isDrawable
+    const private_id = state.rooms[boardManager.status.roomId]
     const tool = props.tool
 
-    whenDraw( e, (stage, _, canvas, temporary) => {
+
+    whenDraw( e, boardManager, ({stage, canvas, temporary}) => {
+        // share fun
+        const share = (edit: Edit) => {
+            if (isShared)
+            boardManager.send('Push', {
+                public_id: boardManager.status.roomId,
+                private_id: private_id,
+                data: convertToStrings([edit])
+            } )
+        }
+        // type of event
         const isMouseLeave = e.type === 'mouseleave'
 
         if (isMouseLeave) setCursor(stage)
@@ -40,14 +57,20 @@ export default function(e: KonvaEventObject<MouseEvent>, props: IDrawerProps){
             // cache the line to improve perfomance
             lastLine.cache()
             // add line to history
-            store.dispatch(addCurrent({type: 'add', shape: CanvasUtils.toShape(lastLine)}))
+            const edit: Edit = {type: 'add', shape: CanvasUtils.toShape(lastLine)}
+            store.dispatch(addCurrent(edit))
+            // send Push msg
+            share(edit)
         }
         else if (itemIn(tool, 'rect', 'ellipse') && isDrawing){
             const lastShape: unknown = canvas.children.at(-1)
             // validate lastLine
             if (!(lastShape instanceof Rect || lastShape instanceof Ellipse)) throw new TypeError('last created element must be an Ellipse or Rect')
             // save
-            store.dispatch(addCurrent({type: 'add', shape: CanvasUtils.toShape(lastShape)}))
+            const edit: Edit = {type: 'add', shape: CanvasUtils.toShape(lastShape)}
+            store.dispatch(addCurrent(edit))
+            // send Push msg
+            share(edit)
         }
         else if (tool === 'select' && isDrawing && temporary.children[0]){
             const shapes = canvas.children

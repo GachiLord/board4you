@@ -12,13 +12,17 @@ import { useDispatch } from "react-redux"
 
 interface props{
     children: any,
-    name: ToolName, 
+    // none disables tool changing. It is useful when you just need to have an animated icon
+    name: ToolName|'none'|'none-active', 
     customizable?: boolean, 
     hideColorPicker?: boolean,
     hideSizePicker?: boolean,
     hideLineTypePicker?: boolean
+    // custom class for active
+    activatedClass?: string,
+    notActivetedClass?: string,
 }
-export default function(props: props){
+export default function ToolButton(props: props){
     const dispatch = useDispatch()
     const [isOpen, setOpen] = useState(false)
     const toolIsActive = useSelector((state: RootState) => state.tool.active) === props.name
@@ -38,14 +42,16 @@ export default function(props: props){
         })
     }
     const handleClick = () => {
-        if (props.customizable && toolIsActive) setOpen(!isOpen)
-        else if(!toolIsActive) dispatch(setTool(props.name))
+        // dont handle tool change if name is none
+        const isNone = props.name === 'none' || props.name === 'none-active'
+        if (props.customizable && toolIsActive && !isNone) setOpen(!isOpen)
+        else if(!toolIsActive && !isNone) dispatch(setTool(props.name))
         anim()
     }
 
-
-    let iconClass = "m-2" + (toolIsActive ? " text-primary": "")
-    let value = {className: iconClass, ...baseIconStyle}
+    // set primary color if name is none-active
+    const iconClass = `m-2 ${(toolIsActive || props.name === 'none-active') ? props.activatedClass ?? "text-primary": props.notActivetedClass ?? ""}`
+    const value = {className: iconClass, ...baseIconStyle}
 
     return (
         <div className="zindex-fixed">

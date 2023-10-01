@@ -1,6 +1,6 @@
 import React from "react";
-import Editor from "../board/Editor";
+import EditorComponent from "../board/Editor";
 
-export default function(){
-    return <Editor />
+export default function Editor(){
+    return <EditorComponent />
 }

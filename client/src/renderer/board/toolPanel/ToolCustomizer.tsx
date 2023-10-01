@@ -13,7 +13,7 @@ import { RootState } from "../../store/store";
 
 
 
-export default function(props: any){
+export default function ToolCustomizer(props: any){
     const common: { style: CSSProperties, defaultColors: string[], closeArea: CSSProperties, labelStyle: CSSProperties, locCfg: any } = {
         style: {
             'marginLeft': '30pt',

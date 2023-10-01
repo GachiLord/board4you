@@ -1,45 +1,165 @@
-import ReconnectingWebSocket from 'reconnecting-websocket';
+import ReconnectingWebSocket, { Event, ErrorEvent, CloseEvent } from 'reconnecting-websocket'
+import { IHistoryState } from '../features/history'
+import { doRequest } from './twiks'
 
-
-interface IHandlers{
-    onMessage?: (msg: any) => void,
-    onError?: () => void,
-    onClose?: () => void,
-    onOpen?: () => void
+// BoardManager
+interface Handlers{
+    onMessage?: (msg: string) => void,
+    onError?: (e: ErrorEvent) => void,
+    onClose?: (e: CloseEvent) => void,
+    onOpen?: (e: Event) => void
 }
 
 interface BoardOptions{
     url?: string,
-    handlers: IHandlers
+    handlers?: Handlers
 }
 
+interface BoardStatus{
+    connected: boolean,
+    roomId: string|null
+}
+
+// board message schemes
+export interface Join { public_id: string }
+export interface Quit { public_id: string }
+// implement UpdateAction: { private_key: string, action_id: string,  }
+export interface Undo { public_id: string, private_id: string, action_id: string }
+export interface Redo { public_id: string, private_id: string, action_id: string }
+export interface Push { public_id: string, private_id: string, data: Array<string> }
+export interface Pull { current_len: number, undone_len: number }
+export interface Info { status: string, payload: string }
+export interface PushData{ action: string, data: string[] }
+// board message
+export type BoardMessage = Join | Quit | Undo | Redo | Push | Pull | Info | PushData
+export type MessageType = 'Join' | 'Quit' | 'Undo' | 'Redo' | 'Push' | 'Pull' | 'Info'
+// errors
+export class TimeOutError extends Error{
+    constructor(msg = "connection timeout after", durationMs: number, options?: ErrorOptions){
+        super(msg, options)
+        this.message = `${msg} ${durationMs} ms waiting`
+    }
+}
+// api types
+export interface RoomInfo{ public_id: string, private_id: string }
+
+// board manager
 export default class BoardManager{
     url: string
-    rws: ReconnectingWebSocket
-    handlers: IHandlers
-
-    constructor(options: BoardOptions){
-        this.url = options.url ?? `ws://${location.host}/board`
-        this.handlers = options.handlers
+    rws: ReconnectingWebSocket|null
+    handlers: Handlers = {}
+    status: BoardStatus = {
+        connected: false,
+        roomId: null
     }
 
-    connect(){
-        this.rws = new ReconnectingWebSocket(this.url, [], {
-            connectionTimeout: 1000,
-            maxRetries: 10,
-        });
+    constructor(options?: BoardOptions){
+        this.url = options?.url ?? `ws://${location.host}/board`
+    }
 
-        this.rws.addEventListener('message', (e) => {
-            this.handlers.onMessage(JSON.parse(e.data))
+    #openHandler = (e: Event) => {
+        this.status.connected = true
+        if (this.handlers.onOpen) this.handlers.onOpen(e)
+    }
+
+    #closeHandler = (e: CloseEvent) => {
+        this.status.connected = false
+        if (this.handlers.onClose) this.handlers.onClose(e)
+    }
+
+    #errorHandler = (e: ErrorEvent) => {
+        if (this.handlers.onError) this.handlers.onError(e)
+    }
+
+    #messageHandler = (e: MessageEvent<string>) => {
+        if (typeof e.data !== 'string') throw new TypeError('message has unsupported type')
+        if (this.handlers.onMessage) this.handlers.onMessage(e.data)
+    }
+
+    async connect(): Promise<Event>{
+        return new Promise(res => {
+            this.rws = new ReconnectingWebSocket(this.url, [], {
+                connectionTimeout: 1000,
+                maxRetries: 10,
+            });
+    
+            this.rws.addEventListener('open', (e) => {
+                this.#openHandler(e)
+                res(e)
+            })
+            this.rws.addEventListener('close', this.#closeHandler)
+            this.rws.addEventListener('error', this.#errorHandler)
+            this.rws.addEventListener('message', this.#messageHandler)
         })
     }
-    
-    joinRoom(roomId: string){
-        if (this.rws.OPEN !== 1) throw new Error('cannot join room without a connection to the socket')
+
+    disconnect(){
+        if (this.rws === null) throw new Error('cannot disconnect without a connection')
+        // remove listeners
+        this.rws.removeEventListener('open', this.#openHandler)
+        this.rws.removeEventListener('close', this.#closeHandler)
+        this.rws.removeEventListener('error', this.#errorHandler)
+        this.rws.removeEventListener('message', this.#messageHandler)
+        // update status
+        this.status = {
+            connected: false,
+            roomId: null
+        }
+        console.log(1)
+        // close connection
+        this.rws.close()
     }
     
-    send(data: string){
-        this.rws.send(data)
+    joinRoom(roomId: string): Promise<Info>{
+        return new Promise( (res, rej) => {
+            // set connection timeout
+            const timeout = setTimeout( () => {
+                rej(new TimeOutError('connection timeout', 10000))
+            }, 10000 )
+            // set connection waiter
+            const waiter = ( e: MessageEvent<string> ) => {
+                const response = JSON.parse(e.data)
+                    if (response.status === "ok" && response.action === 'Join'){
+                        // add status
+                        this.status.roomId = response.payload.public_id
+                        // clear listeners
+                        clearTimeout(timeout)
+                        this.rws?.removeEventListener('message', waiter)
+                        res(response)
+                    }
+            }
+            this.rws?.addEventListener('message', waiter)
+            // do request
+            this.send('Join', { public_id: roomId })            
+        } )
+    }
+
+    quitRoom(roomId: string){
+        this.send('Quit', { public_id: roomId })
+    }
+
+    static async createRoom(history: IHistoryState): Promise<RoomInfo>{
+        const roomInitials = {
+            current: history.current.map( i => JSON.stringify(i) ),
+            undone: history.undone.map( i => JSON.stringify(i) )
+        }
+
+        return doRequest('rooms/create', roomInitials)
+    }
+
+    static async deleteRoom(roomId: string, privateId: string): Promise<Info>{
+        return doRequest('rooms/delete', { room_id: roomId, private_id: privateId })
+    }
+    
+    send(messageType: MessageType, data: BoardMessage ){
+        if (this.rws === null) throw new Error('cannot send without a connection')
+
+        const msg = new Map()
+        msg.set(messageType, data)
+        
+        this.rws.send(JSON.stringify(
+            Object.fromEntries(msg)
+        ))
     }
 
 }

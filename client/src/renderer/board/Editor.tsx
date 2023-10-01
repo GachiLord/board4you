@@ -13,18 +13,18 @@ export default function Editor(){
     const currentTool = useSelector((state: RootState) => state.tool.active)
     const toolSettings = useSelector((state: RootState) => state.toolSettings)
     const panelStyle = {zIndex: 3}
-    const undoBarStyle = {...panelStyle}
+    const barBlockStyle = {...panelStyle}
     const drawerStyle = {'margin': '5px 0 0 120px'}
 
 
     return (
         <>
         <div className="d-flex">
-            <div className="position-fixed h-75 d-flex flex-column justify-content-around m-4" style={panelStyle}>
+            <div className="position-fixed h-100 d-flex flex-column justify-content-around m-4" style={panelStyle}>
                 <PageBar />
                 <ToolPanel />
-                <div className="d-inline-block" style={undoBarStyle}>
-                    <UndoRedoBar />
+                <div className="d-inline-block" style={barBlockStyle}>
+                    <div><UndoRedoBar /></div>
                 </div>
             </div>
             <div style={drawerStyle}>
@@ -33,7 +33,6 @@ export default function Editor(){
                     color={toolSettings[currentTool].lineColor}
                     lineType={toolSettings[currentTool].lineType}
                     lineSize={toolSettings[currentTool].lineSize}
-                    mode="shared"
                 />
             </div>
             <SizeDialog />

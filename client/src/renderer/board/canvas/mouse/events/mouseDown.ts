@@ -10,10 +10,11 @@ import Selection from "../../../../lib/Selection";
 import IShape from "../../../../base/typing/IShape";
 import { KonvaEventObject } from "konva/lib/Node";
 import { IDrawerProps } from "../../Drawer";
+import BoardManager from "../../../../lib/BoardManager";
 
 
 
-export default function(e: KonvaEventObject<MouseEvent>, props: IDrawerProps){
+export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardManager, props: IDrawerProps){
     // start drawing
     store.dispatch(setDrawable(true))
     //shape style vars
@@ -24,7 +25,7 @@ export default function(e: KonvaEventObject<MouseEvent>, props: IDrawerProps){
     const isDraggable = store.getState().stage.isDraggable
 
 
-    whenDraw( e, (stage, pos, canvas, temporary) => {
+    whenDraw( e, boardManager, ({stage, pos, canvas, temporary}) => {
         const undone = store.getState().history.undone.at(-1)
         // empty undone if it exists and tool is not select
         if (undone && tool !== 'select' && tool !== 'move') store.dispatch(emptyUndone())

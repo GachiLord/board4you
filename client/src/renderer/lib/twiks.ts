@@ -3,6 +3,7 @@ import EditManager from "./EditManager"
 import Konva from "konva";
 import { ICoor } from "../base/typing/ICoor";
 import { KonvaEventObject } from "konva/lib/Node";
+import BoardManager from "./BoardManager";
 
 
 
@@ -32,16 +33,27 @@ export function run(f: (electronAPI: electronAPI) => void, g: undefined|(() => v
     else if(g) g()
 }
 
-export function whenDraw(event: KonvaEventObject<MouseEvent>, f: (stage: Konva.Stage, relativePointerPosition: ICoor, drawnShapes: Konva.Layer, temporaryShapes: Konva.Layer, editManager: EditManager) => void){
+export interface DrawVars{
+    stage: Konva.Stage, 
+    pos: ICoor, 
+    canvas: Konva.Layer, 
+    temporary: Konva.Layer, 
+    editManager: EditManager,
+    boardManager: BoardManager
+}
+
+export function whenDraw(event: KonvaEventObject<MouseEvent>, boardManager: BoardManager, f: (drawVars: DrawVars) => void){
     const stage = getStage(event)
     // do nothing if clicked on stage or draggable shape
     if (event.target.attrs.draggable && event.target !== stage) return
-    f(stage,
-      stage.getRelativePointerPosition(),
-      stage.children[0],
-      stage.children[1],
-      new EditManager(stage.children[0])
-    )
+    f({
+        stage: stage,
+        pos: stage.getRelativePointerPosition(), 
+        canvas: stage.children[0], 
+        temporary: stage.children[1], 
+        editManager: new EditManager(stage.children[0]),
+        boardManager: boardManager
+    })
 }
 
 export function getStage(event: KonvaEventObject<MouseEvent>){
@@ -50,4 +62,12 @@ export function getStage(event: KonvaEventObject<MouseEvent>){
 
 export function itemIn(item: unknown, ...items: unknown[]){
     return items.includes(item)
+}
+
+export async function doRequest(path: string, body: object, method: 'POST'|'GET' = 'POST'){
+    const response = await fetch(`${location.origin}/${path}`, {
+        method: method,
+        body: JSON.stringify(body)
+    })
+    return await response.json()
 }
