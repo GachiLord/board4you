@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { mouseDown, mouseEnter, mouseMove, mouseUpLeave, stageDragBound, stageDragEnd, stageDragMove } from './mouse';
 import { useSelector } from "react-redux";
 import { Layer, Stage } from 'react-konva';
@@ -21,6 +21,9 @@ import { setMode } from "../../features/board";
 import { setRoom } from "../../features/rooms";
 import Persister from "../../lib/Persister";
 import handlePush from "./share/handlePush";
+import Alert from "../../base/components/Alert";
+import { Button } from "react-bootstrap";
+import { Link } from "react-router-dom";
 
 
 export interface IDrawerProps{
@@ -40,6 +43,7 @@ export default function Drawer(props: IDrawerProps){
     const stage = useRef<Konva.Stage | null>(null)
     const stageState = useSelector((state: RootState) => state.stage)
     const mode = useSelector((state: RootState) => state.board.mode)
+    const [roomExists, setRoomExists] = useState(true)
     const { roomId } = useParams()
     
     useEffect(() => {
@@ -65,6 +69,8 @@ export default function Drawer(props: IDrawerProps){
         if (mode === 'shared'){
             boardManager.connect().then( () => {
                 boardManager.joinRoom(roomId)
+                    // alert if there is no such room 
+                    .catch(() => setRoomExists(false))
             } )
         }
         // listen for Push msgs
@@ -137,7 +143,19 @@ export default function Drawer(props: IDrawerProps){
     }, [mode])
 
 
-    return (
+    return  (
+        <>
+        {
+        !roomExists && (
+            <Alert 
+                title="There is no sush room"
+                body="Room is deleted or does not exit"
+            >
+                <Link to="/edit" reloadDocument><Button variant="primary">Create new</Button></Link>
+                <Link to="/"><Button variant="primary">Home</Button></Link>
+            </Alert>
+        )
+        }
         <div className="d-flex justify-content-center">
             <Stage
                 ref={stage}
@@ -167,5 +185,6 @@ export default function Drawer(props: IDrawerProps){
                 />
             </Stage>
         </div>
+        </>
     )
 }

@@ -74,7 +74,7 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
         BoardMessage::Push { public_id, private_id, mut data } => {
             let mut rooms = rooms.write().await;
 
-            match rooms.get_mut(&public_id) {
+            match rooms.get_mut(&public_id){
                 Some(r) => {
                     // skip if private_key is not valid
                     if r.private_id != private_id{
