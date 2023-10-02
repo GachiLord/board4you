@@ -9,6 +9,12 @@ pub struct Board{
     pub undone: Vec<String>
 }
 
+#[derive(Clone)]
+pub struct Command{
+    name: String,
+    id: String
+} 
+
 impl Board {
     fn pull(&mut self, current_len: usize, undone_len: usize){
         // implement
@@ -18,18 +24,18 @@ impl Board {
         self.current.push(data)
     }
 
-    fn exec_command(&mut self, command: &str){
-        match command {
-            "undo" => {
-                println!("undo");
-            },
-            "redo" => {
-                println!("redo");
-            },
-            _ => {
-                println!("unknown command");
-            }
-        };
+    fn exec_command(&mut self, command: &Command){
+        // match command {
+        //     "undo" => {
+        //         println!("undo");
+        //     },
+        //     "redo" => {
+        //         println!("redo");
+        //     },
+        //     _ => {
+        //         println!("unknown command");
+        //     }
+        // };
     }
 }
 
@@ -38,7 +44,7 @@ pub struct Room{
     pub public_id: String,
     pub private_id: String,
     pub users: HashSet<usize>,
-    pub board: Board
+    pub board: Board,
 }
 
 impl Room{

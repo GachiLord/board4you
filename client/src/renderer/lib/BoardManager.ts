@@ -40,6 +40,12 @@ export class TimeOutError extends Error{
         this.message = `${msg} ${durationMs} ms waiting`
     }
 }
+export class NoSushRoomError extends Error{
+    constructor(msg = "no such room with id", roomId: string, options?: ErrorOptions){
+        super(msg, options)
+        this.message = `${msg} ${roomId}`
+    }
+}
 // api types
 export interface RoomInfo{ public_id: string, private_id: string }
 
@@ -126,6 +132,9 @@ export default class BoardManager{
                         clearTimeout(timeout)
                         this.rws?.removeEventListener('message', waiter)
                         res(response)
+                    }
+                    else if (response.status === "bad" && response.action === 'Join'){
+                        rej(new NoSushRoomError(undefined, roomId))
                     }
             }
             this.rws?.addEventListener('message', waiter)
