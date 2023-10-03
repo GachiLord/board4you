@@ -1,5 +1,5 @@
 import { itemIn, whenDraw } from "../../../../lib/twiks";
-import { setDrawable } from "../../../../features/stage";
+import { setDrawable, setDrawingShapeId } from "../../../../features/stage";
 import { emptyUndone } from '../../../../features/history'
 import {v4 as uuid4} from 'uuid'
 import store from "../../../../store/store";
@@ -18,14 +18,27 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
     // start drawing
     store.dispatch(setDrawable(true))
     //shape style vars
+    const state = store.getState()
     const tool = props.tool
     const color = props.color
     const lineSize = props.lineSize
     const lineType = props.lineType
-    const isDraggable = store.getState().stage.isDraggable
+    const isDraggable = state.stage.isDraggable
+    const isShared = state.board.mode === 'shared'
+    const private_id = state.rooms[boardManager.status.roomId]
 
 
     whenDraw( e, boardManager, ({stage, pos, canvas, temporary}) => {
+        const share = (edit: IShape) => {
+            if (isShared)
+            boardManager.send('PushSegment', {
+                public_id: boardManager.status.roomId,
+                private_id: private_id,
+                action_type: 'Start',
+                data: JSON.stringify(edit)
+            })
+        }
+
         const undone = store.getState().history.undone.at(-1)
         // empty undone if it exists and tool is not select
         if (undone && tool !== 'select' && tool !== 'move') store.dispatch(emptyUndone())
@@ -49,7 +62,12 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
                 connected: []
             }
 
+            // add shape to canvas
             canvas.add(CanvasUtils.toKonvaObject(shape))
+            // save active shapeId
+            store.dispatch(setDrawingShapeId(shape.shapeId))
+            // send segment
+            share(shape)
         }
         else if (tool === 'rect'){
             shape = {

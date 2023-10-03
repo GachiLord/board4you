@@ -7,17 +7,32 @@ import { Rect } from "konva/lib/shapes/Rect";
 import { Ellipse } from "konva/lib/shapes/Ellipse";
 import { Arrow } from "konva/lib/shapes/Arrow";
 import BoardManager from "../../../../lib/BoardManager";
-
+import CanvasUtils from "../../../../lib/CanvasUtils";
+import { ShareData } from "../../share/ShareData";
 
 export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardManager, props: IDrawerProps){
     const tool = props.tool
-    const isDrawable = store.getState().stage.isDrawable
+    const state = store.getState()
+    const drawingShapeId = store.getState().stage.drawingShapeId
+    const isDrawable = state.stage.isDrawable
+    const isShared = state.board.mode === 'shared'
+    const private_id = state.rooms[boardManager.status.roomId]
+    
+    const share = (data: ShareData) => {
+        if (isShared)
+        boardManager.send('PushSegment', {
+            public_id: boardManager.status.roomId,
+            private_id: private_id,
+            action_type: 'Update',
+            data: JSON.stringify(data)
+        })
+    }
 
     whenDraw( e, boardManager, ({stage, pos, canvas, temporary}) => {
         // handle tools usage
-        if (itemIn(tool, 'pen', 'eraser') && isDrawable){
+        if (itemIn(tool, 'pen', 'eraser') && isDrawable && drawingShapeId){
             const target = e.target
-            const lastline: unknown = canvas.children.at(-1)
+            const lastline: unknown = CanvasUtils.findLastOne(canvas, { shapeId: drawingShapeId })
             // validate lastLine
             if (!(lastline instanceof Line)) throw new TypeError('last created element must be a Line')
             // add ref to eraser line if pointer is on shape
@@ -26,6 +41,11 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
             }
             // add points
             lastline.points(lastline.attrs.points.concat([pos.x, pos.y]))
+            // send segments
+            share({
+                shapeId: drawingShapeId,
+                points: [pos.x, pos.y]
+            })
         }
         
         else if (itemIn(tool, 'arrow', 'line') && isDrawable){

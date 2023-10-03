@@ -1,4 +1,3 @@
-import { PushData } from "../../../lib/BoardManager";
 import EditManager from "../../../lib/EditManager";
 import { convertToEdits } from "./convert";
 

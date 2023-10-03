@@ -14,7 +14,7 @@ import store, { RootState } from "../../store/store";
 import Konva from "konva";
 import { ICoor } from "../../base/typing/ICoor";
 import sizeChange from "./mouse/func/sizeChange";
-import BoardManager from "../../lib/BoardManager";
+import BoardManager, { MessageType, PushSegmentData } from "../../lib/BoardManager";
 import { useParams } from "react-router";
 import { useDispatch } from "react-redux";
 import { setMode } from "../../features/board";
@@ -24,6 +24,9 @@ import handlePush from "./share/handlePush";
 import Alert from "../../base/components/Alert";
 import { Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import handlePushStart from "./share/handlePushStart";
+import handlePushEnd from "./share/handlePushEnd";
+import handlePushUpdate from "./share/handlePushUpdate";
 
 
 export interface IDrawerProps{
@@ -78,7 +81,14 @@ export default function Drawer(props: IDrawerProps){
             const parsed = JSON.parse(msg)
             switch(Object.keys(parsed)[0]){
                 case 'PushData':{
-                    handlePush(editManager, parsed.PushData.data)
+                    //handlePush(editManager, parsed.PushData.data)
+                    break
+                }
+                case 'PushSegmentData':{
+                    const segment: PushSegmentData = parsed.PushSegmentData
+                    if (segment.action_type === 'Start') handlePushStart(canvas, JSON.parse(segment.data))
+                    if (segment.action_type === 'Update') handlePushUpdate(canvas, JSON.parse(segment.data))
+                    if (segment.action_type === 'End') handlePushEnd(canvas, segment.data)
                 }
             }
         }        

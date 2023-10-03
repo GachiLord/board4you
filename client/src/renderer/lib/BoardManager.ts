@@ -27,12 +27,19 @@ export interface Quit { public_id: string }
 export interface Undo { public_id: string, private_id: string, action_id: string }
 export interface Redo { public_id: string, private_id: string, action_id: string }
 export interface Push { public_id: string, private_id: string, data: Array<string> }
+export interface PushSegment { 
+    public_id: string, 
+    private_id: string, 
+    action_type: 'Start'|'Update'|'End', 
+    data: unknown
+}
 export interface Pull { current_len: number, undone_len: number }
 export interface Info { status: string, payload: string }
 export interface PushData{ action: string, data: string[] }
+export interface PushSegmentData{ action_type: string, data: any }
 // board message
-export type BoardMessage = Join | Quit | Undo | Redo | Push | Pull | Info | PushData
-export type MessageType = 'Join' | 'Quit' | 'Undo' | 'Redo' | 'Push' | 'Pull' | 'Info'
+export type BoardMessage = Join | Quit | Undo | Redo | Push | PushSegment | Pull | Info | PushData
+export type MessageType = 'Join' | 'Quit' | 'Undo' | 'Redo' | 'Push' | 'PushSegment' | 'Pull' | 'Info'
 // errors
 export class TimeOutError extends Error{
     constructor(msg = "connection timeout after", durationMs: number, options?: ErrorOptions){

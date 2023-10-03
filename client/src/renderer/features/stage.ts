@@ -11,6 +11,7 @@ export interface IStageState{
     stagePos: {x: number,y: number},
     isDrawable: boolean,
     isDraggable: boolean,
+    drawingShapeId?: string 
 }
 
 const initialState: IStageState = {
@@ -42,9 +43,10 @@ export const stageSlice = createSlice({
         setStagePos: (state, action: PayloadAction<ICoor>) => { state.stagePos = action.payload },
         setDrawable: (state, action: PayloadAction<boolean>) => { state.isDrawable = action.payload },
         setDraggable: (state, action: PayloadAction<boolean>) => { state.isDraggable = action.payload },
-    }
+        setDrawingShapeId: (state, action: PayloadAction<string>) => { state.drawingShapeId = action.payload }
+     }
 })
 
 
-export const {  setHeight, setBaseHeight, setWidth, setStagePos, setDrawable, setDraggable} = stageSlice.actions
+export const {  setHeight, setBaseHeight, setWidth, setStagePos, setDrawable, setDraggable, setDrawingShapeId} = stageSlice.actions
 export default stageSlice.reducer
