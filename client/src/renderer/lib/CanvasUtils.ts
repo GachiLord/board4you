@@ -193,6 +193,19 @@ export default class CanvasUtils{
         } )
     }
 
+    static findLastOne(layer: Konva.Layer, attrs: ShapeConfig){
+        for (let i = layer.children.length - 1; i >= 0; i--){
+            const c = layer.children[i]
+            let coincidence = 0
+
+            for (const [key, value] of Object.entries(c.attrs)){
+                if (attrs[key] === value) coincidence++
+            }
+
+            if (coincidence === Object.keys(attrs).length) return c
+        }
+    }
+
     /**
      * Works like CanvasUtils.find() but returnes only the first found shape. Does not work with objects in attrs
      */

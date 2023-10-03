@@ -15,25 +15,26 @@ import { Arrow } from "konva/lib/shapes/Arrow";
 import { setCursor } from "../func/cursor";
 import BoardManager from "../../../../lib/BoardManager";
 import { Edit } from "../../../../lib/EditManager";
-import { convertToStrings } from "../../share/convert";
 
 
 export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardManager, props: IDrawerProps){
     const state = store.getState()
     const isShared = state.board.mode === 'shared'
     const isDrawing = state.stage.isDrawable
+    const drawingShapeId = state.stage.drawingShapeId
     const private_id = state.rooms[boardManager.status.roomId]
     const tool = props.tool
 
 
     whenDraw( e, boardManager, ({stage, canvas, temporary}) => {
         // share fun
-        const share = (edit: Edit) => {
+        const share = (shapeId: string) => {
             if (isShared)
-            boardManager.send('Push', {
+            boardManager.send('PushSegment', {
                 public_id: boardManager.status.roomId,
                 private_id: private_id,
-                data: convertToStrings([edit])
+                action_type: 'End',
+                data: shapeId
             } )
         }
         // type of event
@@ -44,8 +45,8 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
             if (!itemIn(tool, 'move', 'select') && !isMouseLeave) api.handleFileChange()
         } )
 
-        if (itemIn(tool, 'pen', 'eraser', 'arrow', 'line') && isDrawing){
-            const lastLine: unknown = canvas.children.at(-1)
+        if (itemIn(tool, 'pen', 'eraser', 'arrow', 'line') && isDrawing && drawingShapeId){
+            const lastLine: unknown = CanvasUtils.findLastOne(canvas, { shapeId: drawingShapeId })
             // validate lastLine
             if (!(lastLine instanceof Line || lastLine instanceof Arrow)) throw new TypeError('last created element must be a Line or an Arrow')
             // save
@@ -59,18 +60,18 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
             // add line to history
             const edit: Edit = {type: 'add', shape: CanvasUtils.toShape(lastLine)}
             store.dispatch(addCurrent(edit))
-            // send Push msg
-            share(edit)
+            // send PushSegmentEnd msg
+            share(drawingShapeId)
         }
-        else if (itemIn(tool, 'rect', 'ellipse') && isDrawing){
-            const lastShape: unknown = canvas.children.at(-1)
+        else if (itemIn(tool, 'rect', 'ellipse') && isDrawing && drawingShapeId){
+            const lastShape: unknown = CanvasUtils.findLastOne(canvas, { shapeId: drawingShapeId })
             // validate lastLine
             if (!(lastShape instanceof Rect || lastShape instanceof Ellipse)) throw new TypeError('last created element must be an Ellipse or Rect')
             // save
             const edit: Edit = {type: 'add', shape: CanvasUtils.toShape(lastShape)}
             store.dispatch(addCurrent(edit))
-            // send Push msg
-            share(edit)
+            // send PushSegmentEnd msg
+            share(drawingShapeId)
         }
         else if (tool === 'select' && isDrawing && temporary.children[0]){
             const shapes = canvas.children
