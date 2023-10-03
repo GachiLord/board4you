@@ -83,6 +83,10 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
                 lineType: lineType,
             }
             canvas.add(CanvasUtils.toKonvaObject(shape))
+            // save active shapeId
+            store.dispatch(setDrawingShapeId(shape.shapeId))
+            // send segment
+            share(shape)
         }
         else if (tool === 'ellipse'){
             shape = {
@@ -98,6 +102,10 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
                 lineType: lineType,
             }
             canvas.add(CanvasUtils.toKonvaObject(shape))
+            // save active shapeId
+            store.dispatch(setDrawingShapeId(shape.shapeId))
+            // send segment
+            share(shape)
         }
         else if (tool === 'select' && !isDraggable && e.target.attrs.id !== 'selectRect'){
             // select multiple shapes
