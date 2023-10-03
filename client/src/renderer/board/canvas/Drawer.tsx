@@ -14,7 +14,7 @@ import store, { RootState } from "../../store/store";
 import Konva from "konva";
 import { ICoor } from "../../base/typing/ICoor";
 import sizeChange from "./mouse/func/sizeChange";
-import BoardManager, { MessageType, PushSegmentData } from "../../lib/BoardManager";
+import BoardManager, { PushSegmentData } from "../../lib/BoardManager";
 import { useParams } from "react-router";
 import { useDispatch } from "react-redux";
 import { setMode } from "../../features/board";
@@ -81,7 +81,7 @@ export default function Drawer(props: IDrawerProps){
             const parsed = JSON.parse(msg)
             switch(Object.keys(parsed)[0]){
                 case 'PushData':{
-                    //handlePush(editManager, parsed.PushData.data)
+                    handlePush(editManager, parsed.PushData.data)
                     break
                 }
                 case 'PushSegmentData':{
@@ -91,7 +91,9 @@ export default function Drawer(props: IDrawerProps){
                     if (segment.action_type === 'End') handlePushEnd(canvas, segment.data)
                 }
             }
-        }        
+        }    
+        // handle errors
+        boardManager.handlers.onError = () => setRoomExists(false)     
         // listen for board events
         const undoSub = boardEvents.addListener('undo', () => {
             Selection.destroy(canvas)
@@ -148,7 +150,7 @@ export default function Drawer(props: IDrawerProps){
             // set local mode
             dispatch(setMode('local'))
             // disconnect
-            if (boardManager.status.connected) boardManager.disconnect()
+            boardManager.disconnect()
         }
     }, [mode])
 

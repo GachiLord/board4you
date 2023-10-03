@@ -107,18 +107,17 @@ export default class BoardManager{
     }
 
     disconnect(){
-        if (this.rws === null) throw new Error('cannot disconnect without a connection')
-        // remove listeners
-        this.rws.removeEventListener('open', this.#openHandler)
-        this.rws.removeEventListener('close', this.#closeHandler)
-        this.rws.removeEventListener('error', this.#errorHandler)
-        this.rws.removeEventListener('message', this.#messageHandler)
         // update status
         this.status = {
             connected: false,
             roomId: null
         }
-        console.log(1)
+        if (this.rws == null) return
+        // remove listeners
+        this.rws.removeEventListener('open', this.#openHandler)
+        this.rws.removeEventListener('close', this.#closeHandler)
+        this.rws.removeEventListener('error', this.#errorHandler)
+        this.rws.removeEventListener('message', this.#messageHandler)
         // close connection
         this.rws.close()
     }
