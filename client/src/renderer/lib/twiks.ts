@@ -3,7 +3,7 @@ import EditManager from "./EditManager"
 import Konva from "konva";
 import { ICoor } from "../base/typing/ICoor";
 import { KonvaEventObject } from "konva/lib/Node";
-import BoardManager from "./BoardManager";
+import BoardManager from "./BoardManager/BoardManager";
 
 
 
@@ -51,7 +51,7 @@ export function whenDraw(event: KonvaEventObject<MouseEvent>, boardManager: Boar
         pos: stage.getRelativePointerPosition(), 
         canvas: stage.children[0], 
         temporary: stage.children[1], 
-        editManager: new EditManager(stage.children[0]),
+        editManager: new EditManager(stage.children[0], boardManager),
         boardManager: boardManager
     })
 }

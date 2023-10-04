@@ -5,6 +5,7 @@ import { setSelection } from "../../../../features/select";
 import Konva from "konva";
 import IShape from "../../../../base/typing/IShape";
 import { run } from "../../../../lib/twiks";
+import { v4 } from "uuid";
 
 
 
@@ -46,6 +47,7 @@ async function changeHandler(transformer: Konva.Transformer){
 
         // add changes in history
         store.dispatch(addCurrent({
+            id: v4(),
             type: 'modify',
             initial: initial,
             current: current

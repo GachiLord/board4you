@@ -13,8 +13,8 @@ enum BoardMessage{
     Join { public_id: String },
     Quit { public_id: String },
     // implement UpdateAction { private_key: String, action_id: String,  },
-    Undo { private_id: String, action_id: String },
-    Redo { private_id: String, action_id: String },
+    UndoRedo { private_id: String, public_id: String, action_type: String, action_id: String },
+    Empty { private_id: String, public_id: String, action_type: String },
     Push { public_id: String, private_id: String, data: Vec<String> },
     PushSegment { public_id: String, private_id: String, action_type: String, data: String },
     // change Pull { current_len: usize, undone_len: usize }, 
@@ -22,7 +22,9 @@ enum BoardMessage{
     Info { status: String, action: String, payload: String },
     // data msgs
     PushData{ action: String, data: Vec<String> },
-    PushSegmentData{ action_type: String, data: String }
+    PushSegmentData{ action_type: String, data: String },
+    UndoRedoData { action_type: String, action_id: String },
+    EmptyData { action_type: String },
 }
 
 pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: &Rooms) {
@@ -106,7 +108,7 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                     if r.private_id != private_id{
                         return
                     }
-                    // farm PushSegment msg to all room users except the sender
+                    // form PushSegment msg
                     let response = BoardMessage::PushSegmentData { action_type: (action_type), data: (data) };
                     let response = serde_json::to_string(&response).unwrap();
                     // send
@@ -115,6 +117,48 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 None => {
                     let _ = client.send(Message::text(
                         json!({"status": "bad", "action":"PushSegment", "payload": "no such room"}).to_string()
+                    ));
+                }
+            }
+        },
+
+        BoardMessage::UndoRedo { private_id, public_id, action_type, action_id } => {
+            match rooms.get_mut(&public_id){
+                Some(r) => {
+                    // skip if private_key is not valid
+                    if r.private_id != private_id{
+                        return
+                    }
+                    // form UndoRedo msg 
+                    let response = BoardMessage::UndoRedoData { action_type: (action_type), action_id: (action_id) };
+                    let response = serde_json::to_string(&response).unwrap();
+                    // send
+                    send_all_except_sender(clients, r, user_id, response);
+                },
+                None => {
+                    let _ = client.send(Message::text(
+                        json!({"status": "bad", "action":"UndoRedo", "payload": "no such room"}).to_string()
+                    ));
+                }
+            }
+        },
+
+        BoardMessage::Empty { private_id, public_id, action_type } => {
+            match rooms.get_mut(&public_id){
+                Some(r) => {
+                    // skip if private_key is not valid
+                    if r.private_id != private_id{
+                        return
+                    }
+                    // form EmptyData msg 
+                    let response = BoardMessage::EmptyData { action_type: (action_type) };
+                    let response = serde_json::to_string(&response).unwrap();
+                    // send
+                    send_all_except_sender(clients, r, user_id, response);
+                },
+                None => {
+                    let _ = client.send(Message::text(
+                        json!({"status": "bad", "action":"UndoRedo", "payload": "no such room"}).to_string()
                     ));
                 }
             }

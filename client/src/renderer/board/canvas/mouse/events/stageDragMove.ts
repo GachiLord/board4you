@@ -2,7 +2,7 @@ import renderVisible from "../../image/renderVisible";
 import { whenDraw } from "../../../../lib/twiks";
 import { KonvaEventObject } from "konva/lib/Node";
 import heightChange from "../func/heightChange";
-import BoardManager from "../../../../lib/BoardManager";
+import BoardManager from "../../../../lib/BoardManager/BoardManager";
 
 
 export default function (e: KonvaEventObject<DragEvent>, boardManager: BoardManager){

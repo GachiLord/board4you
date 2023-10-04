@@ -2,6 +2,7 @@ import Konva from "konva"
 import getTestCase from "./getTestCase"
 import CanvasUtils from "../../../../../src/renderer/lib/CanvasUtils"
 import { Edit } from "../../../../../src/renderer/lib/EditManager"
+import { v4 as uuid } from 'uuid'
 
 test('cancelEdit should return shape when type is "remove"', () => {
     const testCase = getTestCase(2)
@@ -10,6 +11,7 @@ test('cancelEdit should return shape when type is "remove"', () => {
     if ( !(shapeToRemove instanceof Konva.Shape) ) throw new Error()
 
     const edit: Edit = {
+        id: uuid(),
         type: 'remove',
         shapes: [CanvasUtils.toShape(shapeToRemove)]
     }

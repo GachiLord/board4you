@@ -13,8 +13,9 @@ import { Ellipse } from "konva/lib/shapes/Ellipse";
 import { IRect } from "konva/lib/types";
 import { Arrow } from "konva/lib/shapes/Arrow";
 import { setCursor } from "../func/cursor";
-import BoardManager from "../../../../lib/BoardManager";
+import BoardManager from "../../../../lib/BoardManager/BoardManager";
 import { Edit } from "../../../../lib/EditManager";
+import { v4 } from "uuid";
 
 
 export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardManager, props: IDrawerProps){
@@ -58,7 +59,7 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
             // cache the line to improve perfomance
             lastLine.cache()
             // add line to history
-            const edit: Edit = {type: 'add', shape: CanvasUtils.toShape(lastLine)}
+            const edit: Edit = {id: lastLine.attrs.shapeId, type: 'add', shape: CanvasUtils.toShape(lastLine)}
             store.dispatch(addCurrent(edit))
             // send PushSegmentEnd msg
             share(drawingShapeId)
@@ -68,7 +69,7 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
             // validate lastLine
             if (!(lastShape instanceof Rect || lastShape instanceof Ellipse)) throw new TypeError('last created element must be an Ellipse or Rect')
             // save
-            const edit: Edit = {type: 'add', shape: CanvasUtils.toShape(lastShape)}
+            const edit: Edit = {id: lastShape.attrs.shapeId, type: 'add', shape: CanvasUtils.toShape(lastShape)}
             store.dispatch(addCurrent(edit))
             // send PushSegmentEnd msg
             share(drawingShapeId)

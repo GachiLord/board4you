@@ -6,7 +6,7 @@ import { Line } from "konva/lib/shapes/Line";
 import { Rect } from "konva/lib/shapes/Rect";
 import { Ellipse } from "konva/lib/shapes/Ellipse";
 import { Arrow } from "konva/lib/shapes/Arrow";
-import BoardManager from "../../../../lib/BoardManager";
+import BoardManager from "../../../../lib/BoardManager/BoardManager";
 import CanvasUtils from "../../../../lib/CanvasUtils";
 import { ShareData } from "../../share/ShareData";
 

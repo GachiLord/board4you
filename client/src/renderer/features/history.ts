@@ -33,14 +33,18 @@ export const historySlice = createSlice({
       state.current = []
       state.undone = []  
     },
-    undo: state => {
-      const last = state.current.at(-1)
-      state.current.pop()
+    undo: (state, action?: PayloadAction<string>) => {
+      const lastIndex: number = action.payload ? state.current.findLastIndex( e => e.id === action.payload ) : state.current.length - 1
+      const last = state.current[lastIndex]
+      if (!last) return
+      state.current.splice(lastIndex, 1)
       state.undone.push(last)
     },
-    redo: state => {
-      const last = state.undone.at(-1)
-      state.undone.pop()
+    redo: (state, action?: PayloadAction<string>) => {
+      const lastIndex: number = action.payload ? state.undone.findLastIndex( e => e.id === action.payload ) : state.undone.length - 1
+      const last = state.undone[lastIndex]
+      if (!last) return
+      state.undone.splice(lastIndex, 1)
       state.current.push(last)
     }
   }

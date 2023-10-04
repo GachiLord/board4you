@@ -16,14 +16,16 @@ import insertImage from '../image/insertImage';
 import openFile from './openFile';
 import Konva from 'konva';
 import { Edit } from '../../../lib/EditManager';
+import { v4 } from 'uuid';
+import BoardManager from '../../../lib/BoardManager/BoardManager';
 
 
 
-export default async function(stage: Konva.Stage, o: string, data: electronData|ClipboardEvent){
+export default async function(stage: Konva.Stage, boardManger: BoardManager, o: string, data: electronData|ClipboardEvent){
     console.log(o)
     const canvas = stage.children[0]
     const temporaryLayer = stage.children[1]
-    const editManager = new EditManager(canvas)
+    const editManager = new EditManager(canvas, boardManger)
 
     if (o === 'newFile'){
         run( api => {
@@ -86,6 +88,7 @@ export default async function(stage: Konva.Stage, o: string, data: electronData|
         const selection = store.getState().select.selection
         if (selection.length !== 0){
             const edit: Edit = {
+                id: v4(),
                 type: 'remove',
                 shapes: selection
             }

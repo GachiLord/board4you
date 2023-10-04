@@ -8,6 +8,7 @@ import LineFactory from "../../../../src/renderer/lib/NodeFactories/LineFactory"
 import store from "../../../../src/renderer/store/store";
 import { setSelection } from "../../../../src/renderer/features/select";
 import CanvasUtils from "../../../../src/renderer/lib/CanvasUtils";
+import BoardManager from "../../../../src/renderer/lib/BoardManager/BoardManager";
 
 
 function getCase(count = 5){
@@ -21,6 +22,7 @@ function getCase(count = 5){
 
     return {
         stage: stage,
+        boardManager: new BoardManager(),
         canvas: canvas,
         temporaryLayer: temporaryLayer
     }
@@ -29,7 +31,7 @@ function getCase(count = 5){
 test('newFile should clear canvas', () => {
     const testCase = getCase()
 
-    runCommand(testCase.stage, 'newFile', undefined)
+    runCommand(testCase.stage, testCase.boardManager, 'newFile', undefined)
 
     expect(testCase.canvas.children).toHaveLength(0)
 })
@@ -38,7 +40,7 @@ test('newFile should change stage position to {x:0,y:0}', () => {
     const testCase = getCase()
     testCase.stage.position({x: 1, y: 2})
 
-    runCommand(testCase.stage, 'newFile', undefined)
+    runCommand(testCase.stage, testCase.boardManager, 'newFile', undefined)
 
     expect(testCase.stage.position()).toStrictEqual({x: 0, y:0})
 })
@@ -53,7 +55,7 @@ test('newFile should change stagePos to {x:0,y:0}', (done) => {
         done()
     } )
 
-    runCommand(testCase.stage, 'newFile', undefined)
+    runCommand(testCase.stage, testCase.boardManager, 'newFile', undefined)
 })
 
 test('selectSize should emit event', (done) => {
@@ -61,7 +63,7 @@ test('selectSize should emit event', (done) => {
 
     boardEvents.once('selectSize', () => done())
 
-    runCommand(stage, 'selectSize', undefined)
+    runCommand(stage, new BoardManager(), 'selectSize', undefined)
 })
 
 test('undo should destroy Selection', () => {
@@ -69,7 +71,7 @@ test('undo should destroy Selection', () => {
     const trf = new Konva.Transformer()
     testCase.canvas.add(trf)
 
-    runCommand(testCase.stage, 'undo', undefined)
+    runCommand(testCase.stage, testCase.boardManager, 'undo', undefined)
 
     expect(testCase.canvas.children).not.toContain(trf)
 })
@@ -79,7 +81,7 @@ test('redo should destroy Selection', () => {
     const trf = new Konva.Transformer()
     testCase.canvas.add(trf)
 
-    runCommand(testCase.stage, 'redo', undefined)
+    runCommand(testCase.stage, testCase.boardManager, 'redo', undefined)
 
     expect(testCase.canvas.children).not.toContain(trf)
 })
@@ -92,7 +94,7 @@ test('del should destroy Selection children', () => {
     trf.nodes(testCase.canvas.children)
     testCase.canvas.add(trf)
 
-    runCommand(testCase.stage, 'del', undefined)
+    runCommand(testCase.stage, testCase.boardManager, 'del', undefined)
 
     expect(testCase.canvas.children).toHaveLength(0)
 })

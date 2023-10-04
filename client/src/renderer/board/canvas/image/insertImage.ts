@@ -52,6 +52,7 @@ export default async function(insertProps: IInsertProps){
         connected: []
     }
     const edit: Edit = {
+        id: uuid4(),
         type: 'add',
         shape: shape
     }
