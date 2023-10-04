@@ -15,7 +15,6 @@ import { Arrow } from "konva/lib/shapes/Arrow";
 import { setCursor } from "../func/cursor";
 import BoardManager from "../../../../lib/BoardManager/BoardManager";
 import { Edit } from "../../../../lib/EditManager";
-import { v4 } from "uuid";
 
 
 export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardManager, props: IDrawerProps){
@@ -108,7 +107,7 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
             } )
             // create transformer for them
             if (selected.length !== 0){
-                Selection.create(selected)
+                Selection.create(selected, boardManager)
             }
             box.destroy()
         }

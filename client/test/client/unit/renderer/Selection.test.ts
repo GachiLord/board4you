@@ -1,6 +1,7 @@
 import Konva from "konva";
 import LineFactory from "../../../../src/renderer/lib/NodeFactories/LineFactory";
 import Selection from "../../../../src/renderer/lib/Selection";
+import BoardManager from "../../../../src/renderer/lib/BoardManager/BoardManager";
 
 
 
@@ -18,7 +19,7 @@ function getTestCase(amount = 5){
 
 test('should throw an error if there is no shapes', () => {
     expect( () => { 
-        Selection.create([])
+        Selection.create([], new BoardManager())
     } )
     .toThrow()
 })
@@ -27,7 +28,7 @@ test('should not throw error if there are shapes', () => {
     expect( () => { 
         const shapes = getTestCase().shapes
 
-        Selection.create(shapes)
+        Selection.create(shapes, new BoardManager())
     } )
     .not.toThrow()
 })
@@ -35,7 +36,7 @@ test('should not throw error if there are shapes', () => {
 test('added shapes should be draggable', () => {
     const testCase = getTestCase(5)
 
-    Selection.create(testCase.shapes)
+    Selection.create(testCase.shapes, new BoardManager())
 
     const added = testCase.layer.children.filter( s => s.attrs.draggable === true )
     expect(added).toHaveLength(5)
@@ -44,7 +45,7 @@ test('added shapes should be draggable', () => {
 test('layer should have transformer after creation', () => {
     const testCase = getTestCase(5)
 
-    Selection.create(testCase.shapes)
+    Selection.create(testCase.shapes, new BoardManager())
 
     const transformers = testCase.layer.children.filter( s => s instanceof Konva.Transformer )
     expect(transformers).toHaveLength(1)
@@ -53,7 +54,7 @@ test('layer should have transformer after creation', () => {
 test('removed shapes should not be draggable', () => {
     const testCase = getTestCase(5)
 
-    Selection.create(testCase.shapes)
+    Selection.create(testCase.shapes, new BoardManager())
     Selection.destroy(testCase.layer)
 
     const added = testCase.layer.children.filter( s => s.attrs.draggable === false )
@@ -63,7 +64,7 @@ test('removed shapes should not be draggable', () => {
 test('layer should not have transformer after destroy', () => {
     const testCase = getTestCase(5)
 
-    Selection.create(testCase.shapes)
+    Selection.create(testCase.shapes, new BoardManager())
     Selection.destroy(testCase.layer)
 
     const transformers = testCase.layer.children.filter( s => s instanceof Konva.Transformer )

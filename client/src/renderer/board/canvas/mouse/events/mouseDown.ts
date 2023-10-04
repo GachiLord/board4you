@@ -25,12 +25,13 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
     const lineType = props.lineType
     const isDraggable = state.stage.isDraggable
     const isShared = state.board.mode === 'shared'
-    const private_id = state.rooms[boardManager.status.roomId]
+    const private_id = state.rooms[boardManager.status.roomId ? boardManager.status.roomId : "none"]
 
 
     whenDraw( e, boardManager, ({stage, pos, canvas, temporary}) => {
+        console.log(e.target)
         const share = (edit: IShape) => {
-            if (isShared)
+            if (isShared && private_id && boardManager.status.roomId)
             boardManager.send('PushSegment', {
                 public_id: boardManager.status.roomId,
                 private_id: private_id,
@@ -42,7 +43,7 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
         const undone = store.getState().history.undone.at(-1)
         // empty undone if it exists and tool is not select
         if (undone && tool !== 'select' && tool !== 'move') {
-            if (isShared) boardManager.send('Empty', {
+            if (isShared && private_id && boardManager.status.roomId) boardManager.send('Empty', {
                 public_id: boardManager.status.roomId,
                 private_id: private_id,
                 action_type: 'undone'
@@ -51,7 +52,7 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
         }
         Selection.destroy(canvas)
         // create shape
-        let shape: IShape = null
+        let shape: IShape|null = null
         
         // create shape considering the tool
         if (itemIn(tool, 'pen', 'eraser', 'line', 'arrow')){
@@ -140,7 +141,7 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
                     if (e.target.attrs.connected.has(s.attrs.shapeId) && s instanceof Konva.Shape) connected.push(s)
                 })
                 // create transformer for them
-                if (e.target instanceof Konva.Shape) Selection.create([e.target, ...connected])
+                if (e.target instanceof Konva.Shape) Selection.create([e.target, ...connected], boardManager)
             }
         }
     } )

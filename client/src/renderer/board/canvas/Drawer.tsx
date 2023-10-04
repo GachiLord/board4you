@@ -86,7 +86,7 @@ export default function Drawer(props: IDrawerProps){
 
             switch(key){
                 case 'PushData':{
-                    handlePush(editManager, data)
+                    handlePush(editManager, data.data)
                     break
                 }
                 case 'PushSegmentData':{
