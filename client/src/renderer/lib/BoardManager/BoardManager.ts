@@ -1,62 +1,9 @@
 import ReconnectingWebSocket, { Event, ErrorEvent, CloseEvent } from 'reconnecting-websocket'
-import { IHistoryState } from '../features/history'
-import { doRequest } from './twiks'
+import { IHistoryState } from '../../features/history'
+import { doRequest } from '../twiks'
+import { Handlers, BoardStatus, BoardOptions, Info, TimeOutError, NoSushRoomError, RoomInfo, MessageType, BoardMessage } from './typing'
 
-// BoardManager
-interface Handlers{
-    onMessage?: (msg: string) => void,
-    onError?: (e: ErrorEvent) => void,
-    onClose?: (e: CloseEvent) => void,
-    onOpen?: (e: Event) => void
-}
 
-interface BoardOptions{
-    url?: string,
-    handlers?: Handlers
-}
-
-interface BoardStatus{
-    connected: boolean,
-    roomId: string|null
-}
-
-// board message schemes
-export interface Join { public_id: string }
-export interface Quit { public_id: string }
-// implement UpdateAction: { private_key: string, action_id: string,  }
-export interface Undo { public_id: string, private_id: string, action_id: string }
-export interface Redo { public_id: string, private_id: string, action_id: string }
-export interface Push { public_id: string, private_id: string, data: Array<string> }
-export interface PushSegment { 
-    public_id: string, 
-    private_id: string, 
-    action_type: 'Start'|'Update'|'End', 
-    data: unknown
-}
-export interface Pull { current_len: number, undone_len: number }
-export interface Info { status: string, payload: string }
-export interface PushData{ action: string, data: string[] }
-export interface PushSegmentData{ action_type: string, data: any }
-// board message
-export type BoardMessage = Join | Quit | Undo | Redo | Push | PushSegment | Pull | Info | PushData
-export type MessageType = 'Join' | 'Quit' | 'Undo' | 'Redo' | 'Push' | 'PushSegment' | 'Pull' | 'Info'
-// errors
-export class TimeOutError extends Error{
-    constructor(msg = "connection timeout after", durationMs: number, options?: ErrorOptions){
-        super(msg, options)
-        this.message = `${msg} ${durationMs} ms waiting`
-    }
-}
-export class NoSushRoomError extends Error{
-    constructor(msg = "no such room with id", roomId: string, options?: ErrorOptions){
-        super(msg, options)
-        this.message = `${msg} ${roomId}`
-    }
-}
-// api types
-export interface RoomInfo{ public_id: string, private_id: string }
-
-// board manager
 export default class BoardManager{
     url: string
     rws: ReconnectingWebSocket|null

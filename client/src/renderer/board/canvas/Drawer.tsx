@@ -14,7 +14,7 @@ import store, { RootState } from "../../store/store";
 import Konva from "konva";
 import { ICoor } from "../../base/typing/ICoor";
 import sizeChange from "./mouse/func/sizeChange";
-import BoardManager, { PushSegmentData } from "../../lib/BoardManager";
+import BoardManager from "../../lib/BoardManager/BoardManager";
 import { useParams } from "react-router";
 import { useDispatch } from "react-redux";
 import { setMode } from "../../features/board";
@@ -27,6 +27,8 @@ import { Link } from "react-router-dom";
 import handlePushStart from "./share/handlePushStart";
 import handlePushEnd from "./share/handlePushEnd";
 import handlePushUpdate from "./share/handlePushUpdate";
+import { PushSegmentData } from "../../lib/BoardManager/typing";
+import { emptyCurrent, emptyHistory, emptyUndone } from "../../features/history";
 
 
 export interface IDrawerProps{
@@ -52,7 +54,7 @@ export default function Drawer(props: IDrawerProps){
     useEffect(() => {
         // create canvas and editManager
         const canvas: Konva.Layer = stage.current.children[0]
-        const editManager = new EditManager(canvas)
+        const editManager = new EditManager(canvas, boardManager)
         // create room if mode has changed and we are not going to edit existing one 
         if (mode === 'shared' && !roomId){
             // implement loading logic!
@@ -79,16 +81,33 @@ export default function Drawer(props: IDrawerProps){
         // listen for Push msgs
         boardManager.handlers.onMessage = (msg) => {
             const parsed = JSON.parse(msg)
-            switch(Object.keys(parsed)[0]){
+            const key = Object.keys(parsed)[0]
+            const data = parsed[key]
+
+            switch(key){
                 case 'PushData':{
-                    handlePush(editManager, parsed.PushData.data)
+                    handlePush(editManager, data)
                     break
                 }
                 case 'PushSegmentData':{
-                    const segment: PushSegmentData = parsed.PushSegmentData
-                    if (segment.action_type === 'Start') handlePushStart(canvas, JSON.parse(segment.data))
-                    if (segment.action_type === 'Update') handlePushUpdate(canvas, JSON.parse(segment.data))
-                    if (segment.action_type === 'End') handlePushEnd(canvas, segment.data)
+                    const segment: PushSegmentData = data
+                    const t = segment.action_type
+                    if (t === 'Start') handlePushStart(canvas, JSON.parse(segment.data))
+                    if (t === 'Update') handlePushUpdate(canvas, JSON.parse(segment.data))
+                    if (t === 'End') handlePushEnd(canvas, segment.data)
+                    break
+                }
+                case 'UndoRedoData':{
+                    if (data.action_type === 'Undo') editManager.undo(data.action_id)
+                    else editManager.redo(data.action_id)
+                    break
+                }
+                case 'EmptyData':{
+                    const t = data.action_type 
+                    if (t === 'undone') store.dispatch(emptyUndone())
+                    if (t === 'current') store.dispatch(emptyCurrent())
+                    if (t === 'history') store.dispatch(emptyHistory())
+                    break
                 }
             }
         }    
@@ -122,22 +141,22 @@ export default function Drawer(props: IDrawerProps){
         // web event listeners
         // paste
         const handlePaste = (e: ClipboardEvent) => {
-            runCommand(stage.current, 'paste', e)
+            runCommand(stage.current, boardManager, 'paste', e)
         }
         window.addEventListener('paste', handlePaste)
         // copy
         const handleCopy = (e: ClipboardEvent) => {
-            runCommand(stage.current, 'copy', e)
+            runCommand(stage.current, boardManager, 'copy', e)
         }
         window.addEventListener('copy', handleCopy)
         // cut
         const handleCut = (e: ClipboardEvent) => {
-            runCommand(stage.current, 'cut', e)
+            runCommand(stage.current, boardManager, 'cut', e)
         }
         window.addEventListener('cut', handleCut)
         // listen for native events
         run( electron => {
-            electron.onMenuButtonClick( (_, o, d) => {runCommand(stage.current, o, d)} )
+            electron.onMenuButtonClick( (_, o, d) => {runCommand(stage.current, boardManager, o, d)} )
         })
         // remove all listeners on unmount
         return () => {

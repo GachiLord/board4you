@@ -3,6 +3,7 @@ import { emptySelection } from "../../../features/select"
 import { addCurrent } from "../../../features/history"
 import CanvasUtils from "../../../lib/CanvasUtils"
 import Konva from "konva"
+import { v4 as uuid } from 'uuid'
 
 
 export default async function(transformer: Konva.Transformer, destroySelection = false){
@@ -33,6 +34,7 @@ export default async function(transformer: Konva.Transformer, destroySelection =
     group.remove()
     if (destroySelection){
         store.dispatch(addCurrent({
+            id: uuid(),
             type: 'remove',
             shapes: children.map( c => {
                 if (c instanceof Konva.Shape){

@@ -4,21 +4,25 @@ import { emptyUndone, undo, redo } from "../features/history";
 import Konva from "konva";
 import IShape from "../base/typing/IShape";
 import { itemIn } from "./twiks";
+import BoardManager from "./BoardManager/BoardManager";
 
 
 export interface IAdd{
+    id: string
     type: 'add' 
     shape: IShape
 }
 
 export interface IRemove{
-    type: 'remove',
+    id: string
+    type: 'remove'
     shapes: IShape[]
 }
 
 export interface IModify{
-    type: 'modify',
-    current: IShape[],
+    id: string
+    type: 'modify'
+    current: IShape[]
     initial: IShape[]
 }
 
@@ -26,10 +30,12 @@ export type Edit = IAdd | IRemove | IModify
 
 
 export default class EditManager{
-    layer:Konva.Layer
+    layer: Konva.Layer
+    boardManager: BoardManager
 
-    constructor(layer: Konva.Layer){
+    constructor(layer: Konva.Layer, boardManager: BoardManager){
         this.layer = layer
+        this.boardManager = boardManager
     }
 
     static getEditFromShape(shape: IShape){
@@ -43,24 +49,46 @@ export default class EditManager{
         return EditManager.getEditFromShape(CanvasUtils.toShape(obj))
     }
 
+    #share(action_type: 'Undo'|'Redo', action_id: string){
+        if (!this.boardManager.status.connected) return
+
+        const public_id = this.boardManager.status.roomId
+        const private_id = store.getState().rooms[public_id]
+        this.boardManager.send(
+            'UndoRedo',
+            { 
+                public_id, 
+                private_id,
+                action_type,
+                action_id
+            }
+        )
+    }
+
     rebase(){
         store.dispatch(emptyUndone())
     }
 
-    undo(){
-        const lastEdit = store.getState().history.current.at(-1)
+    undo(edit_id?: string){
+        const current = store.getState().history.current
+        const lastEdit = edit_id ? current.findLast(v => v.id === edit_id) : current.at(-1)
         if (!lastEdit) return
 
         this.cancelEdit(lastEdit)
-        store.dispatch(undo())
+        store.dispatch(undo(edit_id))
+        // send msg
+        this.#share('Undo', lastEdit.id)
     }
 
-    redo(){
-        const lastEdit = store.getState().history.undone.at(-1)
+    redo(edit_id?: string){
+        const undone = store.getState().history.undone
+        const lastEdit = edit_id ? undone.findLast(v => v.id === edit_id) : undone.at(-1)
         if (!lastEdit) return
 
         this.applyEdit(lastEdit)
         store.dispatch(redo())
+        // send msg
+        this.#share('Redo', lastEdit.id)
     }
 
     applyEdit(edit: Edit){

@@ -9,9 +9,8 @@ export default function handlePushEnd(canvas: Konva.Layer, shapeId: string){
     if ( !(shape instanceof Konva.Shape) ) throw new TypeError('shape must be Konva.Shape')
     // save edit
     store.dispatch(addCurrent(
-        {type: 'add', shape: CanvasUtils.toShape(shape)}
+        {id: shape.attrs.shapeId, type: 'add', shape: CanvasUtils.toShape(shape)}
     ))
     // cache shape if shape is complex
-    console.log(shape.attrs)
     if (itemIn(shape.attrs.tool, 'pen', 'eraser', 'arrow', 'line')) shape.cache()
 }

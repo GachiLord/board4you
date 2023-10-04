@@ -10,7 +10,7 @@ import Selection from "../../../../lib/Selection";
 import IShape from "../../../../base/typing/IShape";
 import { KonvaEventObject } from "konva/lib/Node";
 import { IDrawerProps } from "../../Drawer";
-import BoardManager from "../../../../lib/BoardManager";
+import BoardManager from "../../../../lib/BoardManager/BoardManager";
 
 
 
@@ -41,7 +41,14 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
 
         const undone = store.getState().history.undone.at(-1)
         // empty undone if it exists and tool is not select
-        if (undone && tool !== 'select' && tool !== 'move') store.dispatch(emptyUndone())
+        if (undone && tool !== 'select' && tool !== 'move') {
+            if (isShared) boardManager.send('Empty', {
+                public_id: boardManager.status.roomId,
+                private_id: private_id,
+                action_type: 'undone'
+            })
+            store.dispatch(emptyUndone())
+        }
         Selection.destroy(canvas)
         // create shape
         let shape: IShape = null
