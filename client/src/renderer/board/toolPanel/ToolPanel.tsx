@@ -10,7 +10,7 @@ import ShareBar from "../ShareBar";
 import Settings from "../settings/Settings";
 import Hr from "../../base/components/Hr";
 import { useParams } from "react-router";
-import IsOwned from "../../lib/isAuthor";
+import IsOwned from "../canvas/share/isAuthor";
 
 
 export default function ToolPanel(){

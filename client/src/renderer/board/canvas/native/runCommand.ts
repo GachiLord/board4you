@@ -18,6 +18,8 @@ import Konva from 'konva';
 import { Edit } from '../../../lib/EditManager';
 import { v4 } from 'uuid';
 import BoardManager from '../../../lib/BoardManager/BoardManager';
+import getPrivateId from '../share/getPrivateId';
+import { convertToStrings } from '../share/convert';
 
 
 
@@ -26,6 +28,8 @@ export default async function(stage: Konva.Stage, boardManger: BoardManager, o: 
     const canvas = stage.children[0]
     const temporaryLayer = stage.children[1]
     const editManager = new EditManager(canvas, boardManger)
+    const public_id = boardManger.status.roomId
+    const private_id = getPrivateId(public_id)
 
     if (o === 'newFile'){
         run( api => {
@@ -100,6 +104,12 @@ export default async function(stage: Konva.Stage, boardManger: BoardManager, o: 
             run( api => {
                 api.handleFileChange()
             } )
+            // send Edit
+            boardManger.send('Push', {
+                public_id,
+                private_id,
+                data: convertToStrings([edit])
+            })
         }
     }
     if (o === 'paste' && data instanceof ClipboardEvent){
