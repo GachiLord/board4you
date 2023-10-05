@@ -29,6 +29,7 @@ import handlePushEnd from "./share/handlePushEnd";
 import handlePushUpdate from "./share/handlePushUpdate";
 import { PushSegmentData } from "../../lib/BoardManager/typing";
 import { emptyCurrent, emptyHistory, emptyUndone } from "../../features/history";
+import keyPressToCommand from "./native/keyPressToCommand";
 
 
 export interface IDrawerProps{
@@ -86,7 +87,7 @@ export default function Drawer(props: IDrawerProps){
 
             switch(key){
                 case 'PushData':{
-                    handlePush(editManager, data)
+                    handlePush(editManager, data.data)
                     break
                 }
                 case 'PushSegmentData':{
@@ -154,9 +155,15 @@ export default function Drawer(props: IDrawerProps){
             runCommand(stage.current, boardManager, 'cut', e)
         }
         window.addEventListener('cut', handleCut)
-        // listen for native events
+        // listen for keyboard and main process events
         run( electron => {
             electron.onMenuButtonClick( (_, o, d) => {runCommand(stage.current, boardManager, o, d)} )
+        },
+        () => {
+            window.addEventListener('keypress', (e) => {
+                const command = keyPressToCommand(e)
+                command && runCommand(stage.current, boardManager, command)
+            })
         })
         // remove all listeners on unmount
         return () => {

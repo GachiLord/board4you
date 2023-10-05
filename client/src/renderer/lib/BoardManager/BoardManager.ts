@@ -14,7 +14,7 @@ export default class BoardManager{
     }
 
     constructor(options?: BoardOptions){
-        this.url = options?.url ?? `ws://${location.host}/board`
+        this.url = options?.url ?? `${location.protocol === 'https:' ? 'wss': 'ws'}://${location.host}/board`
     }
 
     #openHandler = (e: Event) => {

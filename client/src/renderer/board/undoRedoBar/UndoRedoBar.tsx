@@ -3,7 +3,7 @@ import { useSpring, animated, SpringRef } from '@react-spring/web'
 import { Undo, Redo } from './Buttons'
 import primaryColor from '../../base/style/primaryColor'
 import { useParams } from 'react-router'
-import isAuthor from '../../lib/isAuthor'
+import isAuthor from '../canvas/share/isAuthor'
 
 
 export default function UndoRedoBar(){    

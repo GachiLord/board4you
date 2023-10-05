@@ -6,20 +6,39 @@ import Konva from "konva";
 import IShape from "../../../../base/typing/IShape";
 import { run } from "../../../../lib/twiks";
 import { v4 } from "uuid";
+import { Edit } from "../../../../lib/EditManager";
+import BoardManager from "../../../../lib/BoardManager/BoardManager";
+import { convertToStrings } from "../../share/convert";
 
 
 
-export default function(transformer: Konva.Transformer){
+export default function(transformer: Konva.Transformer, boardManager: BoardManager){
     // empty undone
     if (store.getState().history.undone.length !== 0) store.dispatch(emptyUndone())
 
     transformer.on('dragstart transformstart', () => {
-        changeHandler(transformer)
+        changeHandler(transformer, boardManager)
     })
 }
 
 
-async function changeHandler(transformer: Konva.Transformer){
+async function changeHandler(transformer: Konva.Transformer, boardManager: BoardManager){
+    // boardmanager vars
+    const share = (edit: Edit) => {
+        const state = store.getState()
+        const shared = state.board.mode === 'shared'
+        const public_id = boardManager.status.roomId
+        const private_id: undefined|string = state.rooms[public_id]
+
+        if (shared){
+            boardManager.send('Push', {
+                public_id,
+                private_id,
+                data: convertToStrings([edit])
+            })
+        }
+    }
+    // transform
     const shapes = transformer.nodes()
     const initial: IShape[] = shapes.map( shape => {
         if (shape instanceof Konva.Shape){
@@ -46,12 +65,15 @@ async function changeHandler(transformer: Konva.Transformer){
         })
 
         // add changes in history
-        store.dispatch(addCurrent({
+        const edit: Edit = {
             id: v4(),
             type: 'modify',
             initial: initial,
             current: current
-        }))
+        }
+        store.dispatch(addCurrent(edit))
+        // send changes
+        share(edit)
         // hadnle file change
         run( api => {
             api.handleFileChange()

@@ -3,10 +3,11 @@ import store from "../store/store";
 import { setSelection, emptySelection } from "../features/select";
 import shapeChange from "../board/canvas/mouse/func/shapeChange";
 import CanvasUtils from "./CanvasUtils";
+import BoardManager from "./BoardManager/BoardManager";
 
 
 export default class Selection{
-    static create(shapes: Konva.Shape[]){
+    static create(shapes: Konva.Shape[], boardManager: BoardManager){
         if (shapes.length !== 0){
             const canvas = shapes[0].parent
             let transformable: boolean = null
@@ -23,7 +24,7 @@ export default class Selection{
             canvas.add(tr);
             tr.nodes(shapes)
             // add listener for transform and drag
-            shapeChange(tr)
+            shapeChange(tr, boardManager)
             // add selected to selection
             store.dispatch(setSelection(shapes.map( s => CanvasUtils.toShape(s) )))
         }
