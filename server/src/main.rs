@@ -34,7 +34,7 @@ async fn main() {
             ws.on_upgrade(move |socket| user_connected(socket, users, rooms))
         });
     // static paths
-    let public_path = &env::args().collect::<Vec<String>>()[1];
+    let public_path = &env::var("PUBLIC_PATH").expect("$PUBLIC_PATH must be provided");
     let index_path = Path::new(&public_path).join("index.html");
     // routing static files
     let default_route = warp::fs::file(index_path);
