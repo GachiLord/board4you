@@ -2,6 +2,8 @@ import React from 'react'
 import { useSpring, animated, SpringRef } from '@react-spring/web'
 import { Undo, Redo } from './Buttons'
 import primaryColor from '../../base/style/primaryColor'
+import { useParams } from 'react-router'
+import isAuthor from '../../lib/isAuthor'
 
 
 export default function UndoRedoBar(){    
@@ -13,6 +15,8 @@ export default function UndoRedoBar(){
         color: primaryColor,
         size: '2em'
     }
+    const { roomId } = useParams()
+    const isOwned = isAuthor(roomId)
     const AnimatedUndo = animated(Undo)
     const AnimatedRedo = animated(Redo)
     const [undoSpring, undoApi] = useSpring(() => ({from: animStart}))
@@ -32,10 +36,10 @@ export default function UndoRedoBar(){
     
     
 
-    return (
+    return isOwned ? (
         <div className='d-flex justify-content-center'>
             <AnimatedUndo style={undoSpring} onClick={ () => {anim(undoApi)} }/>
             <AnimatedRedo style={redoSpring} onClick={ () => {anim(redoApi)} }/>
         </div>
-    )
+    ) : <></>
 }
