@@ -21,7 +21,7 @@ import BoardManager from '../../../lib/BoardManager/BoardManager';
 
 
 
-export default async function(stage: Konva.Stage, boardManger: BoardManager, o: string, data: electronData|ClipboardEvent){
+export default async function(stage: Konva.Stage, boardManger: BoardManager, o: string, data?: electronData|ClipboardEvent){
     console.log(o)
     const canvas = stage.children[0]
     const temporaryLayer = stage.children[1]

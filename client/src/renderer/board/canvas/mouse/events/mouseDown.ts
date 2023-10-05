@@ -29,7 +29,6 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
 
 
     whenDraw( e, boardManager, ({stage, pos, canvas, temporary}) => {
-        console.log(e.target)
         const share = (edit: IShape) => {
             if (isShared && private_id && boardManager.status.roomId)
             boardManager.send('PushSegment', {
