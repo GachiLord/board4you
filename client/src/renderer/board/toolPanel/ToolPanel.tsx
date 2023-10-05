@@ -9,9 +9,13 @@ import store from "../../store/store";
 import ShareBar from "../ShareBar";
 import Settings from "../settings/Settings";
 import Hr from "../../base/components/Hr";
+import { useParams } from "react-router";
+import IsOwned from "../../lib/isAuthor";
 
 
 export default function ToolPanel(){
+    const { roomId } = useParams()
+    const isAuthor = IsOwned(roomId)
     useEffect( () => {
         new Persister(store, 'toolSettings')
     }, [] )
@@ -21,34 +25,40 @@ export default function ToolPanel(){
                 <ToolButton name="move">
                     <BsArrowsMove />
                 </ToolButton>
-                <ToolButton name="select">
-                    <BsCursor />
-                </ToolButton>
-                <ToolButton name="pen" customizable>
-                    <BsPen />
-                </ToolButton>
-                <ToolButton name="line" customizable>
-                    <AiOutlineLine />
-                </ToolButton>
-                <ToolButton name="arrow" customizable>
-                    <BsArrowRight />
-                </ToolButton>
-                <ToolButton name="rect" customizable>
-                    <IoSquareOutline />
-                </ToolButton>
-                <ToolButton name="ellipse" customizable>
-                    <RxCircle />
-                </ToolButton>
-                <ToolButton 
-                    name="eraser"
-                    customizable
-                    hideColorPicker
-                    hideLineTypePicker
-                >
-                    <BsEraser />
-                </ToolButton>
+                {
+                    isAuthor && (
+                    <>
+                    <ToolButton name="select">
+                        <BsCursor />
+                    </ToolButton>
+                    <ToolButton name="pen" customizable>
+                        <BsPen />
+                    </ToolButton>
+                    <ToolButton name="line" customizable>
+                        <AiOutlineLine />
+                    </ToolButton>
+                    <ToolButton name="arrow" customizable>
+                        <BsArrowRight />
+                    </ToolButton>
+                    <ToolButton name="rect" customizable>
+                        <IoSquareOutline />
+                    </ToolButton>
+                    <ToolButton name="ellipse" customizable>
+                        <RxCircle />
+                    </ToolButton>
+                    <ToolButton 
+                        name="eraser"
+                        customizable
+                        hideColorPicker
+                        hideLineTypePicker
+                    >
+                        <BsEraser />
+                    </ToolButton>
+                    </>
+                    )
+                }
                 <Hr />
-                <ShareBar />
+                {isAuthor && <ShareBar />}
                 <Settings />
             </div>
     )
