@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { mouseDown, mouseEnter, mouseMove, mouseUpLeave, stageDragBound, stageDragEnd, stageDragMove } from './mouse';
 import { useSelector } from "react-redux";
 import { Layer, Stage } from 'react-konva';
@@ -30,6 +30,7 @@ import handlePushUpdate from "./share/handlePushUpdate";
 import { PushSegmentData } from "../../lib/BoardManager/typing";
 import { emptyCurrent, emptyHistory, emptyUndone } from "../../features/history";
 import keyPressToCommand from "./native/keyPressToCommand";
+import BoardManagerContext from "../../base/constants/BoardManagerContext";
 
 
 export interface IDrawerProps{
@@ -38,13 +39,11 @@ export interface IDrawerProps{
     lineType: lineType,
     lineSize: number,
 }
-
-// create webSocket manager
-const boardManager = new BoardManager()
 // persist rooms state
 new Persister(store, 'rooms')
 
 export default function Drawer(props: IDrawerProps){
+    const boardManager = useContext<BoardManager>(BoardManagerContext);
     const dispatch = useDispatch()
     const stage = useRef<Konva.Stage | null>(null)
     const stageState = useSelector((state: RootState) => state.stage)
@@ -110,6 +109,11 @@ export default function Drawer(props: IDrawerProps){
                     if (t === 'history') store.dispatch(emptyHistory())
                     break
                 }
+                case 'SizeData':{
+                    const size = data.data
+                    boardEvents.emit('sizeHasChanged', JSON.parse(size))
+                    break
+                }
             }
         }    
         // handle errors
@@ -162,7 +166,7 @@ export default function Drawer(props: IDrawerProps){
         () => {
             window.addEventListener('keypress', (e) => {
                 const command = keyPressToCommand(e)
-                command && runCommand(stage.current, boardManager, command)
+                if(command) runCommand(stage.current, boardManager, command)
             })
         })
         // remove all listeners on unmount

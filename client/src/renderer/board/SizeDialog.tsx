@@ -21,7 +21,7 @@ export default function SizeDialog() {
     const handleClose = () => { 
         setShow(false)
         setCanvasSize(size)
-        boardEvents.emit('sizeHasChanged')
+        boardEvents.emit('sizeHasChanged', size)
       }
     const handleShow = () => setShow(true) 
 

@@ -6,6 +6,8 @@ import SizeDialog from "./SizeDialog";
 import PageBar from "./PageBar";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
+import BoardManagerContext from '../base/constants/BoardManagerContext'
+import BoardManager from "../lib/BoardManager/BoardManager";
 
 
 export default function Editor(){
@@ -18,7 +20,7 @@ export default function Editor(){
 
 
     return (
-        <>
+        <BoardManagerContext.Provider value={new BoardManager()}>
         <div className="d-flex">
             <div className="position-fixed h-100 d-flex flex-column justify-content-around m-4" style={panelStyle}>
                 <PageBar />
@@ -37,6 +39,6 @@ export default function Editor(){
             </div>
             <SizeDialog />
         </div>
-        </>
+        </BoardManagerContext.Provider>
     )    
 }
