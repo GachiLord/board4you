@@ -31,6 +31,7 @@ import { PushSegmentData } from "../../lib/BoardManager/typing";
 import { emptyCurrent, emptyHistory, emptyUndone } from "../../features/history";
 import keyPressToCommand from "./native/keyPressToCommand";
 import BoardManagerContext from "../../base/constants/BoardManagerContext";
+import setCanvasSize from "../../lib/setCanvasSize";
 
 
 export interface IDrawerProps{
@@ -58,15 +59,17 @@ export default function Drawer(props: IDrawerProps){
         // create room if mode has changed and we are not going to edit existing one 
         if (mode === 'shared' && !roomId){
             // implement loading logic!
-            const history = store.getState().history
-            BoardManager.createRoom({current: history.current, undone: history.undone}).then( roomInfo => {
+            const state = store.getState()
+            const history = {current: state.history.current, undone: state.history.undone}
+            const size = {height: state.stage.baseHeight, width: state.stage.width}
+            BoardManager.createRoom(history, size).then( roomInfo => {
                 // replace current location to prevent share button blocking
                 location.replace(`${location.origin}/edit/${roomInfo.public_id}`)
                 // save privateId to continue editing after reload
                 dispatch(setRoom({ publicId: roomInfo.public_id, privateId: roomInfo.private_id }))
             } )
         }
-        // update mode to run effect again
+        // update mode to run useEffect`s callback again
         if (roomId){
             dispatch(setMode('shared'))
         }
@@ -75,7 +78,10 @@ export default function Drawer(props: IDrawerProps){
             boardManager.connect().then( () => {
                 boardManager.joinRoom(roomId)
                     // alert if there is no such room 
-                    .catch(() => setRoomExists(false))
+                    .catch((e) => {
+                        console.error(e)
+                        setRoomExists(false)
+                    })
             } )
         }
         // listen for Push msgs
@@ -111,7 +117,8 @@ export default function Drawer(props: IDrawerProps){
                 }
                 case 'SizeData':{
                     const size = data.data
-                    boardEvents.emit('sizeHasChanged', JSON.parse(size))
+                    setCanvasSize(size)
+                    boardEvents.emit('sizeHasChanged', size)
                     break
                 }
             }

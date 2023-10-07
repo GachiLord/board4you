@@ -2,7 +2,7 @@ use serde_json::json;
 use tokio::sync::{RwLockReadGuard, mpsc::UnboundedSender};
 use warp::ws::Message;
 use serde::{Deserialize, Serialize};
-use crate::state::Room;
+use crate::state::{Room, BoardSize};
 
 use super::state::{Rooms, WSUsers};
 use std::{mem, collections::HashMap};
@@ -17,7 +17,7 @@ enum BoardMessage{
     Empty { private_id: String, public_id: String, action_type: String },
     Push { public_id: String, private_id: String, data: Vec<String> },
     PushSegment { public_id: String, private_id: String, action_type: String, data: String },
-    SetSize { public_id: String, private_id: String, data: String },
+    SetSize { public_id: String, private_id: String, data: BoardSize },
     // change Pull { current_len: usize, undone_len: usize }, 
     // info msgs
     Info { status: String, action: String, payload: String },
@@ -26,7 +26,7 @@ enum BoardMessage{
     PushSegmentData{ action_type: String, data: String },
     UndoRedoData { action_type: String, action_id: String },
     EmptyData { action_type: String },
-    SizeData { data: String }
+    SizeData { data: BoardSize }
 }
 
 pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: &Rooms) {
@@ -52,6 +52,9 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                     r.add_user(user_id);
                     let _ = client.send(Message::text(
                         json!({"status": "ok", "action":"Join", "payload": {"public_id": public_id} }).to_string()
+                    ));
+                    let _ = client.send(Message::text(
+                        serde_json::to_string(&BoardMessage::SizeData { data: (r.board.size) }).unwrap()
                     ));
                 },
                 None => {
@@ -173,6 +176,8 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                     if r.private_id != private_id{
                         return
                     }
+                    // update board state
+                    r.board.size = data;
                     // form SetSize msg 
                     let response = BoardMessage::SizeData { data: (data) };
                     let response = serde_json::to_string(&response).unwrap();

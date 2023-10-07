@@ -1,3 +1,4 @@
 import { createContext } from 'react';
+import BoardManager from '../../lib/BoardManager/BoardManager';
 
-export default createContext(null)
+export default createContext<BoardManager>(null)

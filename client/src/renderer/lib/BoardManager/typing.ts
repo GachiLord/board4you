@@ -1,4 +1,5 @@
 import { Event, ErrorEvent, CloseEvent } from 'reconnecting-websocket'
+import ISize from '../../base/typing/ISize'
 
 export interface Handlers{
     onMessage?: (msg: string) => void,
@@ -38,7 +39,7 @@ export interface PushData{ action: string, data: string[] }
 export interface PushSegmentData{ action_type: string, data: any }
 export interface UndoRedoData { action_type: 'Undo'|'Redo', action_id: string }
 export interface EmptyData { action_type: 'undone'|'current'|'history' }
-export interface SizeData { data: string }
+export interface SizeData { data: ISize }
 // board message
 export type BoardMessage = Join | Quit | UndoRedo | Push | PushSegment | Pull | Info | Empty | SetSize
 export type MessageType = 'Join' | 'Quit' | 'UndoRedo' | 'Empty' | 'Push' | 'PushSegment' | 'Pull' | 'Info' | 'SetSize'

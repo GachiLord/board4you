@@ -5,7 +5,7 @@ use uuid::Uuid;
 use warp::{hyper::body::Bytes, Filter};
 use jwt_simple::prelude::*;
 use data_encoding::BASE64URL;
-use crate::{state::{Rooms, Board, Room}, with_rooms};
+use crate::{state::{Rooms, Board, Room, BoardSize}, with_rooms};
 
 
 const CONTENT_LENGTH_LIMIT: u64 = 1024 * 16;
@@ -33,7 +33,8 @@ pub fn room_filter(rooms: Rooms) -> impl Filter<Extract = impl warp::Reply, Erro
 #[derive(Deserialize, Serialize)]
 struct RoomInitials {
     current: Vec<String>,
-    undone: Vec<String>
+    undone: Vec<String>,
+    size: BoardSize
 }
 
 async fn create_room(room_initials: String, rooms: Rooms) -> Result<impl warp::Reply, warp::Rejection>{
@@ -50,7 +51,8 @@ async fn create_room(room_initials: String, rooms: Rooms) -> Result<impl warp::R
         users: HashSet::new(),
         board: Board {
             current: room.current,
-            undone: room.undone
+            undone: room.undone,
+            size: room.size
         }
     };
     
