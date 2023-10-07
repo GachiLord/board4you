@@ -13,7 +13,7 @@ module.exports = function(win, localeCfg, handleNewFile, handleOpenFile){
               accelerator: 'CommandOrControl+N' },
             { label: localeCfg.open, click: handleOpenFile, accelerator: 'CommandOrControl+O' },
             { type: 'separator'},
-            { label: localeCfg.selectSize, click: () => { win.webContents.send('onMenuButtonClick', 'selectSize') }, accelerator: 'CommandOrControl+L' },
+            { label: localeCfg.selectSize, click: () => { win.webContents.send('onMenuButtonClick', 'selectSize') }, accelerator: 'CommandOrControl+Shift+L' },
             { type: 'separator'},
             { label: localeCfg.save, click: () => { 
               win.webContents.send('onMenuButtonClick', 'saveFile')

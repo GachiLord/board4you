@@ -8,6 +8,7 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import getCanvasSize from '../../common/getCanvasSize'
 import setCanvasSize from '../lib/setCanvasSize'
 import { LocaleContext } from '../base/constants/LocaleContext'
+import BoardManagerContext from '../base/constants/BoardManagerContext'
 
 
 
@@ -17,16 +18,20 @@ export default function SizeDialog() {
     })
     const [show, setShow] = useState(false)
     const loc = useContext(LocaleContext)
+    const boardManager = useContext(BoardManagerContext)
 
     const handleClose = () => { 
         setShow(false)
         setCanvasSize(size)
-        boardEvents.emit('sizeHasChanged')
-      }
+        boardEvents.emit('sizeHasChanged', size)
+        // send changes
+        if (boardManager.canShare()) boardManager.send('SetSize', {
+            ...boardManager.getCredentials(),
+            data: size
+        })
+    }
     const handleShow = () => setShow(true) 
-
     const isValid = (v: number) => !isNaN(v) && v <= 4000
-
     const onChangeHeight = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const v = Number(e.target.value)
         if (isValid(v)) setSize({...size, height: v})

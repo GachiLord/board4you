@@ -6,7 +6,14 @@ use std::{sync::Arc, collections::{HashMap, HashSet}};
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Board{
     pub current: Vec<String>,
-    pub undone: Vec<String>
+    pub undone: Vec<String>,
+    pub size: BoardSize
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+pub struct BoardSize{
+    height: usize,
+    width: usize
 }
 
 #[derive(Clone)]

@@ -1,4 +1,5 @@
 import { Event, ErrorEvent, CloseEvent } from 'reconnecting-websocket'
+import ISize from '../../base/typing/ISize'
 
 export interface Handlers{
     onMessage?: (msg: string) => void,
@@ -29,6 +30,7 @@ export interface PushSegment {
     action_type: 'Start'|'Update'|'End', 
     data: unknown
 }
+export interface SetSize { public_id: string, private_id: string, data: string }
 export interface Empty { private_id: string, public_id: string, action_type: string }
 export interface Pull { current_len: number, undone_len: number }
 // data interfaces
@@ -37,9 +39,10 @@ export interface PushData{ action: string, data: string[] }
 export interface PushSegmentData{ action_type: string, data: any }
 export interface UndoRedoData { action_type: 'Undo'|'Redo', action_id: string }
 export interface EmptyData { action_type: 'undone'|'current'|'history' }
+export interface SizeData { data: ISize }
 // board message
-export type BoardMessage = Join | Quit | UndoRedo | Push | PushSegment | Pull | Info | Empty
-export type MessageType = 'Join' | 'Quit' | 'UndoRedo' | 'Empty' | 'Push' | 'PushSegment' | 'Pull' | 'Info'
+export type BoardMessage = Join | Quit | UndoRedo | Push | PushSegment | Pull | Info | Empty | SetSize
+export type MessageType = 'Join' | 'Quit' | 'UndoRedo' | 'Empty' | 'Push' | 'PushSegment' | 'Pull' | 'Info' | 'SetSize'
 // errors
 export class TimeOutError extends Error{
     constructor(msg = "connection timeout after", durationMs: number, options?: ErrorOptions){

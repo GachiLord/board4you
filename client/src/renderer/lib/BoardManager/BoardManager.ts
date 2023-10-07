@@ -2,6 +2,8 @@ import ReconnectingWebSocket, { Event, ErrorEvent, CloseEvent } from 'reconnecti
 import { IHistoryState } from '../../features/history'
 import { doRequest } from '../twiks'
 import { Handlers, BoardStatus, BoardOptions, Info, TimeOutError, NoSushRoomError, RoomInfo, MessageType, BoardMessage } from './typing'
+import ISize from '../../base/typing/ISize'
+import store from '../../store/store'
 
 
 export default class BoardManager{
@@ -78,17 +80,17 @@ export default class BoardManager{
             // set connection waiter
             const waiter = ( e: MessageEvent<string> ) => {
                 const response = JSON.parse(e.data)
-                    if (response.status === "ok" && response.action === 'Join'){
-                        // add status
-                        this.status.roomId = response.payload.public_id
-                        // clear listeners
-                        clearTimeout(timeout)
-                        this.rws?.removeEventListener('message', waiter)
-                        res(response)
-                    }
-                    else if (response.status === "bad" && response.action === 'Join'){
-                        rej(new NoSushRoomError(undefined, roomId))
-                    }
+                if (response.status === "ok" && response.action === 'Join'){
+                    // add status
+                    this.status.roomId = response.payload.public_id
+                    // clear listeners
+                    clearTimeout(timeout)
+                    this.rws?.removeEventListener('message', waiter)
+                    res(response)
+                }
+                else if (response.status === "bad" && response.action === 'Join'){
+                    rej(new NoSushRoomError(undefined, roomId))
+                }
             }
             this.rws?.addEventListener('message', waiter)
             // do request
@@ -100,10 +102,11 @@ export default class BoardManager{
         this.send('Quit', { public_id: roomId })
     }
 
-    static async createRoom(history: IHistoryState): Promise<RoomInfo>{
+    static async createRoom(history: IHistoryState, size: ISize): Promise<RoomInfo>{
         const roomInitials = {
             current: history.current.map( i => JSON.stringify(i) ),
-            undone: history.undone.map( i => JSON.stringify(i) )
+            undone: history.undone.map( i => JSON.stringify(i) ),
+            size: size
         }
 
         return doRequest('rooms/create', roomInitials)
@@ -113,8 +116,8 @@ export default class BoardManager{
         return doRequest('rooms/delete', { room_id: roomId, private_id: privateId })
     }
     
-    send(messageType: MessageType, data: BoardMessage ){
-        if (this.rws === null) throw new Error('cannot send without a connection')
+    send(messageType: MessageType, data: BoardMessage){
+        if (this.rws == null) throw new Error('cannot send without a connection')
 
         const msg = new Map()
         msg.set(messageType, data)
@@ -122,6 +125,31 @@ export default class BoardManager{
         this.rws.send(JSON.stringify(
             Object.fromEntries(msg)
         ))
+    }
+
+    getCredentials(){
+        const public_id = this.status.roomId
+        const private_id = store.getState().rooms[public_id]
+
+        if (!private_id) throw('this method should be called by user having private_id') 
+
+        return {private_id, public_id}
+    }
+
+    isShared(){
+        return this.status.roomId != null
+    }
+
+    canShare(){
+        return this.isShared() && this.isAuthor()
+    }
+
+    isAuthor(){
+        return store.getState().rooms[this.status.roomId] != undefined
+    }
+
+    canEdit(){
+        return store.getState().rooms[this.status.roomId] != undefined  || this.status.roomId === null
     }
 
 }
