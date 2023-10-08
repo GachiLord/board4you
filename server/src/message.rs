@@ -4,7 +4,7 @@ use warp::ws::Message;
 use serde::{Deserialize, Serialize};
 use crate::state::{Room, BoardSize};
 
-use super::state::{Rooms, WSUsers};
+use super::state::{Rooms, WSUsers, PullData};
 use std::{mem, collections::HashMap};
 
 
@@ -18,10 +18,11 @@ enum BoardMessage{
     Push { public_id: String, private_id: String, data: Vec<String> },
     PushSegment { public_id: String, private_id: String, action_type: String, data: String },
     SetSize { public_id: String, private_id: String, data: BoardSize },
-    // change Pull { current_len: usize, undone_len: usize }, 
+    Pull { public_id: String, current: Vec<String>, undone: Vec<String> }, 
     // info msgs
     Info { status: String, action: String, payload: String },
     // data msgs
+    PullData (PullData),
     PushData{ action: String, data: Vec<String> },
     PushSegmentData{ action_type: String, data: String },
     UndoRedoData { action_type: String, action_id: String },
@@ -85,7 +86,7 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
         BoardMessage::Push { public_id, private_id, mut data } => {
             let clients = users.read().await;
 
-            match rooms.get(&public_id){
+            match rooms.get_mut(&public_id){
                 Some(r) => {
                     // skip if private_key is not valid
                     if r.private_id != private_id{
@@ -94,6 +95,8 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                     // form data
                     let push_data = BoardMessage::PushData { action: ("Push".to_owned()), data: (mem::take(&mut data)) };
                     let push_data = serde_json::to_string(&push_data).unwrap();
+                    // save changes
+                    data.iter().for_each( |edit| r.board.push(edit.to_string()) );
                     // send
                     send_all_except_sender(clients, r, user_id, push_data);
                 },
@@ -187,6 +190,22 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 None => {
                     let _ = client.send(Message::text(
                         json!({"status": "bad", "action": "SetSize", "payload": "no such room"}).to_string()
+                    ));
+                }
+            }
+        }
+        
+        BoardMessage::Pull { public_id, current, undone } => {
+            match rooms.get_mut(&public_id){
+                Some(r) => {
+                    let pull_data = BoardMessage::PullData(r.board.pull(current, undone));
+                    let _ = client.send(Message::text(
+                        serde_json::to_string(&pull_data).unwrap()
+                    ));
+                },
+                None => {
+                    let _ = client.send(Message::text(
+                        json!({"status": "bad", "action": "Pull", "payload": "no such room"}).to_string()
                     ));
                 }
             }

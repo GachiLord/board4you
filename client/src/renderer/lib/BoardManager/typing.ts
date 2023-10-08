@@ -32,7 +32,7 @@ export interface PushSegment {
 }
 export interface SetSize { public_id: string, private_id: string, data: string }
 export interface Empty { private_id: string, public_id: string, action_type: string }
-export interface Pull { current_len: number, undone_len: number }
+export interface Pull { public_id: string, current: string[], undone: string[] }
 // data interfaces
 export interface Info { status: string, payload: string }
 export interface PushData{ action: string, data: string[] }

@@ -20,7 +20,7 @@ import { useDispatch } from "react-redux";
 import { setMode } from "../../features/board";
 import { setRoom } from "../../features/rooms";
 import Persister from "../../lib/Persister";
-import handlePush from "./share/handlePush";
+import handlePush from "./share/handlePull";
 import Alert from "../../base/components/Alert";
 import { Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
@@ -77,6 +77,13 @@ export default function Drawer(props: IDrawerProps){
         if (mode === 'shared'){
             boardManager.connect().then( () => {
                 boardManager.joinRoom(roomId)
+                    .then(() => {
+                        boardManager.send('Pull', {
+                            public_id: boardManager.status.roomId,
+                            current: [],
+                            undone: []
+                        })
+                    })
                     // alert if there is no such room 
                     .catch((e) => {
                         console.error(e)
@@ -120,6 +127,9 @@ export default function Drawer(props: IDrawerProps){
                     setCanvasSize(size)
                     boardEvents.emit('sizeHasChanged', size)
                     break
+                }
+                default:{
+                    console.log(data)
                 }
             }
         }    
