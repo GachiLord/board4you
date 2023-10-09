@@ -23,7 +23,7 @@ export interface Join { public_id: string }
 export interface Quit { public_id: string }
 // implement UpdateAction: { private_key: string, action_id: string,  }
 export interface UndoRedo { private_id: string, public_id: string, action_type: 'Undo'|'Redo', action_id: string }
-export interface Push { public_id: string, private_id: string, data: Array<string> }
+export interface Push { public_id: string, private_id: string, data: Array<string>, silent: boolean }
 export interface PushSegment { 
     public_id: string, 
     private_id: string, 

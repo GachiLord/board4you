@@ -15,7 +15,7 @@ enum BoardMessage{
     // implement UpdateAction { private_key: String, action_id: String,  },
     UndoRedo { private_id: String, public_id: String, action_type: String, action_id: String },
     Empty { private_id: String, public_id: String, action_type: String },
-    Push { public_id: String, private_id: String, data: Vec<String> },
+    Push { public_id: String, private_id: String, data: Vec<String>, silent: bool },
     PushSegment { public_id: String, private_id: String, action_type: String, data: String },
     SetSize { public_id: String, private_id: String, data: BoardSize },
     Pull { public_id: String, current: Vec<String>, undone: Vec<String> }, 
@@ -83,7 +83,7 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 }
             }
         }
-        BoardMessage::Push { public_id, private_id, mut data } => {
+        BoardMessage::Push { public_id, private_id, mut data, silent } => {
             let clients = users.read().await;
 
             match rooms.get_mut(&public_id){
@@ -92,13 +92,15 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                     if r.private_id != private_id{
                         return
                     }
+                    // save changes
+                    data.iter().for_each( |edit| r.board.push(edit.to_owned()) );
                     // form data
                     let push_data = BoardMessage::PushData { action: ("Push".to_owned()), data: (mem::take(&mut data)) };
                     let push_data = serde_json::to_string(&push_data).unwrap();
-                    // save changes
-                    data.iter().for_each( |edit| r.board.push(edit.to_string()) );
                     // send
-                    send_all_except_sender(clients, r, user_id, push_data);
+                    if !silent{
+                        send_all_except_sender(clients, r, user_id, push_data);
+                    }
                 },
                 None => {
                     let _ = client.send(Message::text(

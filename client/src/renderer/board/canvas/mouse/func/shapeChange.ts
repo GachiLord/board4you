@@ -34,7 +34,8 @@ async function changeHandler(transformer: Konva.Transformer, boardManager: Board
             boardManager.send('Push', {
                 public_id,
                 private_id,
-                data: convertToStrings([edit])
+                data: convertToStrings([edit]),
+                silent: false
             })
         }
     }

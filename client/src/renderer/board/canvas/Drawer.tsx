@@ -20,7 +20,7 @@ import { useDispatch } from "react-redux";
 import { setMode } from "../../features/board";
 import { setRoom } from "../../features/rooms";
 import Persister from "../../lib/Persister";
-import handlePush from "./share/handlePull";
+import handlePush from "./share/handlePush";
 import Alert from "../../base/components/Alert";
 import { Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
@@ -32,6 +32,7 @@ import { emptyCurrent, emptyHistory, emptyUndone } from "../../features/history"
 import keyPressToCommand from "./native/keyPressToCommand";
 import BoardManagerContext from "../../base/constants/BoardManagerContext";
 import setCanvasSize from "../../lib/setCanvasSize";
+import handlePull from "./share/handlePull";
 
 
 export interface IDrawerProps{
@@ -102,6 +103,9 @@ export default function Drawer(props: IDrawerProps){
                     handlePush(editManager, data.data)
                     break
                 }
+                case 'PullData':
+                    handlePull(editManager, data)
+                    break
                 case 'PushSegmentData':{
                     const segment: PushSegmentData = data
                     const t = segment.action_type

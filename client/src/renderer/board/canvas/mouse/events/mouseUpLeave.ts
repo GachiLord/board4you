@@ -15,6 +15,7 @@ import { Arrow } from "konva/lib/shapes/Arrow";
 import { setCursor } from "../func/cursor";
 import BoardManager from "../../../../lib/BoardManager/BoardManager";
 import { Edit } from "../../../../lib/EditManager";
+import { convertToStrings } from "../../share/convert";
 
 
 export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardManager, props: IDrawerProps){
@@ -28,13 +29,22 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
 
     whenDraw( e, boardManager, ({stage, canvas, temporary}) => {
         // share fun
-        const share = (shapeId: string) => {
+        const shareSegment = (shapeId: string) => {
             if (isShared)
             boardManager.send('PushSegment', {
                 public_id: boardManager.status.roomId,
                 private_id: private_id,
                 action_type: 'End',
                 data: shapeId
+            } )
+        }
+        const share = (edit: Edit) => {
+            if (isShared)
+            boardManager.send('Push', {
+                public_id: boardManager.status.roomId,
+                private_id: private_id,
+                data: convertToStrings([edit]),
+                silent: true
             } )
         }
         // type of event
@@ -61,7 +71,8 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
             const edit: Edit = {id: lastLine.attrs.shapeId, type: 'add', shape: CanvasUtils.toShape(lastLine)}
             store.dispatch(addCurrent(edit))
             // send PushSegmentEnd msg
-            share(drawingShapeId)
+            shareSegment(drawingShapeId)
+            share(edit)
         }
         else if (itemIn(tool, 'rect', 'ellipse') && isDrawing && drawingShapeId){
             const lastShape: unknown = CanvasUtils.findLastOne(canvas, { shapeId: drawingShapeId })
@@ -71,7 +82,8 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
             const edit: Edit = {id: lastShape.attrs.shapeId, type: 'add', shape: CanvasUtils.toShape(lastShape)}
             store.dispatch(addCurrent(edit))
             // send PushSegmentEnd msg
-            share(drawingShapeId)
+            shareSegment(drawingShapeId)
+            share(edit)
         }
         else if (tool === 'select' && isDrawing && temporary.children[0]){
             const shapes = canvas.children

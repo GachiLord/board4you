@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Value, Map};
 use tokio::sync::{mpsc, RwLock};
 use warp::ws::Message;
 use std::{sync::Arc, collections::{HashMap, HashSet}};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Board{
-    pub current: Vec<Value>,
-    pub undone: Vec<Value>,
+    pub current: Vec<Map<String, Value>>,
+    pub undone: Vec<Map<String, Value>>,
     pub size: BoardSize
 }
 
@@ -54,7 +54,7 @@ impl Board {
                     .filter(|e| {
                         current_create.contains::<String>(&e.get("id").unwrap().to_string())
                     })
-                    .map(|v| v.to_string())
+                    .map(|v| serde_json::to_string(v).unwrap())
                     .collect(),
                 should_be_deleted_ids: Vec::from_iter(current_delete.into_iter().map(|v| v.to_owned()))
             },
@@ -63,7 +63,7 @@ impl Board {
                     .filter(|e| {
                         undone_create.contains::<String>(&e.get("id").unwrap().to_string())
                     })
-                    .map(|v| v.to_string())
+                    .map(|v| serde_json::to_string(v).unwrap())
                     .collect(),
                 should_be_deleted_ids: Vec::from_iter(undone_delete.into_iter().map(|v| v.to_owned()))
             },
@@ -72,7 +72,9 @@ impl Board {
 
     pub fn push(&mut self, data: String){
         // come out with smth better here
-        self.current.push(serde_json::to_value(data).unwrap())
+        let value: Value = serde_json::from_str(&data).unwrap();
+        
+        self.current.push(value.as_object().unwrap().to_owned());
     }
 
     fn exec_command(&mut self, command: &Command){
