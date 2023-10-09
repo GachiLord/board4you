@@ -108,7 +108,8 @@ export default async function(stage: Konva.Stage, boardManger: BoardManager, o: 
             boardManger.send('Push', {
                 public_id,
                 private_id,
-                data: convertToStrings([edit])
+                data: convertToStrings([edit]),
+                silent: false
             })
         }
     }

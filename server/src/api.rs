@@ -50,8 +50,8 @@ async fn create_room(room_initials: String, rooms: Rooms) -> Result<impl warp::R
         private_id: private_id.to_owned(),
         users: HashSet::new(),
         board: Board {
-            current: room.current,
-            undone: room.undone,
+            current: room.current.iter().map( |e| serde_json::from_str(e).unwrap()).collect(),
+            undone: room.undone.iter().map( |e| serde_json::from_str(e).unwrap()).collect(),
             size: room.size
         }
     };

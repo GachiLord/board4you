@@ -32,6 +32,7 @@ import { emptyCurrent, emptyHistory, emptyUndone } from "../../features/history"
 import keyPressToCommand from "./native/keyPressToCommand";
 import BoardManagerContext from "../../base/constants/BoardManagerContext";
 import setCanvasSize from "../../lib/setCanvasSize";
+import handlePull from "./share/handlePull";
 
 
 export interface IDrawerProps{
@@ -77,6 +78,13 @@ export default function Drawer(props: IDrawerProps){
         if (mode === 'shared'){
             boardManager.connect().then( () => {
                 boardManager.joinRoom(roomId)
+                    .then(() => {
+                        boardManager.send('Pull', {
+                            public_id: boardManager.status.roomId,
+                            current: [],
+                            undone: []
+                        })
+                    })
                     // alert if there is no such room 
                     .catch((e) => {
                         console.error(e)
@@ -95,6 +103,9 @@ export default function Drawer(props: IDrawerProps){
                     handlePush(editManager, data.data)
                     break
                 }
+                case 'PullData':
+                    handlePull(editManager, data)
+                    break
                 case 'PushSegmentData':{
                     const segment: PushSegmentData = data
                     const t = segment.action_type
@@ -120,6 +131,9 @@ export default function Drawer(props: IDrawerProps){
                     setCanvasSize(size)
                     boardEvents.emit('sizeHasChanged', size)
                     break
+                }
+                default:{
+                    console.log(data)
                 }
             }
         }    

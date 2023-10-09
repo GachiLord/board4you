@@ -23,6 +23,18 @@ export const historySlice = createSlice({
     addUndone: (state, action: PayloadAction<Edit>) => {
       state.undone.push(action.payload)
     },
+    removeCurrent: (state, action: PayloadAction<string>) => {
+      const editIndex = state.current.findLastIndex(e => e.id === action.payload)
+      if (!editIndex) return
+
+      state.current.splice(editIndex, 1)
+    },
+    removeUndone: (state, action: PayloadAction<string>) => {
+      const editIndex = state.current.findLastIndex(e => e.id === action.payload)
+      if (!editIndex) return
+
+      state.undone.splice(editIndex, 1)
+    },
     emptyUndone: state => {
       state.undone = []
     },
@@ -51,6 +63,6 @@ export const historySlice = createSlice({
 })
 
 // Action creators are generated for each case reducer function
-export const { addCurrent, addUndone, emptyHistory, emptyUndone, emptyCurrent, undo, redo } = historySlice.actions
+export const { addCurrent, addUndone, emptyHistory, emptyUndone, emptyCurrent, undo, redo, removeCurrent, removeUndone } = historySlice.actions
 
 export default historySlice.reducer

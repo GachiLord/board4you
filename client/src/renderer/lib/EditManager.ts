@@ -38,6 +38,14 @@ export default class EditManager{
         this.boardManager = boardManager
     }
 
+    static getHistoryImprint(){
+        const history = store.getState().history
+        return {
+            current: history.current.map( e => e.id ),
+            undone: history.undone.map( e => e.id )
+        }
+    }
+
     static getEditFromShape(shape: IShape){
         return {
             type: 'add',
