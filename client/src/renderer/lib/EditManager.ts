@@ -77,7 +77,7 @@ export default class EditManager{
         store.dispatch(emptyUndone())
     }
 
-    undo(edit_id?: string){
+    undo(edit_id?: string, silent?: boolean){
         const current = store.getState().history.current
         const lastEdit = edit_id ? current.findLast(v => v.id === edit_id) : current.at(-1)
         if (!lastEdit) return
@@ -85,10 +85,10 @@ export default class EditManager{
         this.cancelEdit(lastEdit)
         store.dispatch(undo(edit_id))
         // send msg
-        this.#share('Undo', lastEdit.id)
+        if (!silent) this.#share('Undo', lastEdit.id)
     }
 
-    redo(edit_id?: string){
+    redo(edit_id?: string, silent?: boolean){
         const undone = store.getState().history.undone
         const lastEdit = edit_id ? undone.findLast(v => v.id === edit_id) : undone.at(-1)
         if (!lastEdit) return
@@ -96,7 +96,7 @@ export default class EditManager{
         this.applyEdit(lastEdit)
         store.dispatch(redo())
         // send msg
-        this.#share('Redo', lastEdit.id)
+        if (!silent) this.#share('Redo', lastEdit.id)
     }
 
     applyEdit(edit: Edit){
