@@ -115,8 +115,8 @@ export default function Drawer(props: IDrawerProps){
                     break
                 }
                 case 'UndoRedoData':{
-                    if (data.action_type === 'Undo') editManager.undo(data.action_id)
-                    else editManager.redo(data.action_id)
+                    if (data.action_type === 'Undo') editManager.undo(data.action_id, true)
+                    else editManager.redo(data.action_id, true)
                     break
                 }
                 case 'EmptyData':{

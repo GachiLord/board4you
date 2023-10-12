@@ -2,7 +2,7 @@ use serde_json::json;
 use tokio::sync::{RwLockReadGuard, mpsc::UnboundedSender};
 use warp::ws::Message;
 use serde::{Deserialize, Serialize};
-use crate::state::{Room, BoardSize};
+use crate::state::{Room, BoardSize, Command, CommandName};
 
 use super::state::{Rooms, WSUsers, PullData};
 use std::{mem, collections::HashMap};
@@ -140,8 +140,15 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                         return
                     }
                     // form UndoRedo msg 
-                    let response = BoardMessage::UndoRedoData { action_type: (action_type), action_id: (action_id) };
+                    let response = BoardMessage::UndoRedoData { action_type: (action_type.to_owned()), action_id: (action_id.to_owned()) };
                     let response = serde_json::to_string(&response).unwrap();
+                    // determine command name
+                    let command_name = if action_type == "Undo" { CommandName::Undo } else { CommandName::Redo };
+                    // save changes
+                    r.board.exec_command( Command{
+                        name: command_name,
+                        id: action_id
+                    } );
                     // send
                     send_all_except_sender(clients, r, user_id, response);
                 },

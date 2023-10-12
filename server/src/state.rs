@@ -17,10 +17,15 @@ pub struct BoardSize{
     width: usize
 }
 
-#[derive(Clone)]
 pub struct Command{
-    name: String,
-    id: String
+    pub name: CommandName,
+    pub id: String
+}
+
+#[derive(Debug)]
+pub enum CommandName{
+    Undo,
+    Redo
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -77,18 +82,25 @@ impl Board {
         self.current.push(value.as_object().unwrap().to_owned());
     }
 
-    fn exec_command(&mut self, command: &Command){
-        // match command {
-        //     "undo" => {
-        //         println!("undo");
-        //     },
-        //     "redo" => {
-        //         println!("redo");
-        //     },
-        //     _ => {
-        //         println!("unknown command");
-        //     }
-        // };
+    pub fn exec_command(&mut self, command: Command){
+        match command.name {
+            CommandName::Undo => {
+                let edit_index = self.current.iter().position(|e| {
+                    let id = e.get("id").unwrap().as_str().unwrap();
+                    return id == &command.id
+                }).unwrap();
+                let edit = self.current.remove(edit_index);
+                self.undone.push(edit);
+            }
+            CommandName::Redo => {
+                let edit_index = self.undone.iter().position(|e| {
+                    let id = e.get("id").unwrap().as_str().unwrap();
+                    return id == &command.id
+                }).unwrap();
+                let edit = self.undone.remove(edit_index);
+                self.current.push(edit);
+            }
+        };
     }
 }
 

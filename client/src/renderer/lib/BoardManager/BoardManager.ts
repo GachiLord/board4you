@@ -149,7 +149,7 @@ export default class BoardManager{
     }
 
     canEdit(){
-        return store.getState().rooms[this.status.roomId] != undefined  || this.status.roomId === null
+        return this.isAuthor() || !this.isShared() 
     }
 
 }

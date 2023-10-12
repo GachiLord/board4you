@@ -1,4 +1,4 @@
-import { addCurrent, removeCurrent, removeUndone } from "../../../features/history";
+import { addCurrent, addUndone, removeCurrent, removeUndone } from "../../../features/history";
 import EditManager from "../../../lib/EditManager";
 import store from "../../../store/store";
 import { convertToEdits } from "./convert";
@@ -20,8 +20,7 @@ export default function handlePush(editManager: EditManager, data: pushData){
         editManager.applyEdit(edit)
     } )
     convertToEdits(data.undone.should_be_created_edits).forEach( edit => {
-        store.dispatch(addCurrent(edit))
-        editManager.applyEdit(edit)
+        store.dispatch(addUndone(edit))
     } )
     // delete extra edits
     data.current.should_be_deleted_ids.forEach( id => {
