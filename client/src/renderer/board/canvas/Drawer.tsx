@@ -33,6 +33,7 @@ import keyPressToCommand from "./native/keyPressToCommand";
 import BoardManagerContext from "../../base/constants/BoardManagerContext";
 import setCanvasSize from "../../lib/setCanvasSize";
 import handlePull from "./share/handlePull";
+import Loading from "../../base/components/Loading";
 
 
 export interface IDrawerProps{
@@ -45,13 +46,15 @@ export interface IDrawerProps{
 new Persister(store, 'rooms')
 
 export default function Drawer(props: IDrawerProps){
-    const boardManager = useContext<BoardManager>(BoardManagerContext);
     const dispatch = useDispatch()
+    const boardManager = useContext<BoardManager>(BoardManagerContext)
     const stage = useRef<Konva.Stage | null>(null)
     const stageState = useSelector((state: RootState) => state.stage)
     const mode = useSelector((state: RootState) => state.board.mode)
     const [roomExists, setRoomExists] = useState(true)
     const { roomId } = useParams()
+    const [isLoading, SetLoading] = useState(mode === 'shared' && roomExists)
+    const cleanUp = () => { setRoomExists(true); SetLoading(false); dispatch(setMode('local')) }
     
     useEffect(() => {
         // create canvas and editManager
@@ -63,11 +66,13 @@ export default function Drawer(props: IDrawerProps){
             const state = store.getState()
             const history = {current: state.history.current, undone: state.history.undone}
             const size = {height: state.stage.baseHeight, width: state.stage.width}
+            SetLoading(true)
             BoardManager.createRoom(history, size).then( roomInfo => {
                 // replace current location to prevent share button blocking
                 location.replace(`${location.origin}/edit/${roomInfo.public_id}`)
                 // save privateId to continue editing after reload
                 dispatch(setRoom({ publicId: roomInfo.public_id, privateId: roomInfo.private_id }))
+                SetLoading(false)
             } )
         }
         // update mode to run useEffect`s callback again
@@ -76,6 +81,7 @@ export default function Drawer(props: IDrawerProps){
         }
         // join room if mode is shared
         if (mode === 'shared'){
+            SetLoading(true)
             boardManager.connect().then( () => {
                 boardManager.joinRoom(roomId)
                     .then(() => {
@@ -84,6 +90,7 @@ export default function Drawer(props: IDrawerProps){
                             current: [],
                             undone: []
                         })
+                        SetLoading(false)
                     })
                     // alert if there is no such room 
                     .catch((e) => {
@@ -200,6 +207,7 @@ export default function Drawer(props: IDrawerProps){
             window.removeEventListener('cut', handleCut)
             // set local mode
             dispatch(setMode('local'))
+            SetLoading(false)
             // disconnect
             boardManager.disconnect()
         }
@@ -208,14 +216,17 @@ export default function Drawer(props: IDrawerProps){
 
     return  (
         <>
+        {(isLoading && roomExists) && (
+            <Loading title="Your board is loading" />
+        )}
         {
         !roomExists && (
             <Alert 
                 title="There is no sush room"
                 body="Room is deleted or does not exit"
             >
-                <Link to="/edit" reloadDocument><Button variant="primary">Create new</Button></Link>
-                <Link to="/"><Button variant="primary">Home</Button></Link>
+                <Link to="/edit"><Button variant="primary" onClick={cleanUp}>Create new</Button></Link>
+                <Link to="/"><Button variant="primary" onClick={cleanUp}>Home</Button></Link>
             </Alert>
         )
         }
