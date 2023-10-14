@@ -1,11 +1,11 @@
 import React, { CSSProperties, useState } from "react"
 import {GoShareAndroid} from 'react-icons/go'
 import ToolButton from "./toolPanel/ToolButton"
-import boardEvents from "../base/constants/boardEvents"
 import { useDispatch } from "react-redux"
 import { setMode } from "../features/board"
 import { RootState } from "../store/store"
 import { useSelector } from "react-redux"
+import boardEvents from "../base/constants/boardEvents"
 
 
 export default function ShareBar(){
@@ -23,7 +23,9 @@ export default function ShareBar(){
         minWidth: '100px'
     }
     const onShare = () => {
+        boardEvents.emit('roomCreated')
         dispatch(setMode('shared'))
+        setOpen(false)
     }
 
     return (

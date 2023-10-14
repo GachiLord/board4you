@@ -23,7 +23,7 @@ export default function Editor(){
     return (
         <BoardManagerContext.Provider value={boardManager}>
             <div className="d-flex">
-                <div className="position-fixed h-100 d-flex flex-column justify-content-around m-4" style={panelStyle}>
+                <div className="position-fixed h-75 d-flex flex-column justify-content-around m-4" style={panelStyle}>
                     <PageBar />
                     <ToolPanel />
                     <div className="d-inline-block" style={barBlockStyle}>
