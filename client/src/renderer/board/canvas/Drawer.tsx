@@ -15,7 +15,7 @@ import Konva from "konva";
 import { ICoor } from "../../base/typing/ICoor";
 import sizeChange from "./mouse/func/sizeChange";
 import BoardManager from "../../lib/BoardManager/BoardManager";
-import { useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { useDispatch } from "react-redux";
 import { setMode } from "../../features/board";
 import { setRoom } from "../../features/rooms";
@@ -34,6 +34,7 @@ import BoardManagerContext from "../../base/constants/BoardManagerContext";
 import setCanvasSize from "../../lib/setCanvasSize";
 import handlePull from "./share/handlePull";
 import Loading from "../../base/components/Loading";
+import clearCanvas from "./image/clearCanvas";
 
 
 export interface IDrawerProps{
@@ -52,29 +53,22 @@ export default function Drawer(props: IDrawerProps){
     const stageState = useSelector((state: RootState) => state.stage)
     const mode = useSelector((state: RootState) => state.board.mode)
     const [roomExists, setRoomExists] = useState(true)
+    const routerLocation = useLocation()
     const { roomId } = useParams()
+    const navigate = useNavigate()
     const [isLoading, SetLoading] = useState(mode === 'shared' && roomExists)
-    const cleanUp = () => { setRoomExists(true); SetLoading(false); dispatch(setMode('local')); dispatch(emptyHistory()) }
+    const cleanUp = () => { 
+        setRoomExists(true)
+        SetLoading(false)
+        dispatch(setMode('local'))
+        dispatch(emptyHistory()) 
+        if (stage.current) clearCanvas(stage.current.children[0], stage.current.children[1])
+    }
     
     useEffect(() => {
         // create canvas and editManager
         const canvas: Konva.Layer = stage.current.children[0]
         const editManager = new EditManager(canvas, boardManager)
-        // create room if mode has changed and we are not going to edit existing one 
-        if (mode === 'shared' && !roomId){
-            // implement loading logic!
-            const state = store.getState()
-            const history = {current: state.history.current, undone: state.history.undone}
-            const size = {height: state.stage.baseHeight, width: state.stage.width}
-            SetLoading(true)
-            BoardManager.createRoom(history, size).then( roomInfo => {
-                // replace current location to prevent share button blocking
-                location.replace(`${location.origin}/edit/${roomInfo.public_id}`)
-                // save privateId to continue editing after reload
-                dispatch(setRoom({ publicId: roomInfo.public_id, privateId: roomInfo.private_id }))
-                SetLoading(false)
-            } )
-        }
         // update mode to run useEffect`s callback again
         if (roomId){
             dispatch(setMode('shared'))
@@ -147,6 +141,19 @@ export default function Drawer(props: IDrawerProps){
         // handle errors
         boardManager.handlers.onError = () => setRoomExists(false)     
         // listen for board events
+        const onRoomCreatedSub = boardEvents.addListener('roomCreated', () => {
+            const state = store.getState()
+            const history = {current: state.history.current, undone: state.history.undone}
+            const size = {height: state.stage.baseHeight, width: state.stage.width}
+            SetLoading(true)
+            BoardManager.createRoom(history, size).then( roomInfo => {
+                // save privateId to continue editing after reload
+                dispatch(setRoom({ publicId: roomInfo.public_id, privateId: roomInfo.private_id }))
+                // replace current location to prevent share button blocking
+                navigate(`/edit/${roomInfo.public_id}`)
+                SetLoading(false)
+            } )
+        })
         const undoSub = boardEvents.addListener('undo', () => {
             Selection.destroy(canvas)
             editManager.undo()
@@ -171,6 +178,7 @@ export default function Drawer(props: IDrawerProps){
             const linesLayer = stage.current.children[2]
             sizeChange(linesLayer, size)
         })
+        const editorLinkClickedSub = boardEvents.addListener('editorLinkClicked', () => cleanUp())
         // web event listeners
         // paste
         const handlePaste = (e: ClipboardEvent) => {
@@ -200,7 +208,7 @@ export default function Drawer(props: IDrawerProps){
         // remove all listeners on unmount
         return () => {
             // boardevents
-            [undoSub, redoSub, pageSettedSub, sizeHasChangedSub].forEach( s => s.remove() )
+            [undoSub, redoSub, pageSettedSub, sizeHasChangedSub, editorLinkClickedSub, onRoomCreatedSub].forEach( s => s.remove() )
             // web events
             window.removeEventListener('paste', handlePaste)
             window.removeEventListener('copy', handleCopy)
@@ -210,7 +218,7 @@ export default function Drawer(props: IDrawerProps){
             // disconnect
             boardManager.disconnect()
         }
-    }, [mode])
+    }, [mode, routerLocation])
 
 
     return  (
@@ -261,3 +269,4 @@ export default function Drawer(props: IDrawerProps){
         </>
     )
 }
+

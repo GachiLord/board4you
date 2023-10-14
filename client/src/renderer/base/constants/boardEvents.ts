@@ -4,6 +4,8 @@ import { ICoor } from '../typing/ICoor'
 
 
 interface IBoardEventsMap{
+    'roomCreated': () => void
+    'editorLinkClicked': () => void
     'undo': () => void
     'redo': () => void
     'pageSetted': (pos: ICoor) => void

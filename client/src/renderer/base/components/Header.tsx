@@ -2,6 +2,7 @@ import React from "react";
 import { Container, Nav, Navbar } from "react-bootstrap";
 import { LinkContainer } from 'react-router-bootstrap'
 import Logo from '../../../../build/icon.png'
+import boardEvents from "../constants/boardEvents";
 
 export default function Header(){
     return (
@@ -24,7 +25,7 @@ export default function Header(){
                         <LinkContainer to="/">
                             <Nav.Link>Home</Nav.Link>
                         </LinkContainer>
-                        <LinkContainer to="/edit">
+                        <LinkContainer onClick={() => boardEvents.emit('editorLinkClicked')} to="/edit">
                             <Nav.Link>Create board</Nav.Link>
                         </LinkContainer>
                         <LinkContainer to="signin">
