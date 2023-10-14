@@ -6,10 +6,11 @@ import getLocalizationCfg from '../common/getLocalizationCfg';
 import store from '../renderer/store/store';
 import { Provider } from 'react-redux'
 import { LocaleContext } from '../renderer/base/constants/LocaleContext';
-import Progress from '../renderer/base/components/Progress';
 import Editor from '../renderer/pages/Editor';
 import Home from '../renderer/pages/Home';
-import Viewer from '../renderer/pages/Viewer';
+import Header from '../renderer/base/components/Header';
+import SignIn from '../renderer/pages/SignIn';
+import SignUp from '../renderer/pages/SignUp';
 
 
 // root
@@ -20,13 +21,14 @@ const root = createRoot(container)
 root.render(
     <Provider store={store}>
         <LocaleContext.Provider value={getLocalizationCfg(navigator.language)}>
-        <Progress />
         <BrowserRouter>
+            <Header />
             <Routes>
                 <Route path="/" element={<Home />} />
                 <Route index element={<Home />} />
                 <Route path="edit/:roomId?" element={<Editor />} />
-                <Route path="view" element={<Viewer />} />
+                <Route path="signin" element={<SignIn />} />
+                <Route path="signup" element={<SignUp />} />
                 <Route path="*" element={<>404</>} />
             </Routes>
         </BrowserRouter>

@@ -54,7 +54,7 @@ export default function Drawer(props: IDrawerProps){
     const [roomExists, setRoomExists] = useState(true)
     const { roomId } = useParams()
     const [isLoading, SetLoading] = useState(mode === 'shared' && roomExists)
-    const cleanUp = () => { setRoomExists(true); SetLoading(false); dispatch(setMode('local')) }
+    const cleanUp = () => { setRoomExists(true); SetLoading(false); dispatch(setMode('local')); dispatch(emptyHistory()) }
     
     useEffect(() => {
         // create canvas and editManager
@@ -205,9 +205,8 @@ export default function Drawer(props: IDrawerProps){
             window.removeEventListener('paste', handlePaste)
             window.removeEventListener('copy', handleCopy)
             window.removeEventListener('cut', handleCut)
-            // set local mode
-            dispatch(setMode('local'))
-            SetLoading(false)
+            // clean component state
+            cleanUp()
             // disconnect
             boardManager.disconnect()
         }

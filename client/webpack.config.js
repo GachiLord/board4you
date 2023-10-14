@@ -19,7 +19,7 @@ module.exports = () => {
     devtool: 'inline-source-map',
     devServer: {
       static: {
-        directory: './bundles',
+        directory: './public',
         serveIndex: true,
       },
       historyApiFallback: true
