@@ -21,7 +21,7 @@ export default function Header(){
                 </Navbar.Brand>
                 <Navbar.Toggle />
                 <Navbar.Collapse>
-                    <Nav className="me-auto w-75 justify-content-end">
+                    <Nav className="me-auto w-100 justify-content-end">
                         <LinkContainer to="/">
                             <Nav.Link>Home</Nav.Link>
                         </LinkContainer>

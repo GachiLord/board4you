@@ -1,4 +1,7 @@
+import boardEvents from "../../../base/constants/boardEvents";
 import { addCurrent, addUndone, removeCurrent, removeUndone } from "../../../features/history";
+import { setHeight } from "../../../features/stage";
+import CanvasUtils from "../../../lib/CanvasUtils";
 import EditManager from "../../../lib/EditManager";
 import store from "../../../store/store";
 import { convertToEdits } from "./convert";
@@ -33,4 +36,9 @@ export default function handlePush(editManager: EditManager, data: pushData){
         store.dispatch(removeUndone(id))
         editManager.cancelEdit(edit)
     } )
+    // update height
+    store.dispatch(setHeight(
+        CanvasUtils.getHeight(editManager.layer, store.getState().stage.baseHeight)
+    ))
+    boardEvents.emit('sizeHasChanged')
 }

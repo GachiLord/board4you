@@ -45,6 +45,8 @@ export default function ToolButton(props: props){
         // dont handle tool change if name is none
         const isNone = props.name === 'none' || props.name === 'none-active'
         if (props.customizable && toolIsActive && !isNone) setOpen(!isOpen)
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore: Unreachable code error
         else if(!toolIsActive && !isNone) dispatch(setTool(props.name))
         anim()
     }

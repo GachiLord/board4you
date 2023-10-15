@@ -11,14 +11,22 @@ import Settings from "../settings/Settings";
 import Hr from "../../base/components/Hr";
 import { useParams } from "react-router";
 import IsOwned from "../canvas/share/isAuthor";
+import { useDispatch } from "react-redux";
+import { set } from "../../features/tool";
 
 
 export default function ToolPanel(){
     const { roomId } = useParams()
     const isAuthor = IsOwned(roomId)
+    const dispatch = useDispatch()
+
     useEffect( () => {
         new Persister(store, 'toolSettings')
     }, [] )
+
+    useEffect( () => {
+        if (!isAuthor) dispatch(set('move'))
+    } )
 
     return (
         <div className="d-flex align-items-center flex-column">
