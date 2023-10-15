@@ -1,4 +1,4 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 import { ToolName } from "../base/typing/ToolName";
 
 
@@ -14,8 +14,9 @@ const toolSlice = createSlice({
         active: defaultTool
     },
     reducers: {
-        set: (state, action) => {
-            state.active = action.payload
+        set: (state, action: PayloadAction<ToolName>) => {
+            const newTool: any = action.payload
+            state.active = newTool
         }
     }
 })

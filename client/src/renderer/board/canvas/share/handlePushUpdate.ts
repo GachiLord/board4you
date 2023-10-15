@@ -4,7 +4,6 @@ import { ShareData } from "./ShareData";
 
 export default function handlePushUpdate(canvas: Konva.Layer, attrs: ShareData){
     const shape: any = CanvasUtils.findLastOne(canvas, { shapeId: attrs.shapeId })
-
     if (attrs.points){
         // set points
         if (shape.attrs.points.length > 2) shape.points(shape.attrs.points.slice(0,2))

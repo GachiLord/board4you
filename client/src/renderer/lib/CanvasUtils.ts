@@ -269,4 +269,14 @@ export default class CanvasUtils{
             }
         ).filter(i => {if (i !== undefined) return i})
     }
+
+    static getHeight(layer: Konva.Layer, baseHeight: number){
+        return Math.round(CanvasUtils.findLastY(layer) / baseHeight) * baseHeight
+    }
+
+    static getHeightFromShape(shape: Konva.Shape, baseHeight: number){
+        const layer = new Konva.Layer()
+        layer.add(shape)
+        return this.getHeight(layer, baseHeight)
+    }
 }
