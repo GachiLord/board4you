@@ -105,7 +105,7 @@ export default async function(stage: Konva.Stage, boardManger: BoardManager, o: 
                 api.handleFileChange()
             } )
             // send Edit
-            boardManger.send('Push', {
+            if (boardManger.canShare()) boardManger.send('Push', {
                 public_id,
                 private_id,
                 data: convertToStrings([edit]),
