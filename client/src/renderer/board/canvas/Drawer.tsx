@@ -29,12 +29,12 @@ import handlePushEnd from "./share/handlePushEnd";
 import handlePushUpdate from "./share/handlePushUpdate";
 import { PushSegmentData } from "../../lib/BoardManager/typing";
 import { emptyCurrent, emptyHistory, emptyUndone } from "../../features/history";
-import keyPressToCommand from "./native/keyPressToCommand";
 import BoardManagerContext from "../../base/constants/BoardManagerContext";
 import setCanvasSize from "../../lib/setCanvasSize";
 import handlePull from "./share/handlePull";
 import Loading from "../../base/components/Loading";
 import clearCanvas from "./image/clearCanvas";
+import { tinykeys } from "tinykeys";
 
 
 export interface IDrawerProps{
@@ -196,19 +196,24 @@ export default function Drawer(props: IDrawerProps){
         }
         window.addEventListener('cut', handleCut)
         // listen for keyboard and main process events
+        let keyBindingsSub: () => void = null
         run( electron => {
             electron.onMenuButtonClick( (_, o, d) => {runCommand(stage.current, boardManager, o, d)} )
         },
         () => {
-            window.addEventListener('keypress', (e) => {
-                const command = keyPressToCommand(e)
-                if(command) runCommand(stage.current, boardManager, command)
+            keyBindingsSub = tinykeys(window, {
+                'Control+Shift+L': () => runCommand(stage.current, boardManager, 'selectSize'),
+                'Control+Z': () => runCommand(stage.current, boardManager, 'undo'),
+                'Control+Y': () => runCommand(stage.current, boardManager, 'redo'),
+                'Delete': () => runCommand(stage.current, boardManager, 'del'),
             })
         })
         // remove all listeners on unmount
         return () => {
             // boardevents
             [undoSub, redoSub, pageSettedSub, sizeHasChangedSub, editorLinkClickedSub, onRoomCreatedSub].forEach( s => s.remove() )
+            // keybindings
+            keyBindingsSub()
             // web events
             window.removeEventListener('paste', handlePaste)
             window.removeEventListener('copy', handleCopy)
