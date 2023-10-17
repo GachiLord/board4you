@@ -86,11 +86,11 @@ export default function Drawer(props: IDrawerProps){
                             current: [],
                             undone: []
                         })
-                        SetLoading(false)
                     })
                     // alert if there is no such room 
                     .catch((e) => {
                         console.error(e)
+                        SetLoading(false)
                         setRoomExists(false)
                     })
             } )
@@ -108,6 +108,7 @@ export default function Drawer(props: IDrawerProps){
                 }
                 case 'PullData':
                     handlePull(editManager, data)
+                    SetLoading(false)
                     break
                 case 'PushSegmentData':{
                     const segment: PushSegmentData = data
@@ -180,7 +181,6 @@ export default function Drawer(props: IDrawerProps){
             const linesLayer = stage.current.children[2]
             sizeChange(linesLayer, size)
         })
-        const editorLinkClickedSub = boardEvents.addListener('editorLinkClicked', () => cleanUp())
         // web event listeners
         // paste
         const handlePaste = (e: ClipboardEvent) => {
@@ -213,7 +213,7 @@ export default function Drawer(props: IDrawerProps){
         // remove all listeners on unmount
         return () => {
             // boardevents
-            [undoSub, redoSub, pageSettedSub, sizeHasChangedSub, editorLinkClickedSub, onRoomCreatedSub].forEach( s => s.remove() )
+            [undoSub, redoSub, pageSettedSub, sizeHasChangedSub, onRoomCreatedSub].forEach( s => s.remove() )
             // keybindings
             keyBindingsSub()
             // web events
