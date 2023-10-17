@@ -2,7 +2,6 @@ import React, { useContext } from "react";
 import { Container, Nav, Navbar } from "react-bootstrap";
 import { LinkContainer } from 'react-router-bootstrap'
 import Logo from '../../../../build/icon.png'
-import boardEvents from "../constants/boardEvents";
 import { LocaleContext } from "../constants/LocaleContext";
 
 export default function Header(){
@@ -28,7 +27,7 @@ export default function Header(){
                         <LinkContainer to="/">
                             <Nav.Link>{loc.home}</Nav.Link>
                         </LinkContainer>
-                        <LinkContainer onClick={() => boardEvents.emit('editorLinkClicked')} to="/edit">
+                        <LinkContainer to="/edit">
                             <Nav.Link>{loc.createBoard}</Nav.Link>
                         </LinkContainer>
                         <LinkContainer to="signin">
