@@ -1,7 +1,17 @@
 module.exports = {
     en: {
         //common
-        loading: 'Loading',        
+        loading: 'Loading',
+        // header
+        home: 'Home',
+        createBoard: 'Create board',
+        signIn: 'Sign in',
+        signUp: 'Sign up',
+        // board share mode
+        noSuchRoom: 'There is no sush room',
+        boardIsLoading: 'Your board is loading',
+        roomDeletedOrDoesNotExist: 'Room is deleted or does not exit',
+        createNew: 'Create new',        
         // exit alert
         exitAlertMsg: 'Continue editing or close the file without saving?',
         exitAlertOptions: ['Continue', 'Do not save'],
@@ -58,6 +68,16 @@ module.exports = {
     ru: {
         //common
         loading: 'Загрузка',
+        // header
+        home: 'Домашняя страница',
+        createBoard: 'Создать доску',
+        signIn: 'Войти',
+        signUp: 'Регистрация',
+        // board share mode
+        noSuchRoom: 'Такой комнаты не существует',
+        boardIsLoading: 'Ваша доска загружается',
+        roomDeletedOrDoesNotExist: 'Комната удалена или не существует',
+        createNew: 'Создать новую',        
         // exit alert
         exitAlertMsg: 'Продолжить редактирование или закрыть файл без сохранения?',
         exitAlertOptions: ['Продолжить', 'Не сохранять'],

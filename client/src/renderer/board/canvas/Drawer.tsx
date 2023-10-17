@@ -35,6 +35,7 @@ import handlePull from "./share/handlePull";
 import Loading from "../../base/components/Loading";
 import clearCanvas from "./image/clearCanvas";
 import { tinykeys } from "tinykeys";
+import { LocaleContext } from "../../base/constants/LocaleContext";
 
 
 export interface IDrawerProps{
@@ -48,6 +49,7 @@ new Persister(store, 'rooms')
 
 export default function Drawer(props: IDrawerProps){
     const dispatch = useDispatch()
+    const localization = useContext(LocaleContext)
     const boardManager = useContext<BoardManager>(BoardManagerContext)
     const stage = useRef<Konva.Stage | null>(null)
     const stageState = useSelector((state: RootState) => state.stage)
@@ -229,16 +231,16 @@ export default function Drawer(props: IDrawerProps){
     return  (
         <>
         {(isLoading && roomExists) && (
-            <Loading title="Your board is loading" />
+            <Loading title={localization.boardIsLoading} />
         )}
         {
         !roomExists && (
             <Alert 
-                title="There is no sush room"
-                body="Room is deleted or does not exit"
+                title={localization.noSuchRoom}
+                body={localization.roomDeletedOrDoesNotExist}
             >
-                <Link to="/edit"><Button variant="primary" onClick={cleanUp}>Create new</Button></Link>
-                <Link to="/"><Button variant="primary" onClick={cleanUp}>Home</Button></Link>
+                <Link to="/edit"><Button variant="primary" onClick={cleanUp}>{localization.createNew}</Button></Link>
+                <Link to="/"><Button variant="primary" onClick={cleanUp}>{localization.home}</Button></Link>
             </Alert>
         )
         }
