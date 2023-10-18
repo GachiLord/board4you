@@ -36,7 +36,7 @@ export default class CanvasUtils{
             skewX: shape.skewX ? shape.skewX: 0,
             skewY: shape.skewY ? shape.skewY: 0,
             // shapes that are must be connected to this
-            connected: shape.connected ? new Set(...shape.connected): new Set(),
+            connected: shape.connected ? new Set(shape.connected): new Set(),
         }
 
         switch(shape.type){

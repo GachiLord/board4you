@@ -137,7 +137,7 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
                 const connected: Konva.Shape[] = []
                 // find shapes which have interception with clientRect
                 canvas.children.forEach(s => {
-                    if (e.target.attrs.connected.has(s.attrs.shapeId) && s instanceof Konva.Shape) connected.push(s)
+                    if ( s.attrs.connected.has(e.target.attrs.shapeId) && s instanceof Konva.Shape) connected.push(s)
                 })
                 // create transformer for them
                 if (e.target instanceof Konva.Shape) Selection.create([e.target, ...connected], boardManager)
