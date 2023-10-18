@@ -167,6 +167,13 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                     if r.private_id != private_id{
                         return
                     }
+                    // save changes
+                    if action_type == "current"{
+                        r.board.empty_current();
+                    }
+                    else{
+                        r.board.empty_undone();
+                    }
                     // form EmptyData msg 
                     let response = BoardMessage::EmptyData { action_type: (action_type) };
                     let response = serde_json::to_string(&response).unwrap();
