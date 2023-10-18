@@ -6,5 +6,6 @@ import stageDragEnd from "./events/stageDragEnd";
 import stageDragMove from './events/stageDragMove'
 import stageDragBound from "./func/stageDragBound";
 import shapeChange from "./func/shapeChange";
+import sizeChange from "./func/sizeChange";
 
-export {mouseDown, mouseMove, mouseUpLeave, mouseEnter, stageDragBound, stageDragEnd, shapeChange, stageDragMove}
+export {mouseDown, mouseMove, mouseUpLeave, mouseEnter, stageDragBound, stageDragEnd, shapeChange, stageDragMove, sizeChange}

@@ -102,6 +102,14 @@ impl Board {
             }
         };
     }
+
+    pub fn empty_current(&mut self){
+        self.current.clear();
+    }
+
+    pub fn empty_undone(&mut self){
+        self.undone.clear();
+    }
 }
 
 

@@ -8,4 +8,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   handleFileOpen: () => ipcRenderer.send('fileHasOpened'),
   hadleNewFile: () => ipcRenderer.send('newFile'),
   setCanvasSize: (value) => ipcRenderer.send('setCanvasSize', value),
+  removeAllListeners: () => ipcRenderer.removeAllListeners()
 })

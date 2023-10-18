@@ -17,6 +17,7 @@ interface electronAPI{
     handleFileOpen: () => void,
     hadleNewFile: () => void,
     setCanvasSize: (size: ISize) => void,
+    removeAllListeners: () => void
 }
 
 declare global {

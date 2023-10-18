@@ -1,41 +1,24 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { mouseDown, mouseEnter, mouseMove, mouseUpLeave, stageDragBound, stageDragEnd, stageDragMove } from './mouse';
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { Layer, Stage } from 'react-konva';
-import boardEvents from "../../base/constants/boardEvents";
-import EditManager from "../../lib/EditManager";
-import { run } from "../../lib/twiks";
-import runCommand from "./native/runCommand";
-import Selection from "../../lib/Selection";
-import renderVisible from "./image/renderVisible";
 import { ToolName } from "../../base/typing/ToolName";
 import { lineType } from "../../features/toolSettings";
 import store, { RootState } from "../../store/store";
 import Konva from "konva";
-import { ICoor } from "../../base/typing/ICoor";
-import sizeChange from "./mouse/func/sizeChange";
 import BoardManager from "../../lib/BoardManager/BoardManager";
 import { useLocation, useNavigate, useParams } from "react-router";
-import { useDispatch } from "react-redux";
 import { setMode } from "../../features/board";
-import { setRoom } from "../../features/rooms";
 import Persister from "../../lib/Persister";
-import handlePush from "./share/handlePush";
 import Alert from "../../base/components/Alert";
 import { Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
-import handlePushStart from "./share/handlePushStart";
-import handlePushEnd from "./share/handlePushEnd";
-import handlePushUpdate from "./share/handlePushUpdate";
-import { PushSegmentData } from "../../lib/BoardManager/typing";
-import { emptyCurrent, emptyHistory, emptyUndone } from "../../features/history";
+import { emptyHistory } from "../../features/history";
 import BoardManagerContext from "../../base/constants/BoardManagerContext";
-import setCanvasSize from "../../lib/setCanvasSize";
-import handlePull from "./share/handlePull";
 import Loading from "../../base/components/Loading";
 import clearCanvas from "./image/clearCanvas";
-import { tinykeys } from "tinykeys";
 import { LocaleContext } from "../../base/constants/LocaleContext";
+import bootstrap from "./bootstrap";
 
 
 export interface IDrawerProps{
@@ -58,173 +41,35 @@ export default function Drawer(props: IDrawerProps){
     const routerLocation = useLocation()
     const { roomId } = useParams()
     const navigate = useNavigate()
-    const [isLoading, SetLoading] = useState(mode === 'shared' && roomExists)
+    const [isLoading, setLoading] = useState(mode === 'shared' && roomExists)
     const cleanUp = () => { 
         setRoomExists(true)
-        SetLoading(false)
+        setLoading(false)
         dispatch(setMode('local'))
         dispatch(emptyHistory()) 
         if (stage.current) clearCanvas(stage.current.children[0], stage.current.children[1])
     }
+    const getStage = () => {
+        if (stage.current == null){
+            const plugStage = new Konva.Stage({container: document.createElement('div')}) 
+            plugStage.add(new Konva.Layer(), new Konva.Layer(), new Konva.Layer())
+            
+            return plugStage
+        }
+        else return stage.current
+    }
     
     useEffect(() => {
-        // create canvas and editManager
-        const canvas: Konva.Layer = stage.current.children[0]
-        const editManager = new EditManager(canvas, boardManager)
-        // update mode to run useEffect`s callback again
-        if (roomId){
-            dispatch(setMode('shared'))
-        }
-        // join room if mode is shared
-        if (mode === 'shared'){
-            SetLoading(true)
-            boardManager.connect().then( () => {
-                boardManager.joinRoom(roomId)
-                    .then(() => {
-                        boardManager.send('Pull', {
-                            public_id: boardManager.status.roomId,
-                            current: [],
-                            undone: []
-                        })
-                    })
-                    // alert if there is no such room 
-                    .catch((e) => {
-                        console.error(e)
-                        SetLoading(false)
-                        setRoomExists(false)
-                    })
-            } )
-        }
-        // listen for Push msgs
-        boardManager.handlers.onMessage = (msg) => {
-            const parsed = JSON.parse(msg)
-            const key = Object.keys(parsed)[0]
-            const data = parsed[key]
-
-            switch(key){
-                case 'PushData':{
-                    handlePush(editManager, data.data)
-                    break
-                }
-                case 'PullData':
-                    handlePull(editManager, data)
-                    SetLoading(false)
-                    break
-                case 'PushSegmentData':{
-                    const segment: PushSegmentData = data
-                    const t = segment.action_type
-                    if (t === 'Start') handlePushStart(canvas, JSON.parse(segment.data))
-                    if (t === 'Update') handlePushUpdate(canvas, JSON.parse(segment.data))
-                    if (t === 'End') handlePushEnd(canvas, segment.data)
-                    break
-                }
-                case 'UndoRedoData':{
-                    if (data.action_type === 'Undo') editManager.undo(data.action_id, true)
-                    else editManager.redo(data.action_id, true)
-                    break
-                }
-                case 'EmptyData':{
-                    const t = data.action_type 
-                    if (t === 'undone') store.dispatch(emptyUndone())
-                    if (t === 'current') store.dispatch(emptyCurrent())
-                    if (t === 'history') store.dispatch(emptyHistory())
-                    break
-                }
-                case 'SizeData':{
-                    const size = data.data
-                    setCanvasSize(size)
-                    boardEvents.emit('sizeHasChanged', size)
-                    break
-                }
-                default:{
-                    console.log(data)
-                }
-            }
-        }    
-        // handle errors
-        boardManager.handlers.onError = () => setRoomExists(false)     
-        // listen for board events
-        const onRoomCreatedSub = boardEvents.addListener('roomCreated', () => {
-            const state = store.getState()
-            const history = {current: state.history.current, undone: state.history.undone}
-            const size = {height: state.stage.baseHeight, width: state.stage.width}
-            SetLoading(true)
-            BoardManager.createRoom(history, size).then( roomInfo => {
-                // save privateId to continue editing after reload
-                dispatch(setRoom({ publicId: roomInfo.public_id, privateId: roomInfo.private_id }))
-                // replace current location to prevent share button blocking
-                navigate(`/edit/${roomInfo.public_id}`)
-                SetLoading(false)
-            } )
+        return bootstrap({
+            stage: getStage(),
+            boardManager,
+            mode,
+            roomId,
+            setLoading,
+            setRoomExists,
+            navigate,
+            cleanUp
         })
-        const undoSub = boardEvents.addListener('undo', () => {
-            Selection.destroy(canvas)
-            editManager.undo()
-
-            run( api => {
-                api.handleFileChange()
-            } )
-        })
-        const redoSub = boardEvents.addListener('redo', () => {
-            Selection.destroy(canvas)
-            editManager.redo()
-            
-            run( api => {
-                api.handleFileChange()
-            } )
-        })
-        const pageSettedSub = boardEvents.addListener('pageSetted', (pos: ICoor) => {
-            stage.current.position(pos)
-            renderVisible(canvas)
-        })
-        const sizeHasChangedSub = boardEvents.addListener('sizeHasChanged', (size: undefined|{ width: number, height: number, baseHeight: number }) => {
-            const linesLayer = stage.current.children[2]
-            sizeChange(linesLayer, size)
-        })
-        // web event listeners
-        // paste
-        const handlePaste = (e: ClipboardEvent) => {
-            runCommand(stage.current, boardManager, 'paste', e)
-        }
-        window.addEventListener('paste', handlePaste)
-        // copy
-        const handleCopy = (e: ClipboardEvent) => {
-            runCommand(stage.current, boardManager, 'copy', e)
-        }
-        window.addEventListener('copy', handleCopy)
-        // cut
-        const handleCut = (e: ClipboardEvent) => {
-            runCommand(stage.current, boardManager, 'cut', e)
-        }
-        window.addEventListener('cut', handleCut)
-        // listen for keyboard and main process events
-        let keyBindingsSub: () => void = null
-        run( electron => {
-            electron.onMenuButtonClick( (_, o, d) => {runCommand(stage.current, boardManager, o, d)} )
-        },
-        () => {
-            keyBindingsSub = tinykeys(window, {
-                'Control+Shift+L': () => runCommand(stage.current, boardManager, 'selectSize'),
-                'Control+Z': () => runCommand(stage.current, boardManager, 'undo'),
-                'Control+Y': () => runCommand(stage.current, boardManager, 'redo'),
-                'Delete': () => runCommand(stage.current, boardManager, 'del'),
-            })
-        })
-        // remove all listeners on unmount
-        return () => {
-            // boardevents
-            [undoSub, redoSub, pageSettedSub, sizeHasChangedSub, onRoomCreatedSub].forEach( s => s.remove() )
-            // keybindings
-            keyBindingsSub()
-            // web events
-            window.removeEventListener('paste', handlePaste)
-            window.removeEventListener('copy', handleCopy)
-            window.removeEventListener('cut', handleCut)
-            // clean component state
-            cleanUp()
-            // disconnect
-            boardManager.disconnect()
-        }
     }, [mode, routerLocation])
 
 
