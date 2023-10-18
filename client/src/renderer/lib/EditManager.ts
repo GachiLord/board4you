@@ -115,7 +115,7 @@ export default class EditManager{
             case 'modify':
                 edit.current.forEach( (attrs) => {
                     const shapeToModify = CanvasUtils.findOne(this.layer, {shapeId: attrs.shapeId})
-                    shapeToModify.setAttrs({ ...attrs, connected: new Set(...attrs.connected) })
+                    shapeToModify.setAttrs({ ...attrs, connected: new Set(attrs.connected) })
                 } )    
                 break
         }
@@ -138,7 +138,7 @@ export default class EditManager{
             case 'modify':
                 edit.initial.forEach( (attrs) => {
                     const shapeToModify = CanvasUtils.findOne(this.layer, {shapeId: attrs.shapeId})
-                    shapeToModify.setAttrs({ ...attrs, connected: new Set(...attrs.connected) })
+                    shapeToModify.setAttrs({ ...attrs, connected: new Set(attrs.connected) })
                 } )
                 break
         }

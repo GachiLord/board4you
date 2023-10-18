@@ -56,7 +56,6 @@ export default function bootstrap({ stage, boardManager, mode, roomId, setLoadin
     const nativeEventsSub = HandleNativeEvents({ stage, boardManager })
     // handle unmount
     return () => {
-        console.log(1)
         // boardevents
         boardEventsSubs.forEach( s => s.remove() )
         // keybindings

@@ -91,7 +91,6 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
             // validate
             if (!(box instanceof Konva.Rect)) throw new TypeError(`last created temporary shape must be a Rect`)
             const clientRect: IRect = box.getClientRect()
-    
             // offset negative wifth and height
             if (clientRect.width < 0){
                 clientRect.x += box.width()
@@ -111,7 +110,7 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
 
                     if (shape instanceof Konva.Shape) selected.push(shape)
                     shapes.forEach(i => {
-                        if (shape.attrs.connected.has(i.attrs.shapeId) && i instanceof Konva.Shape){
+                        if (i.attrs.connected.has(shape.attrs.shapeId) && i instanceof Konva.Shape){
                             selected.push(i)
                         }
                     })

@@ -38,7 +38,7 @@ export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardMana
             // add ref to eraser line if pointer is on shape
             if (target !== stage && tool === 'eraser'){
                 // add connected
-                target.attrs.connected.add(lastline.attrs.shapeId)
+                lastline.attrs.connected.add(target.attrs.shapeId)
                 // send segments
                 share({
                     shapeId: target.attrs.shapeId,
