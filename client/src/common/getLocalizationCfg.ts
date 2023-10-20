@@ -1,4 +1,4 @@
-const cfg = require('./localization')
+import cfg, { localization } from './localization'
 
 /**
  * This function returns localization config according locale name string
@@ -6,9 +6,9 @@ const cfg = require('./localization')
  * @param {string} locale 
  * @returns {object}
  */
-module.exports = function(locale){
+export default function(locale: string): localization{
     const locales = Object.keys(cfg)
-    const checkMatch = (s) => {
+    const checkMatch = (s: string) => {
         s = s.toLowerCase()
         const checks = locale.split('-').map( item => { 
             item = item.toLowerCase()
@@ -17,8 +17,8 @@ module.exports = function(locale){
         return checks.includes(true)
     } 
 
-    for (let i in locales){
-        let l = locales[i]
+    for (const i in locales){
+        const l = locales[i]
         if (locale === l) return getFullCfg(cfg[l])
         else if (checkMatch(l)) return getFullCfg(cfg[l])
     }
@@ -27,10 +27,10 @@ module.exports = function(locale){
 }
 
 // replace undefined fields with english fields
-function getFullCfg(config){
-    let configCopy = {...config}
-    let fullConfFields = Object.keys(configCopy)
-    let requiredFields = Object.keys(cfg.en)
+function getFullCfg(config: localization){
+    const configCopy = {...config}
+    const fullConfFields = Object.keys(configCopy)
+    const requiredFields = Object.keys(cfg.en)
 
     requiredFields.forEach(f => {
         if ( !fullConfFields.includes(f) ) configCopy[f] = cfg.en[f]

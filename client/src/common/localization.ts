@@ -1,4 +1,73 @@
-module.exports = {
+export interface localization{
+    [key: string]: string|string[]
+    //common
+    loading: string,
+    // header
+    home: string,
+    createBoard: string,
+    signIn: string,
+    signUp: string,
+    // board share mode
+    noSuchRoom: string,
+    boardIsLoading: string,
+    roomDeletedOrDoesNotExist: string,
+    createNew: string,        
+    // exit alert
+    exitAlertMsg: string,
+    exitAlertOptions: string[],
+    // file menu
+    fileMenuLabel: string,
+    create: string,
+    open: string,
+    save: string,
+    saveAs: string,
+    close: string,
+    // file open menu
+    savePdfOrZip: string,
+    // canvas size menu
+    selectSizeOfCanvas: string,
+    selectSize: string,
+    width: string,
+    height: string,
+    // edit menu
+    editMenuLabel: string,
+    undo: string,
+    redo: string,
+    cut: string,
+    copy: string,
+    paste: string,
+    del: string
+    viewMenuLabel: string,
+    reload: string,
+    forceReload: string,
+    devTools: string,
+    resetZoom: string,
+    zoomIn: string,
+    zoomOut: string,
+    fullscreen: string,
+    // help menu
+    help: string,
+    learnMore: string,
+    // cusomizer`s popup
+    solid: string,
+    dashed: string,
+    size: string,
+    // tools popovers
+    move: string,
+    select: string,
+    pen: string,
+    line:string,
+    arrow: string,
+    rect: string,
+    ellipse: string,
+    eraser: string,
+}
+
+export interface localizationConfig{
+    [key: string]: localization
+} 
+
+const loc: localizationConfig = {
     en: {
         //common
         loading: 'Loading',
@@ -26,7 +95,6 @@ module.exports = {
         savePdfOrZip: 'save pdf or zip',
         // canvas size menu
         selectSizeOfCanvas: 'Select size of the canvas',
-        select: 'select',
         selectSize: 'Select size',
         width: 'Width',
         height: 'Height',
@@ -51,7 +119,6 @@ module.exports = {
         help: 'help',
         learnMore: 'Learn more',
         // cusomizer`s popup
-        line: 'Line',
         solid: 'solid',
         dashed: 'dashed',
         size: 'Size',
@@ -121,6 +188,15 @@ module.exports = {
         solid: 'сплошная',
         dashed: 'прерывистая',
         size: 'Размер',
-        
+        // tools popovers
+        move: 'Перемещать',
+        pen: 'Карандаш',
+        arrow: 'Стрелка',
+        rect: 'Прямоугольник',
+        ellipse: 'Круг',
+        eraser: 'Ластик',
     }
 }
+
+
+export default loc

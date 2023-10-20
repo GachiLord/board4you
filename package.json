@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.3",
+    "@types/pdfkit": "^0.13.1"
+  }
+}

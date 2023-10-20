@@ -5,6 +5,7 @@ const path = require('path');
 module.exports = () => {
   return {
     entry: {
+      main: './src/entries/main.ts',
       web: './src/entries/web.tsx',
       'pdf': 'pdfjs-dist/legacy/build/pdf',
       'pdf.worker': 'pdfjs-dist/build/pdf.worker.min'

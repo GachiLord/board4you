@@ -5,7 +5,7 @@
  * @name getCanvasSize
  * @returns {{height: number, width: number}}
  */
-module.exports = function(){
+export default function(): { height: number; width: number }{
     try{
         let exp = {height: 920, width: 1720}
 
@@ -14,7 +14,7 @@ module.exports = function(){
                 try{
                     exp = JSON.parse(localStorage.getItem('CanvasSize'))
                 }
-                catch{}
+                catch{ /* empty */ }
             }
         }
         else if (globalThis.CanvasSize) exp = globalThis.CanvasSize

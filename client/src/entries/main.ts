@@ -1,17 +1,25 @@
+/* eslint-disable no-var */
 // check for update
-const { autoUpdater } = require("electron-updater")
+import { autoUpdater } from "electron-updater"
 autoUpdater.checkForUpdatesAndNotify()
 // import app`s deps
-const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron')
+import { app, BrowserWindow, Menu, ipcMain, dialog } from 'electron'
 const isMac = process.platform === 'darwin'
-const path = require('path')
-const ElectronFileManager = require('./FileManager')
-const getLocalization = require('../common/getLocalizationCfg')
-const getAppTittle = require('../common/getAppTittle')
-const getTemplate = require('./getTemplate')
-const getPathFromArgs = require("./getPathFromArgs")
-const FileManager = require("./FileManager")
+import path from 'path'
+import ElectronFileManager from '../main/FileManager'
+import getLocalization from '../common/getLocalizationCfg'
+import getAppTittle from '../common/getAppTittle'
+import getTemplate from '../main/getTemplate'
+import getPathFromArgs from "../main/getPathFromArgs"
+import FileManager from "../main/FileManager"
+import ISize from "../renderer/base/typing/ISize"
 
+
+declare global {
+  var localizationCfg: any
+  var CanvasSize: ISize
+  var appWindow: BrowserWindow
+}
 
 // prepare args
 if (app.isPackaged) {
@@ -19,7 +27,7 @@ if (app.isPackaged) {
 }
 
 // state vars
-let currentFilePath = null
+let currentFilePath:string = null
 let fileHasChanged = false
 let fileIsSaving = false
 
@@ -50,7 +58,7 @@ function createWindow() {
 
   async function handleOpenFile(){
     const open = async () => {
-      let opened = await ElectronFileManager.openFilesAsBase64Images()
+      const opened = await ElectronFileManager.openFilesAsBase64Images()
 
       win.webContents.send('onMenuButtonClick', 'openFile', opened )
       currentFilePath = opened ? opened.path: undefined
@@ -65,7 +73,7 @@ function createWindow() {
 
   async function handleNewFile(){
     if ( fileHasChanged && !fileIsSaving ) {
-      if (exitAlert()) e.preventDefault()
+      if (exitAlert()) return//e.preventDefault()
       win.webContents.send('onMenuButtonClick', 'newFile')
       currentFilePath = null 
       globalThis.appWindow.setTitle(getAppTittle())
@@ -77,7 +85,8 @@ function createWindow() {
   win.loadFile('./bundles/desktop/index.html')
 
   // top menu
-  const menu = Menu.buildFromTemplate(getTemplate(win, localeCfg, handleNewFile, handleOpenFile))
+  const template: any = getTemplate(win, localeCfg, handleNewFile, handleOpenFile)
+  const menu = Menu.buildFromTemplate(template)
   Menu.setApplicationMenu(menu)
 
   win.on('close', (e) => {
@@ -155,7 +164,7 @@ app.whenReady().then(() => {
 
 
 app.on('window-all-closed', () => {
-  if (isMac !== 'darwin') {
+  if (isMac) {
     app.quit()
   }
 })

@@ -1,15 +1,16 @@
-const { dialog } = require('electron')
-const fs = require('fs')
-const imgToPDF = require('image-to-pdf')
-const AdmZip = require("adm-zip")
-const getCanvasSize = require('../common/getCanvasSize')
+import { dialog } from 'electron'
+import fs from 'fs'
+import imgToPDF from './imageToPdf'
+import AdmZip from "adm-zip"
+import getCanvasSize from '../common/getCanvasSize'
+
 
 
 /**
  * `FileManager` contains several static methods for working with files, such as opening
  * files as base64 images, getting the file extension, and saving base64 files. * 
  */
-module.exports = class FileManager{
+export default class FileManager{
 
     /**
      * `static async openFilesAsBase64Images()` is a static method of the `FileManager` class that opens a dialog box to select
@@ -51,12 +52,12 @@ module.exports = class FileManager{
      * @param {string} path
      * @returns {{ base64: string[]; path: string; type: 'pdf'|'png'|'zip'; }}
      */
-    static getFileAsBase64Imgs(path){
+    static getFileAsBase64Imgs(path: string){
         let extention = FileManager.getFileExtension(path)
         let base64Files = []
         
         if (extention === 'zip'){
-            let zip = new AdmZip(path)
+            const zip = new AdmZip(path)
             zip.getEntries().forEach(e => {
                 base64Files.push(FileManager.getFullBase64(zip.readFile(e).toString('base64')))
             })
@@ -82,8 +83,8 @@ module.exports = class FileManager{
      * @param {string} filePath
      * @returns {string}
      */
-    static getFileExtension(filePath) {
-        let extention = filePath.split('.')
+    static getFileExtension(filePath: string) {
+        const extention = filePath.split('.')
         return extention.length > 1 ? extention.at(-1): 'zip'
     }
 
@@ -99,7 +100,7 @@ module.exports = class FileManager{
      * @param {string} path
      * @returns {string}
      */
-    static getBase64ofFile(path){
+    static getBase64ofFile(path: string){
         switch(this.getFileExtension(path)){
             case 'png':
                 return "data:image/png;base64,"+fs.readFileSync(path, 'base64');
@@ -122,7 +123,7 @@ module.exports = class FileManager{
      * @param {string} base64Value
      * @returns {string}
      */
-    static getFullBase64(base64Value) { return "data:image/png;base64," + base64Value }
+    static getFullBase64(base64Value: string) { return "data:image/png;base64," + base64Value }
 
     /**
      * `static getOnlyBase64Value(base64)` is a static method of the `FileManager` class that takes a base64-encoded string as
@@ -137,7 +138,7 @@ module.exports = class FileManager{
      * @param {string} base64
      * @returns {string}
      */
-    static getOnlyBase64Value(base64){
+    static getOnlyBase64Value(base64: string){
         return base64.replace(/data:.*base64,/, '')
     }
 
@@ -156,14 +157,14 @@ module.exports = class FileManager{
      * @param {string} filePath
      * @returns {Promise<string>}
      */
-    static async saveBase64(base64files, filePath) {
+    static async saveBase64(base64files: string[], filePath: string) {
         const canvasSize = getCanvasSize()
         // file and info
-        let extention = FileManager.getFileExtension(filePath)
-        let uniqueBase64Files = new Array(...new Set(base64files))
+        const extention = FileManager.getFileExtension(filePath)
+        const uniqueBase64Files = new Array(...new Set(base64files))
         // create stream and promise for finish evt
         const fsStream = fs.createWriteStream(filePath)
-        const finish = new Promise( (resolve, reject) => {
+        const finish: Promise<string> = new Promise( (resolve, reject) => {
             fsStream.on('finish', () => resolve(filePath) )
             fsStream.on('drain', () => resolve(filePath) )
             fsStream.on('error', (e) =>  reject(e) )
@@ -172,7 +173,7 @@ module.exports = class FileManager{
 
         if (extention === 'pdf') imgToPDF(uniqueBase64Files, [canvasSize.width, canvasSize.height]).pipe(fsStream)
         else {
-            let zip = new AdmZip()
+            const zip = new AdmZip()
             uniqueBase64Files.forEach( (base64, i) => {
                 base64 = FileManager.getOnlyBase64Value(base64)
                 zip.addFile(`lesson${i+1}.png`, Buffer.from(base64, 'base64'))
@@ -198,7 +199,7 @@ module.exports = class FileManager{
      * @param {string} base64file
      * @returns {Promise<string>}
      */
-    static async saveBase64As(base64file) {
+    static async saveBase64As(base64file: string[]) {
         const pathDialog = await dialog.showSaveDialog(globalThis.appWindow, {
             title: globalThis.localizationCfg.savePdfOrZip,
             defaultPath: 'lesson.pdf',
