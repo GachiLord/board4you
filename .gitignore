@@ -2,7 +2,14 @@ node_modules
 client/out/
 client/dist/
 client/public/*.js
+client/public/*.css
+client/public/*.png
 client/public/*.js.LICENSE.txt
 client/public/*.js
+client/public/common
+client/public/entries
+client/public/main
+client/public/rednerer/
 electron-builder.env
 target/
+bun.lockb
