@@ -13,8 +13,16 @@ export default function handlePushEnd(canvas: Konva.Layer, shapeId: string){
     store.dispatch(addCurrent(
         {id: shape.attrs.shapeId, type: 'add', shape: CanvasUtils.toShape(shape)}
     ))
-    // cache shape if shape is complex
-    if (itemIn(shape.attrs.tool, 'pen', 'eraser', 'arrow', 'line')) shape.cache()
+    if (itemIn(shape.attrs.tool, 'pen', 'eraser', 'arrow', 'line')) {
+        // add points if shape created by one click
+        if ( !(shape instanceof Konva.Line) ) throw new TypeError('shape must be Konva.Line')
+        const points = shape.attrs.points
+        if (points.length === 2){
+            shape.points([ points[0] + 1, points[1] + 1, points[0] - 1, points[1] ])
+        }
+        // cache shape
+        shape.cache()
+    }
     // update height using last shape
     const stage = store.getState().stage
     const newHeight = CanvasUtils.getHeight(canvas, stage.baseHeight)
