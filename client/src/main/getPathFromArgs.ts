@@ -1,4 +1,4 @@
-const path = require('path')
+import path from 'path'
 
 /**
  * function takes an array of strings as an argument. The function checks each string
@@ -6,7 +6,7 @@ const path = require('path')
  * extensions, it returns that string. If it doesn't find any strings with those extensions, it returns null.
  * 
  */
-module.exports = function(args){
+export default function getPathFromArgs(args: unknown[]){
     for (const arg of args){
         if (typeof arg !== 'string') continue
 

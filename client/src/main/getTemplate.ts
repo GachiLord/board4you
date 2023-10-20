@@ -1,7 +1,9 @@
+import { shell, BrowserWindow } from 'electron'
+
 const isMac = process.platform === 'darwin'
 
 
-module.exports = function(win, localeCfg, handleNewFile, handleOpenFile){
+export default function(win: BrowserWindow, localeCfg: any, handleNewFile: () => void, handleOpenFile: () => void){
     return [
         // { role: 'fileMenu' }
         {
@@ -56,7 +58,6 @@ module.exports = function(win, localeCfg, handleNewFile, handleOpenFile){
             {
               label: localeCfg.learnMore,
               click: async () => {
-                const { shell } = require('electron')
                 await shell.openExternal('https://github.com/GachiLord/board4you')
               }
             }

@@ -5,7 +5,7 @@
  * @param {string} path
  * @returns {string}
  */
-module.exports = function(path, defaultTittle = 'board4you'){
+export default function(path?: unknown, defaultTittle = 'board4you'){
     if (typeof path === 'string'){
         const parsed = path.split(/\/|\\/gm)
 
