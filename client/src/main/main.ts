@@ -82,7 +82,7 @@ function createWindow() {
   }
 
   // load page
-  win.loadFile('./desktop.html')
+  win.loadFile(path.join(__dirname, 'desktop.html'))
 
   // top menu
   const template: any = getTemplate(win, localeCfg, handleNewFile, handleOpenFile)
