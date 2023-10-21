@@ -4,7 +4,7 @@
       "noImplicitAny": true,
       "module": "ES2022",
       "target": "ES2022",
-      "lib": ["es2023", "es2022"],
+      "lib": ["es2023", "es2022", "DOM"],
       "jsx": "react",
       "allowJs": true,
       "moduleResolution": "node",

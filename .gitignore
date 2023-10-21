@@ -10,6 +10,7 @@ client/public/common
 client/public/entries
 client/public/main
 client/public/rednerer/
+client/public/*.js.map
 electron-builder.env
 target/
 bun.lockb

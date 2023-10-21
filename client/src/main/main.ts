@@ -6,12 +6,12 @@ autoUpdater.checkForUpdatesAndNotify()
 import { app, BrowserWindow, Menu, ipcMain, dialog } from 'electron'
 const isMac = process.platform === 'darwin'
 import path from 'path'
-import ElectronFileManager from '../main/FileManager'
+import ElectronFileManager from './FileManager'
 import getLocalization from '../common/getLocalizationCfg'
 import getAppTittle from '../common/getAppTittle'
-import getTemplate from '../main/getTemplate'
-import getPathFromArgs from "../main/getPathFromArgs"
-import FileManager from "../main/FileManager"
+import getTemplate from './getTemplate'
+import getPathFromArgs from "./getPathFromArgs"
+import FileManager from "./FileManager"
 import ISize from "../renderer/base/typing/ISize"
 
 
@@ -39,7 +39,7 @@ function createWindow() {
     width: 800,
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
     }
   })
   globalThis.appWindow = win
@@ -82,7 +82,7 @@ function createWindow() {
   }
 
   // load page
-  win.loadFile('./bundles/desktop/index.html')
+  win.loadFile('./desktop.html')
 
   // top menu
   const template: any = getTemplate(win, localeCfg, handleNewFile, handleOpenFile)

@@ -1,0 +1,7 @@
+mainConfig:
+  type: esbuild
+  path: esbuild.main.config.ts
+  src: src/main/main.ts
+  output:
+    dir: public
+    filename: main.js
