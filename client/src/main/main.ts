@@ -13,10 +13,11 @@ import getTemplate from './getTemplate'
 import getPathFromArgs from "./getPathFromArgs"
 import FileManager from "./FileManager"
 import ISize from "../renderer/base/typing/ISize"
+import { localization } from "../common/localization"
 
 
 declare global {
-  var localizationCfg: any
+  var localizationCfg: localization
   var CanvasSize: ISize
   var appWindow: BrowserWindow
 }

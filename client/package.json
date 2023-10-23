@@ -5,13 +5,13 @@
   "repository": "https://github.com/GachiLord/board4you",
   "main": "./public/main.js",
   "scripts": {
-    "build": "./node_modules/.bin/esbuild ./src/entries/web.tsx --bundle --outdir=./public --loader:.png=dataurl --minify",
-    "dev": "./node_modules/.bin/esbuild ./src/entries/web.tsx --bundle --outdir=./public --loader:.png=dataurl --watch",
-    "buildMain": "./node_modules/.bin/esbuild ./src/entries/desktop.tsx --bundle --outdir=./public --loader:.png=dataurl --minify; electron-esbuild build",
+    "build": "cp ./node_modules/pdfjs-dist/build/pdf.worker.js ./public/pdf.worker.js; ./node_modules/.bin/esbuild ./src/entries/web.tsx --bundle --outdir=./public --loader:.png=dataurl --minify",
+    "dev": "cp ./node_modules/pdfjs-dist/build/pdf.worker.js ./public/pdf.worker.js; ./node_modules/.bin/esbuild ./src/entries/web.tsx --bundle --outdir=./public --loader:.png=dataurl --watch",
+    "buildMain": "cp ./node_modules/pdfjs-dist/build/pdf.worker.js ./public/pdf.worker.js; ./node_modules/.bin/esbuild ./src/entries/desktop.tsx --bundle --outdir=./public --loader:.png=dataurl --minify; electron-esbuild build",
     "devMain": "electron-esbuild dev",
     "electron": "electronmon .",
-    "buildApp": "./node_modules/.bin/esbuild ./src/entries/desktop.tsx --bundle --outdir=./public --loader:.png=dataurl --minify; electron-esbuild build; electron-builder -wl",
-    "release": "./node_modules/.bin/esbuild ./src/entries/desktop.tsx --bundle --outdir=./public --loader:.png=dataurl --minify; electron-esbuild build; electron-builder -wl",
+    "buildApp": "cp ./node_modules/pdfjs-dist/build/pdf.worker.js ./public/pdf.worker.js; ./node_modules/.bin/esbuild ./src/entries/desktop.tsx --bundle --outdir=./public --loader:.png=dataurl --minify; electron-esbuild build; electron-builder -wl",
+    "release": "cp ./node_modules/pdfjs-dist/build/pdf.worker.js ./public/pdf.worker.js; ./node_modules/.bin/esbuild ./src/entries/desktop.tsx --bundle --outdir=./public --loader:.png=dataurl --minify; electron-esbuild build; electron-builder -wl",
     "test": "jest"
   },
   "build": {
@@ -37,9 +37,23 @@
       "github"
     ],
     "win": {
+      "files": [
+        "public/desktop.html",
+        "public/main.js",
+        "public/preload.js",
+        "public/desktop.js",
+        "public/desktop.css"
+      ],
       "target": "nsis"
     },
     "linux": {
+      "files": [
+        "public/desktop.html",
+        "public/main.js",
+        "public/preload.js",
+        "public/desktop.js",
+        "public/desktop.css"
+      ],
       "target": "AppImage"
     }
   },
@@ -49,6 +63,7 @@
     "@flaticon/flaticon-uicons": "^1.7.1",
     "@react-spring/web": "^9.7.3",
     "@reduxjs/toolkit": "^1.9.7",
+    "@types/adm-zip": "^0.5.3",
     "@types/react": "^18.2.31",
     "@types/react-redux": "^7.1.28",
     "adm-zip": "^0.5.10",
