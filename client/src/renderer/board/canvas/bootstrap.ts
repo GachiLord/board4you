@@ -16,11 +16,12 @@ interface Editor{
     roomId: string
     setLoading: (s: boolean) => void
     setRoomExists: (s: boolean) => void
+    setError: (s: boolean) => void
     navigate: (l: string) => void
     cleanUp: () => void
 }
 
-export default function bootstrap({ stage, boardManager, mode, roomId, setLoading, setRoomExists, navigate, cleanUp }: Editor){
+export default function bootstrap({ stage, boardManager, mode, roomId, setLoading, setRoomExists, setError, navigate, cleanUp }: Editor){
     // create canvas and editManager
     const canvas: Konva.Layer = stage.children[0]
     const editManager = new EditManager(canvas, boardManager)
@@ -36,6 +37,7 @@ export default function bootstrap({ stage, boardManager, mode, roomId, setLoadin
     // set listener for msgs
     boardManager.handlers.onMessage = (msg: string) => handleMessage(msg, {
         editManager,
+        setError,
         setLoading
     })
     // handle errors

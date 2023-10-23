@@ -13,11 +13,12 @@ import setCanvasSize from "../../../lib/setCanvasSize"
 
 interface props{
     editManager: EditManager,
-    setLoading: (s: boolean) => void
+    setLoading: (s: boolean) => void,
+    setError: (s: boolean) => void
 }
 
 
-export default function(msg: string, {editManager, setLoading}: props){
+export default function(msg: string, {editManager, setLoading, setError}: props){
     const canvas = editManager.layer
     const parsed = JSON.parse(msg)
     const key = Object.keys(parsed)[0]
@@ -58,8 +59,11 @@ export default function(msg: string, {editManager, setLoading}: props){
             boardEvents.emit('sizeHasChanged', size)
             break
         }
-        default:{
-            console.log(data)
+        case 'Info':{
+            if (data.action === 'Push', data.payload === 'data has no id'){
+                console.error(parsed)
+                setError(true)
+            }
         }
     }
 }    

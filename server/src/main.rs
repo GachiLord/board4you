@@ -35,7 +35,7 @@ async fn main() {
         });
     // static paths
     let public_path = &env::var("PUBLIC_PATH").expect("$PUBLIC_PATH must be provided");
-    let index_path = Path::new(&public_path).join("index.html");
+    let index_path = Path::new(&public_path).join("web.html");
     // routing static files
     let default_route = warp::fs::file(index_path);
     let static_site = warp::fs::dir(public_path.to_owned()).or(default_route);
