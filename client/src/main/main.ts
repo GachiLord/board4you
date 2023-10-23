@@ -13,10 +13,11 @@ import getTemplate from './getTemplate'
 import getPathFromArgs from "./getPathFromArgs"
 import FileManager from "./FileManager"
 import ISize from "../renderer/base/typing/ISize"
+import { localization } from "../common/localization"
 
 
 declare global {
-  var localizationCfg: any
+  var localizationCfg: localization
   var CanvasSize: ISize
   var appWindow: BrowserWindow
 }
@@ -85,8 +86,7 @@ function createWindow() {
   win.loadFile(path.join(__dirname, 'desktop.html'))
 
   // top menu
-  const template: any = getTemplate(win, localeCfg, handleNewFile, handleOpenFile)
-  const menu = Menu.buildFromTemplate(template)
+  const menu = Menu.buildFromTemplate(getTemplate(win, localeCfg, handleNewFile, handleOpenFile))
   Menu.setApplicationMenu(menu)
 
   win.on('close', (e) => {

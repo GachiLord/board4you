@@ -1,10 +1,11 @@
 import { shell, BrowserWindow } from 'electron'
+import { localization } from '../common/localization'
 
 const isMac = process.platform === 'darwin'
 
 
-export default function(win: BrowserWindow, localeCfg: any, handleNewFile: () => void, handleOpenFile: () => void){
-    return [
+export default function(win: BrowserWindow, localeCfg: localization, handleNewFile: () => void, handleOpenFile: () => void){
+    const template: Electron.MenuItemConstructorOptions[] = [
         // { role: 'fileMenu' }
         {
           label: localeCfg.fileMenuLabel,
@@ -22,7 +23,7 @@ export default function(win: BrowserWindow, localeCfg: any, handleNewFile: () =>
              }, accelerator: 'CommandOrControl+S' },
             { label: localeCfg.saveAs, click: () => { win.webContents.send('onMenuButtonClick', 'saveFileAs') }, accelerator: 'CommandOrControl+Shift+S' },
             { type: 'separator'},
-            isMac ? { role: 'close', label: localeCfg.file } : { role: 'quit', label: localeCfg.close }
+            isMac ? { role: 'close', label: String(localeCfg.file) } : { role: 'quit', label: localeCfg.close }
           ]
         },
         // { role: 'editMenu' }
@@ -64,4 +65,6 @@ export default function(win: BrowserWindow, localeCfg: any, handleNewFile: () =>
           ]
         }
     ]
+
+    return template
 }
