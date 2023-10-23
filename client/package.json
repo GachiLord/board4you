@@ -6,7 +6,7 @@
   "main": "./public/main.js",
   "scripts": {
     "build": "./node_modules/.bin/esbuild ./src/entries/web.tsx --bundle --outdir=./public --loader:.png=dataurl --minify",
-    "dev": "./node_modules/.bin/esbuild ./src/entries/web.tsx --bundle --outdir=./public --loader:.png=dataurl --watch",
+    "dev": "./node_modules/.bin/esbuild ./src/entries/web.tsx --bundle --outdir=./public --loader:.png=dataurl --sourcemap --watch",
     "buildMain": "./node_modules/.bin/esbuild ./src/entries/desktop.tsx --bundle --outdir=./public --loader:.png=dataurl --minify; electron-esbuild build",
     "devMain": "electron-esbuild dev",
     "electron": "electronmon .",

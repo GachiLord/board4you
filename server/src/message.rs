@@ -3,7 +3,6 @@ use tokio::sync::{RwLockReadGuard, mpsc::UnboundedSender};
 use warp::ws::Message;
 use serde::{Deserialize, Serialize};
 use crate::state::{Room, BoardSize, Command, CommandName};
-
 use super::state::{Rooms, WSUsers, PullData};
 use std::{mem, collections::HashMap};
 
@@ -52,7 +51,7 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 Some(r) => {
                     r.add_user(user_id);
                     let _ = client.send(Message::text(
-                        json!({"status": "ok", "action":"Join", "payload": {"public_id": public_id} }).to_string()
+                        json!({ "Info": {"status": "ok", "action":"Join", "payload": {"public_id": public_id} } }).to_string()
                     ));
                     let _ = client.send(Message::text(
                         serde_json::to_string(&BoardMessage::SizeData { data: (r.board.size) }).unwrap()
@@ -60,7 +59,7 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 },
                 None => {
                     let _ = client.send(Message::text(
-                        json!({"status": "bad", "action":"Join", "payload": "no such room"}).to_string()
+                        json!({ "Info": {"status": "bad", "action":"Join", "payload": "no such room"} }).to_string()
                     ));
                 }
             }
@@ -73,12 +72,12 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 Some(r) => {
                     r.remove_user(user_id);
                     let _ = client.send(Message::text(
-                        json!({"status": "ok", "action":"Quit", "payload": "disconnected from the room"}).to_string()
+                        json!({ "Info": {"status": "ok", "action":"Quit", "payload": "disconnected from the room"} }).to_string()
                     ));
                 },
                 None => {
                     let _ = client.send(Message::text(
-                        json!({"status": "bad", "action":"Quit", "payload": "no such room"}).to_string()
+                        json!({"Info": {"status": "bad", "action":"Quit", "payload": "no such room"} }).to_string()
                     ));
                 }
             }
@@ -90,10 +89,20 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 Some(r) => {
                     // skip if private_key is not valid
                     if r.private_id != private_id{
+                        send_to_user(client, json!({
+                            "Info": {"status": "bad", "action":"Push", "payload": "private_id is invalid"}
+                        }));
                         return
                     }
-                    // save changes
-                    data.iter().for_each( |edit| r.board.push(edit.to_owned()) );
+                    // save changes and validate data
+                    data.iter().for_each( |edit| {
+                        match r.board.push(edit.to_owned()) {
+                            Ok(()) => (),
+                            Err(e) => send_to_user(client, json!({
+                                "Info": {"status": "bad", "action":"Push", "payload": e}
+                            }))
+                        }
+                    } );
                     // form data
                     let push_data = BoardMessage::PushData { action: ("Push".to_owned()), data: (mem::take(&mut data)) };
                     let push_data = serde_json::to_string(&push_data).unwrap();
@@ -104,7 +113,7 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 },
                 None => {
                     let _ = client.send(Message::text(
-                        json!({"status": "bad", "action":"Push", "payload": "no such room"}).to_string()
+                        json!({ "Info": {"status": "bad", "action":"Push", "payload": "no such room"} }).to_string()
                     ));
                 }
             };
@@ -116,6 +125,9 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 Some(r) => {
                     // skip if private_key is not valid
                     if r.private_id != private_id{
+                        send_to_user(client, json!({
+                            "Info": {"status": "bad", "action":"PushSegment", "payload": "private_id is invalid"}
+                        }));
                         return
                     }
                     // form PushSegment msg
@@ -126,7 +138,7 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 },
                 None => {
                     let _ = client.send(Message::text(
-                        json!({"status": "bad", "action":"PushSegment", "payload": "no such room"}).to_string()
+                        json!({"Info": {"status": "bad", "action":"PushSegment", "payload": "no such room"}}).to_string()
                     ));
                 }
             }
@@ -137,6 +149,9 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 Some(r) => {
                     // skip if private_key is not valid
                     if r.private_id != private_id{
+                        send_to_user(client, json!({
+                            "Info": {"status": "bad", "action":"UndoRedo", "payload": "private_id is invalid"}
+                        }));
                         return
                     }
                     // form UndoRedo msg 
@@ -145,16 +160,23 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                     // determine command name
                     let command_name = if action_type == "Undo" { CommandName::Undo } else { CommandName::Redo };
                     // save changes
-                    r.board.exec_command( Command{
+                    let exec_command = r.board.exec_command( Command{
                         name: command_name,
                         id: action_id
                     } );
-                    // send
-                    send_all_except_sender(clients, r, user_id, response);
+                    // handle command result
+                    match exec_command {
+                        Ok(()) => {
+                            send_all_except_sender(clients, r, user_id, response);
+                        },
+                        Err(e) => send_to_user(client, json!({
+                            "Info": {"status": "bad", "action":"UndoRedo", "payload": e}
+                        }))
+                    }
                 },
                 None => {
                     let _ = client.send(Message::text(
-                        json!({"status": "bad", "action":"UndoRedo", "payload": "no such room"}).to_string()
+                        json!({"Info": {"status": "bad", "action":"UndoRedo", "payload": "no such room"}}).to_string()
                     ));
                 }
             }
@@ -165,6 +187,9 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 Some(r) => {
                     // skip if private_key is not valid
                     if r.private_id != private_id{
+                        send_to_user(client, json!({
+                            "Info": {"status": "bad", "action":"Empty", "payload": "private_id is invalid"}
+                        }));
                         return
                     }
                     // save changes
@@ -182,7 +207,7 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 },
                 None => {
                     let _ = client.send(Message::text(
-                        json!({"status": "bad", "action":"UndoRedo", "payload": "no such room"}).to_string()
+                        json!({"Info" : {"status": "bad", "action":"UndoRedo", "payload": "no such room"}}).to_string()
                     ));
                 }
             }
@@ -193,6 +218,9 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 Some(r) => {
                     // skip if private_key is not valid
                     if r.private_id != private_id{
+                        send_to_user(client, json!({
+                            "Info": {"status": "bad", "action":"SetSize", "payload": "private_id is invalid"}
+                        }));
                         return
                     }
                     // update board state
@@ -205,7 +233,7 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 },
                 None => {
                     let _ = client.send(Message::text(
-                        json!({"status": "bad", "action": "SetSize", "payload": "no such room"}).to_string()
+                        json!({"Info": {"status": "bad", "action": "SetSize", "payload": "no such room"}}).to_string()
                     ));
                 }
             }
@@ -221,7 +249,7 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
                 },
                 None => {
                     let _ = client.send(Message::text(
-                        json!({"status": "bad", "action": "Pull", "payload": "no such room"}).to_string()
+                        json!({"Info": {"status": "bad", "action": "Pull", "payload": "no such room"}}).to_string()
                     ));
                 }
             }
@@ -229,7 +257,7 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
 
         _ => {
             let _ = client.send(Message::text(
-                json!({"status": "bad", "action":"Unknown", "payload": "no such method"}).to_string()
+                json!({ "Info": {"status": "bad", "action":"Unknown", "payload": "no such method"} }).to_string()
             ));
         }
     }
@@ -254,4 +282,8 @@ fn send_all_except_sender(
             };
         }
     });
+}
+
+fn send_to_user(user: &UnboundedSender<Message>, msg: impl ToString){
+    let _ = user.send(Message::text(msg.to_string()));
 }

@@ -75,32 +75,52 @@ impl Board {
         };        
     }
 
-    pub fn push(&mut self, data: String){
-        // come out with smth better here
-        let value: Value = serde_json::from_str(&data).unwrap();
+    pub fn push(&mut self, data: String) -> Result<(), String>{
+        // parse data as HashMap
+        let value: Value = match serde_json::from_str(&data) {
+            Ok(v) => v,
+            Err(_) => return Err(String::from("data is not a json"))
+        };
+        let value_as_object = match value.as_object(){
+            Some(v) => v,
+            None => return Err(String::from("data is not an object"))
+        };
+        // check for id property
+        Board::retrive_id(value_as_object)?;
         
-        self.current.push(value.as_object().unwrap().to_owned());
+        self.current.push(value_as_object.to_owned());
+        Ok(())
     }
 
-    pub fn exec_command(&mut self, command: Command){
+    pub fn exec_command(&mut self, command: Command) -> Result<(), String>{
         match command.name {
             CommandName::Undo => {
                 let edit_index = self.current.iter().position(|e| {
-                    let id = e.get("id").unwrap().as_str().unwrap();
-                    return id == &command.id
-                }).unwrap();
+                    let id = Board::retrive_id(e);
+                    return id.as_ref() == Ok(&command.id)
+                });
+                let edit_index = match edit_index {
+                    Some(id) => id,
+                    None => return Err(String::from("no sush id"))
+                };
                 let edit = self.current.remove(edit_index);
                 self.undone.push(edit);
             }
             CommandName::Redo => {
                 let edit_index = self.undone.iter().position(|e| {
-                    let id = e.get("id").unwrap().as_str().unwrap();
-                    return id == &command.id
-                }).unwrap();
+                    let id = Board::retrive_id(e);
+                    return id.as_ref() == Ok(&command.id)
+                });
+                let edit_index = match edit_index {
+                    Some(id) => id,
+                    None => return Err(String::from("no sush id"))
+                };
                 let edit = self.undone.remove(edit_index);
                 self.current.push(edit);
             }
         };
+
+        Ok(())
     }
 
     pub fn empty_current(&mut self){
@@ -109,6 +129,21 @@ impl Board {
 
     pub fn empty_undone(&mut self){
         self.undone.clear();
+    }
+
+    fn retrive_id(item: &Map<String, Value>) -> Result<String, String>{
+        // check if id is present
+        let id = match item.get("id"){
+            Some(id) => {
+                match id.as_str() {
+                    Some(id) => id,
+                    None => return Err(String::from("id is not a string"))
+                }
+            },
+            None => return Err(String::from("data has no id"))
+        };
+
+        return Ok(id.to_string())
     }
 }
 

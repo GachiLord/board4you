@@ -7,6 +7,9 @@ export interface localization{
     createBoard: string,
     signIn: string,
     signUp: string,
+    // errors
+    unexpectedError: string,
+    tryToReloadThePage: string
     // board share mode
     noSuchRoom: string,
     boardIsLoading: string,
@@ -76,6 +79,9 @@ const loc: localizationConfig = {
         createBoard: 'Create board',
         signIn: 'Sign in',
         signUp: 'Sign up',
+        // errors
+        unexpectedError: "Unexpected error",
+        tryToReloadThePage: "Try to reload the page",
         // board share mode
         noSuchRoom: 'There is no sush room',
         boardIsLoading: 'Your board is loading',
@@ -140,6 +146,9 @@ const loc: localizationConfig = {
         createBoard: 'Создать доску',
         signIn: 'Войти',
         signUp: 'Регистрация',
+        // errors
+        unexpectedError: "Неожиданная ошибка",
+        tryToReloadThePage: "Попробуйте перезагрузить страницу",
         // board share mode
         noSuchRoom: 'Такой комнаты не существует',
         boardIsLoading: 'Ваша доска загружается',
