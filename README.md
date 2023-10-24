@@ -10,31 +10,44 @@ Board4you is a whiteboard app built with Electron, warp, React, Redux Toolkit, r
 - cross-platform(windows and linux)
 - tool customization
 
+## Requerments
+- npm or pnpm(bun can't build desktop app)
+- Wine - to build Windows app on Linux
+- Docker compose - to run app in a container
+
 ## Development
-You need Wine to build Windows app on Linux
 
 ```bash
 # clone the repo
 git clone https://github.com/GachiLord/board4you
 cd board4you
 ```
-Build and run website
+Build and run website in dev mode
 ```bash
-# build client
 cd client
-# build website
+# build static
 pnpm run build
 # run and build server
 cd ..
-chmod +x dev.sh
+chmod +x dev.sh # run only one time
 ./dev.sh
 ```
+Build and run website in prod mode
+```bash
+# start server
+docker compose up -d
+# stop server
+docker compose down
+```
+
 Build and run desktop app
 ```bash
-# run dev
-pnpm run devMain
-# build for prod
+cd client
+# build
 pnpm run buildApp
+# run in dev mode(use 2 terminals)
+pnpm run dev
+pnpm run devMain
 ```
 
 ## Contributing

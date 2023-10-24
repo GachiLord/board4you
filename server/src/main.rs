@@ -44,7 +44,7 @@ async fn main() {
     // bundle all routes
     let routes = apis.or(board).or(static_site);
     // run server 
-    warp::serve(routes).run(([127, 0, 0, 1], 3000)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], 3000)).await;
 }
 
 async fn user_connected(ws: WebSocket, users: WSUsers, rooms: Rooms) {
