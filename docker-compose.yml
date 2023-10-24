@@ -1,0 +1,7 @@
+services:
+  web:
+    container_name: board4you-server
+    build: .
+    command: ./server
+    ports:
+      - "3000:3000"
