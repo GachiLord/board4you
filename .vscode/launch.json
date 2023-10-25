@@ -4,7 +4,7 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug",
+            "name": "Debug server",
             "program": "${workspaceFolder}/server/target/debug/server",
             "args": [],
             "env": {
@@ -24,16 +24,25 @@
             ]
         },
         {
-            "name": "Debug Main Process",
+            "name": "Debug desktop",
             "type": "node",
             "request": "launch",
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/client",
             "runtimeExecutable": "${workspaceFolder}/client/node_modules/.bin/electronmon",
             "args" : ["."],
             "outputCapture": "std",
             "skipFiles": [
                 "<node_internals>/**"
             ]
-          }
+        },
+        {
+            "name": "Attach to desktop",
+            "port": 9229,
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        },
     ]
 }

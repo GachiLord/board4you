@@ -20,27 +20,34 @@ export default async function(data: {base64: string[], type: string, path: strin
 
     if (files.length > 0) {
         let y = 0
-        clearCanvas(canvas, temporaryLayer)
 
         if (type === 'pdf'){
-            const pdf = await ImageUtils.pdfToBase64imgs(path)
-            const imgs = pdf.imgs
+            clearCanvas(canvas, temporaryLayer)
+            try{
+                const pdf = await ImageUtils.pdfToBase64imgs(path)
+                const imgs = pdf.imgs
 
-            // set size of pdf
-            resultSize = pdf.size
-            // add pages
-            for (const img of imgs){
-                insertImage({
-                    data: {url: img, size: pdf.size}, 
-                    editManager: editManager, 
-                    pos: { x: 0, y: y }, 
-                    maxSize: pdf.size
-                })
-                y += pdf.size.height
+                // set size of pdf
+                resultSize = pdf.size
+                // add pages
+                for (const img of imgs){
+                    insertImage({
+                        data: {url: img, size: pdf.size}, 
+                        editManager: editManager, 
+                        pos: { x: 0, y: y }, 
+                        maxSize: pdf.size
+                    })
+                    y += pdf.size.height
+                }
+                y -= pdf.size.height
             }
-            y -= pdf.size.height
+            catch(e){
+                alert(e)
+                return
+            }
         }
         if (type === 'png'){
+            clearCanvas(canvas, temporaryLayer)
             const size = await ImageUtils.getSizeOfBase64Img(files[0])
             // set size of png
             resultSize = size

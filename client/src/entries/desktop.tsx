@@ -20,8 +20,7 @@ root.render(
         <LocaleContext.Provider value={getLocalizationCfg(navigator.language)}>
         <BrowserRouter>
             <Routes>
-                <Progress />
-                <Route path="*" element={<Editor />} />
+                <Route path="*" element={(<><Progress /><Editor /></>)} />
             </Routes>
         </BrowserRouter>
         </LocaleContext.Provider>
