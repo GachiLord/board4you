@@ -22,18 +22,23 @@ Build and run website
 ```bash
 # build client
 cd client
+# make scripts executable
+pnpm run grantPersmissions
 # build website
-pnpm run build
+pnpm run buildWeb
 # run and build server
 cd ..
-chmod +x dev.sh
 ./dev.sh
 ```
 Build and run desktop app
 ```bash
-# run dev
-pnpm run devMain
+# run dev(use 2 terminals)
+pnpm run devDesktop
 # build for prod
+pnpm run devMain
+```
+Build desktop app
+```bash
 pnpm run buildApp
 ```
 
