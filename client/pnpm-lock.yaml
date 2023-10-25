@@ -111,6 +111,9 @@ devDependencies:
   '@faker-js/faker':
     specifier: ^8.2.0
     version: 8.2.0
+  '@types/adm-zip':
+    specifier: ^0.5.3
+    version: 0.5.3
   '@types/fbemitter':
     specifier: ^2.0.34
     version: 2.0.34
@@ -1430,6 +1433,12 @@ packages:
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
     engines: {node: '>= 10'}
 
+  /@types/adm-zip@0.5.3:
+    resolution: {integrity: sha512-LfeDIiFdvphelYY2aMWTyQBr5cTb1EL9Qcu19jFizdt2sL/jL+fy1fE8IgAKBFI5XfbGukaRDDM5PiJTrovAhA==}
+    dependencies:
+      '@types/node': 20.8.7
+    dev: true
+
   /@types/babel__core@7.20.3:
     resolution: {integrity: sha512-54fjTSeSHwfan8AyHWrKbfBWiEUrNTZsUwPTDSNaaP1QDQIZbeNUg3a59E9D+375MzUw/x1vx2/0F5LBz+AeYA==}
     dependencies:
@@ -1465,7 +1474,7 @@ packages:
     dependencies:
       '@types/http-cache-semantics': 4.0.3
       '@types/keyv': 3.1.4
-      '@types/node': 18.18.6
+      '@types/node': 20.8.7
       '@types/responselike': 1.0.2
     dev: false
     optional: true
@@ -1578,7 +1587,7 @@ packages:
     resolution: {integrity: sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg==}
     requiresBuild: true
     dependencies:
-      '@types/node': 18.18.6
+    '@types/node': 18.18.6
     dev: false
     optional: true
 

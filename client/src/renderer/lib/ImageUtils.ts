@@ -35,7 +35,7 @@ export default class ImageUtils{
     } 
 
     static pdfToBase64imgs = async (path: string) => {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '../pdf.worker.js'
+        pdfjsLib.GlobalWorkerOptions.workerSrc = './public/pdf.worker.js'
         const doc = await pdfjsLib.getDocument({url:path}).promise
         const imgs = []
         const pagesWidth = []

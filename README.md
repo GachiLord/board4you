@@ -25,11 +25,12 @@ cd board4you
 Build and run website in dev mode
 ```bash
 cd client
-# build static
-pnpm run build
+# make scripts executable
+pnpm run grantPersmissions
+# build website
+pnpm run buildWeb
 # run and build server
 cd ..
-chmod +x dev.sh # run only one time
 ./dev.sh
 ```
 Build and run website in prod mode
@@ -42,12 +43,14 @@ docker compose down
 
 Build and run desktop app
 ```bash
-cd client
-# build
-pnpm run buildApp
-# run in dev mode(use 2 terminals)
-pnpm run dev
+# run dev(use 2 terminals)
+pnpm run devDesktop
+# build for prod
 pnpm run devMain
+```
+Build desktop app
+```bash
+pnpm run buildApp
 ```
 
 ## Contributing

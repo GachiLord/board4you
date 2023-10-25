@@ -170,7 +170,6 @@ export default class FileManager{
             fsStream.on('error', (e) =>  reject(e) )
         } )
 
-
         if (extention === 'pdf') imgToPDF(uniqueBase64Files, [canvasSize.width, canvasSize.height]).pipe(fsStream)
         else {
             const zip = new AdmZip()
