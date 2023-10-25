@@ -1,0 +1,12 @@
+# this file is needed only for building purposes in docker
+# don't try to build project with bun
+[install]
+
+# whether to install optionalDependencies
+optional = false
+
+# whether to install devDependencies
+dev = true
+
+# whether to install peerDependencies
+peer = true
