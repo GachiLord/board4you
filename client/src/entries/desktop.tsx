@@ -7,6 +7,7 @@ import { Provider } from 'react-redux'
 import { LocaleContext } from '../renderer/base/constants/LocaleContext';
 import Editor from '../renderer/pages/Editor';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import Progress from '../renderer/base/components/Progress';
 
 
 // root
@@ -19,6 +20,7 @@ root.render(
         <LocaleContext.Provider value={getLocalizationCfg(navigator.language)}>
         <BrowserRouter>
             <Routes>
+                <Progress />
                 <Route path="*" element={<Editor />} />
             </Routes>
         </BrowserRouter>
