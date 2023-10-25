@@ -80,15 +80,15 @@ export default class BoardManager{
             // set connection waiter
             const waiter = ( e: MessageEvent<string> ) => {
                 const response = JSON.parse(e.data)
-                if (response.status === "ok" && response.action === 'Join'){
+                if (response.Info && response.Info.status === "ok" && response.Info.action === 'Join'){
                     // add status
-                    this.status.roomId = response.payload.public_id
+                    this.status.roomId = response.Info.payload.public_id
                     // clear listeners
                     clearTimeout(timeout)
                     this.rws?.removeEventListener('message', waiter)
-                    res(response)
+                    res(response.Info)
                 }
-                else if (response.status === "bad" && response.action === 'Join'){
+                else if (response.Info.status === "bad" && response.Info.action === 'Join'){
                     rej(new NoSushRoomError(undefined, roomId))
                 }
             }

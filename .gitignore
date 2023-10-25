@@ -6,10 +6,6 @@ client/public/*.css
 client/public/*.png
 client/public/*.js.LICENSE.txt
 client/public/*.js
-client/public/common
-client/public/entries
-client/public/main
-client/public/rednerer/
 client/public/*.js.map
 client/public/*.css.map
 electron-builder.env

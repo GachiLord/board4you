@@ -86,8 +86,7 @@ function createWindow() {
   win.loadFile(path.join(__dirname, 'desktop.html'))
 
   // top menu
-  const template: any = getTemplate(win, localeCfg, handleNewFile, handleOpenFile)
-  const menu = Menu.buildFromTemplate(template)
+  const menu = Menu.buildFromTemplate(getTemplate(win, localeCfg, handleNewFile, handleOpenFile))
   Menu.setApplicationMenu(menu)
 
   win.on('close', (e) => {

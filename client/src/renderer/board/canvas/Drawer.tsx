@@ -38,11 +38,13 @@ export default function Drawer(props: IDrawerProps){
     const stageState = useSelector((state: RootState) => state.stage)
     const mode = useSelector((state: RootState) => state.board.mode)
     const [roomExists, setRoomExists] = useState(true)
+    const [isError, setError] = useState(false)
     const routerLocation = useLocation()
     const { roomId } = useParams()
     const navigate = useNavigate()
     const [isLoading, setLoading] = useState(mode === 'shared' && roomExists)
     const cleanUp = () => { 
+        setError(false)
         setRoomExists(true)
         setLoading(false)
         dispatch(setMode('local'))
@@ -67,6 +69,7 @@ export default function Drawer(props: IDrawerProps){
             roomId,
             setLoading,
             setRoomExists,
+            setError,
             navigate,
             cleanUp
         })
@@ -75,6 +78,12 @@ export default function Drawer(props: IDrawerProps){
 
     return  (
         <>
+        { isError && (
+            <Alert 
+                title={localization.unexpectedError}
+                body={localization.tryToReloadThePage}
+            />
+        ) }
         {(isLoading && roomExists) && (
             <Loading title={localization.boardIsLoading} />
         )}
