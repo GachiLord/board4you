@@ -9,7 +9,8 @@ export interface localization{
     signUp: string,
     // errors
     unexpectedError: string,
-    tryToReloadThePage: string
+    tryToReloadThePage: string,
+    fileIsLocked: string,
     // board share mode
     noSuchRoom: string,
     boardIsLoading: string,
@@ -82,6 +83,7 @@ const loc: localizationConfig = {
         // errors
         unexpectedError: "Unexpected error",
         tryToReloadThePage: "Try to reload the page",
+        fileIsLocked: 'File is locked by another process',
         // board share mode
         noSuchRoom: 'There is no sush room',
         boardIsLoading: 'Your board is loading',
@@ -149,6 +151,7 @@ const loc: localizationConfig = {
         // errors
         unexpectedError: "Неожиданная ошибка",
         tryToReloadThePage: "Попробуйте перезагрузить страницу",
+        fileIsLocked: 'Файл заблокирован другим процессом',
         // board share mode
         noSuchRoom: 'Такой комнаты не существует',
         boardIsLoading: 'Ваша доска загружается',

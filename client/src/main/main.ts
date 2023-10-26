@@ -134,22 +134,33 @@ app.whenReady().then(() => {
   ipcMain.on('saveFileAs', async (_, data) => {
     fileIsSaving = true
 
-    currentFilePath = await ElectronFileManager.saveBase64As(data)
-
-    fileHasChanged = false
-    fileIsSaving = false
-
+    try{
+      currentFilePath = await ElectronFileManager.saveBase64As(data)
+    }
+    catch{
+      dialog.showErrorBox(localizationCfg.unexpectedError, localizationCfg.fileIsLocked)
+    }
+    finally{
+      fileHasChanged = false
+      fileIsSaving = false
+    }
   })
 
   ipcMain.on('saveFile', async (_, data) => {
     fileIsSaving = true
 
-    if (currentFilePath) currentFilePath = await ElectronFileManager.saveBase64(data, currentFilePath)
-    else currentFilePath = await ElectronFileManager.saveBase64As(data)
-
-    globalThis.appWindow.setTitle(getAppTittle(currentFilePath))
-    fileHasChanged = false
-    fileIsSaving = false
+    try{
+      if (currentFilePath) currentFilePath = await ElectronFileManager.saveBase64(data, currentFilePath)
+      else currentFilePath = await ElectronFileManager.saveBase64As(data)
+    }
+    catch{
+      dialog.showErrorBox(localizationCfg.unexpectedError, localizationCfg.fileIsLocked)
+    }
+    finally{
+      globalThis.appWindow.setTitle(getAppTittle(currentFilePath))
+      fileHasChanged = false
+      fileIsSaving = false
+    }
   })
 
   ipcMain.on('fileHasChanged', () => {
