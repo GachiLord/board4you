@@ -3,6 +3,7 @@ import fs from 'fs'
 import imgToPDF from './imageToPdf'
 import AdmZip from "adm-zip"
 import getCanvasSize from '../common/getCanvasSize'
+import { TimeOutError } from '../renderer/lib/BoardManager/typing'
 
 
 
@@ -168,6 +169,7 @@ export default class FileManager{
             fsStream.on('finish', () => resolve(filePath) )
             fsStream.on('drain', () => resolve(filePath) )
             fsStream.on('error', (e) =>  reject(e) )
+            setTimeout( () => reject(new TimeOutError('saving file time out', 5000)), 5000 )
         } )
 
         if (extention === 'pdf') imgToPDF(uniqueBase64Files, [canvasSize.width, canvasSize.height]).pipe(fsStream)

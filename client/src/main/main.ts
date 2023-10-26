@@ -144,8 +144,13 @@ app.whenReady().then(() => {
   ipcMain.on('saveFile', async (_, data) => {
     fileIsSaving = true
 
-    if (currentFilePath) currentFilePath = await ElectronFileManager.saveBase64(data, currentFilePath)
-    else currentFilePath = await ElectronFileManager.saveBase64As(data)
+    try{
+      if (currentFilePath) currentFilePath = await ElectronFileManager.saveBase64(data, currentFilePath)
+      else currentFilePath = await ElectronFileManager.saveBase64As(data)
+    }
+    catch{
+      dialog.showErrorBox(localizationCfg.unexpectedError, localizationCfg.fileIsLocked)
+    }
 
     globalThis.appWindow.setTitle(getAppTittle(currentFilePath))
     fileHasChanged = false
