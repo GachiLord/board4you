@@ -6,12 +6,13 @@ WORKDIR /
 COPY ./client/package.json ./
 COPY ./client/build ./build
 COPY ./client/src ./src
+COPY ./client/scripts ./scripts
 COPY ./client/bunfig.toml ./bunfig.toml
 COPY ./client/public/web.html ./public/web.html
 # install deps
 RUN bun install
 # build static
-RUN bun run build
+RUN bun run buildWeb
 
 # build server
 FROM nwtgck/rust-musl-builder:latest as server-builder

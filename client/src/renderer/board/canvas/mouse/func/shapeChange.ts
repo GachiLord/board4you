@@ -31,6 +31,11 @@ async function changeHandler(transformer: Konva.Transformer, boardManager: Board
         const private_id: undefined|string = state.rooms[public_id]
 
         if (shared){
+            boardManager.send('Empty', {
+                public_id,
+                private_id,
+                action_type: 'undone'
+            })
             boardManager.send('Push', {
                 public_id,
                 private_id,
