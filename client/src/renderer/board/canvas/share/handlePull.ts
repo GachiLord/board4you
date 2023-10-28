@@ -32,9 +32,7 @@ export default function handlePush(editManager: EditManager, data: pushData){
         editManager.cancelEdit(edit)
     } )
     data.undone.should_be_deleted_ids.forEach( id => {
-        const edit = store.getState().history.undone.findLast( e => e.id === id )
         store.dispatch(removeUndone(id))
-        editManager.cancelEdit(edit)
     } )
     // update height
     store.dispatch(setHeight(

@@ -5,7 +5,6 @@ export default function(linesLayer: Konva.Layer, size: { width: number, height: 
     const width = size.width
     const maxHeight = size.height
     const baseHeight = size.baseHeight
-    console.log(baseHeight, maxHeight)
     
     for (let height = baseHeight; height < maxHeight; height += baseHeight){
         linesLayer.add(new Konva.Line({
