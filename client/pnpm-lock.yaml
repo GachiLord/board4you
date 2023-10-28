@@ -71,9 +71,6 @@ dependencies:
   react-router-bootstrap:
     specifier: ^0.26.2
     version: 0.26.2(react-router-dom@6.17.0)(react@18.2.0)
-  reconnecting-websocket:
-    specifier: ^4.4.0
-    version: 4.4.0
   semantic-ui-react:
     specifier: ^2.1.4
     version: 2.1.4(react-dom@18.2.0)(react@18.2.0)
@@ -89,6 +86,9 @@ dependencies:
   uuid:
     specifier: ^9.0.1
     version: 9.0.1
+  websocket-ts:
+    specifier: ^2.1.5
+    version: 2.1.5
 
 optionalDependencies:
   electron:
@@ -1587,7 +1587,7 @@ packages:
     resolution: {integrity: sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg==}
     requiresBuild: true
     dependencies:
-    '@types/node': 18.18.6
+      '@types/node': 20.8.7
     dev: false
     optional: true
 
@@ -7743,10 +7743,6 @@ packages:
     dev: false
     optional: true
 
-  /reconnecting-websocket@4.4.0:
-    resolution: {integrity: sha512-D2E33ceRPga0NvTDhJmphEgJ7FUYF0v4lr1ki0csq06OdlxKfugGzN0dSkxM/NfqCxYELK4KcaTOUOjTV6Dcng==}
-    dev: false
-
   /redent@4.0.0:
     resolution: {integrity: sha512-tYkDkVVtYkSVhuQ4zBgfvciymHaeuel+zFKXShfDnFP5SyVEP7qo70Rf1jTOTCx3vGNAbnEi/xFkcfQVMIBWag==}
     engines: {node: '>=12'}
@@ -9180,6 +9176,10 @@ packages:
       - esbuild
       - uglify-js
     dev: true
+
+  /websocket-ts@2.1.5:
+    resolution: {integrity: sha512-rCNl9w6Hsir1azFm/pbjBEFzLD/gi7Th5ZgOxMifB6STUfTSovYAzryWw0TRvSZ1+Qu1Z5Plw4z42UfTNA9idA==}
+    dev: false
 
   /whatwg-encoding@2.0.0:
     resolution: {integrity: sha512-p41ogyeMUrw3jWclHWTQg1k05DSVXPLcVxRTYsXUk+ZooOCZLcoYgPZ/HL/D/N+uQPOtcp1me1WhBEaX02mhWg==}

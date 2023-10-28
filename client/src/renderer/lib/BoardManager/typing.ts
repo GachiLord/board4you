@@ -1,11 +1,13 @@
-import { Event, ErrorEvent, CloseEvent } from 'reconnecting-websocket'
 import ISize from '../../base/typing/ISize'
+import { ReconnectEventDetail, RetryEventDetail } from 'websocket-ts'
 
 export interface Handlers{
     onMessage?: (msg: string) => void,
-    onError?: (e: ErrorEvent) => void,
-    onClose?: (e: CloseEvent) => void,
-    onOpen?: (e: Event) => void
+    onError?: (e: WebSocketEventMap["error"]) => void,
+    onClose?: (e: WebSocketEventMap["close"]) => void,
+    onOpen?: (e: WebSocketEventMap["open"]) => void,
+    retry?: (e: CustomEvent<RetryEventDetail>) => void;
+    reconnect?: (e: CustomEvent<ReconnectEventDetail>) => void;
 }
 
 export interface BoardOptions{

@@ -42,22 +42,42 @@ pub struct PullData{
 impl Board {
     pub fn pull(&mut self, user_current: Vec<String>, user_undone: Vec<String>) -> PullData{
         // convert Vectors to HashSets
-        let current: HashSet<String> = HashSet::from_iter(self.current.iter().map( |e| e.get("id").unwrap().to_string() ).collect::<HashSet<String>>());
-        let undone: HashSet<String> = HashSet::from_iter(self.undone.iter().map( |e| e.get("id").unwrap().to_string() ).collect::<HashSet<String>>());
-        let user_current: HashSet<String> = HashSet::from_iter(user_current.into_iter());
-        let user_undone: HashSet<String> = HashSet::from_iter(user_undone.into_iter());
+        let current: HashSet<&str> = HashSet::from_iter(self.current.iter().map( |e| e.get("id").unwrap().as_str().unwrap() ).collect::<HashSet<&str>>());
+        let undone: HashSet<&str> = HashSet::from_iter(self.undone.iter().map( |e| e.get("id").unwrap().as_str().unwrap() ).collect::<HashSet<&str>>());
+        let user_current: HashSet<&str> = HashSet::from_iter(user_current.iter().map(|e| e.as_ref()));
+        let user_undone: HashSet<&str> = HashSet::from_iter(user_undone.iter().map(|e| e.as_ref()));
         // check current
-        let current_create = current.difference(&user_current).collect::<HashSet<&String>>();
-        let current_delete = user_current.difference(&current).collect::<HashSet<&String>>();
+        let current_create: HashSet<String> = current.iter().filter_map(|e| {
+            match !user_current.contains(*e) {
+                true => return Some(e.to_string()),
+                false => return None
+            }
+        }).collect();
+        let current_delete: HashSet<String> = user_current.iter().filter_map(|e| {
+            match !user_current.contains(*e) {
+                true => return Some(e.to_string()),
+                false => return None
+            }
+        }).collect();
         // check undone
-        let undone_create = undone.difference(&user_undone).collect::<HashSet<&String>>();
-        let undone_delete = user_undone.difference(&undone).collect::<HashSet<&String>>();
+        let undone_create: HashSet<String> = undone.iter().filter_map(|e| {
+            match !user_undone.contains(*e){
+                true => return Some(e.to_string()),
+                false => return None
+            }
+        }).collect();
+        let undone_delete: HashSet<String> = user_undone.iter().filter_map(|e| {
+            match !undone.contains(*e){
+                true => return Some(e.to_string()),
+                false => return None
+            }
+        }).collect();
 
         return PullData{
             current: EditData {
                 should_be_created_edits: self.current.iter()
                     .filter(|e| {
-                        current_create.contains::<String>(&e.get("id").unwrap().to_string())
+                        current_create.contains::<String>(&e.get("id").unwrap().as_str().unwrap().to_string())
                     })
                     .map(|v| serde_json::to_string(v).unwrap())
                     .collect(),

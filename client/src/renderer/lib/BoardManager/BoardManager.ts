@@ -1,4 +1,12 @@
-import ReconnectingWebSocket, { Event, ErrorEvent, CloseEvent } from 'reconnecting-websocket'
+import {
+    ArrayQueue,
+    ConstantBackoff,
+    ReconnectEventDetail,
+    RetryEventDetail,
+    Websocket,
+    WebsocketBuilder,
+    WebsocketEvent,
+  } from "websocket-ts";
 import { IHistoryState } from '../../features/history'
 import { doRequest } from '../twiks'
 import { Handlers, BoardStatus, BoardOptions, Info, TimeOutError, NoSushRoomError, RoomInfo, MessageType, BoardMessage } from './typing'
@@ -8,7 +16,7 @@ import store from '../../store/store'
 
 export default class BoardManager{
     url: string
-    rws: ReconnectingWebSocket|null
+    rws: Websocket|null
     handlers: Handlers = {}
     status: BoardStatus = {
         connected: false,
@@ -24,34 +32,44 @@ export default class BoardManager{
         if (this.handlers.onOpen) this.handlers.onOpen(e)
     }
 
-    #closeHandler = (e: CloseEvent) => {
+    #closeHandler = (_: unknown, e: CloseEvent) => {
         this.status.connected = false
         if (this.handlers.onClose) this.handlers.onClose(e)
     }
 
-    #errorHandler = (e: ErrorEvent) => {
+    #errorHandler = (_: unknown, e: Event) => {
         if (this.handlers.onError) this.handlers.onError(e)
     }
 
-    #messageHandler = (e: MessageEvent<string>) => {
+    #messageHandler = (_: unknown, e: MessageEvent<string>) => {
         if (typeof e.data !== 'string') throw new TypeError('message has unsupported type')
         if (this.handlers.onMessage) this.handlers.onMessage(e.data)
     }
 
+    #retryHandler = (_: unknown, e : CustomEvent<RetryEventDetail>) => {
+        if (this.handlers.retry) this.handlers.retry(e)
+    }
+
+    #recconectHandler = (_: unknown, e: CustomEvent<ReconnectEventDetail>) => {
+        if (this.handlers.reconnect) this.handlers.reconnect(e)
+    }
+
     async connect(): Promise<Event>{
         return new Promise(res => {
-            this.rws = new ReconnectingWebSocket(this.url, [], {
-                connectionTimeout: 1000,
-                maxRetries: 10,
-            });
-    
-            this.rws.addEventListener('open', (e) => {
+            this.rws = new WebsocketBuilder(this.url)
+                .withBuffer(new ArrayQueue())           // buffer messages when disconnected
+                .withBackoff(new ConstantBackoff(1000)) // retry every 1s
+                .build();
+            
+            this.rws.addEventListener(WebsocketEvent.open, (_, e) => {
                 this.#openHandler(e)
                 res(e)
             })
-            this.rws.addEventListener('close', this.#closeHandler)
-            this.rws.addEventListener('error', this.#errorHandler)
-            this.rws.addEventListener('message', this.#messageHandler)
+            this.rws.addEventListener(WebsocketEvent.close, this.#closeHandler)
+            this.rws.addEventListener(WebsocketEvent.error, this.#errorHandler)
+            this.rws.addEventListener(WebsocketEvent.message, this.#messageHandler)
+            this.rws.addEventListener(WebsocketEvent.retry, this.#retryHandler)
+            this.rws.addEventListener(WebsocketEvent.reconnect, this.#recconectHandler)
         })
     }
 
@@ -63,10 +81,11 @@ export default class BoardManager{
         }
         if (this.rws == null) return
         // remove listeners
-        this.rws.removeEventListener('open', this.#openHandler)
-        this.rws.removeEventListener('close', this.#closeHandler)
-        this.rws.removeEventListener('error', this.#errorHandler)
-        this.rws.removeEventListener('message', this.#messageHandler)
+        this.rws.removeEventListener(WebsocketEvent.close, this.#closeHandler)
+        this.rws.removeEventListener(WebsocketEvent.error, this.#errorHandler)
+        this.rws.removeEventListener(WebsocketEvent.message, this.#messageHandler)
+        this.rws.removeEventListener(WebsocketEvent.retry, this.#retryHandler)
+        this.rws.removeEventListener(WebsocketEvent.reconnect, this.#recconectHandler)
         // close connection
         this.rws.close()
     }
@@ -78,21 +97,21 @@ export default class BoardManager{
                 rej(new TimeOutError('connection timeout', 10000))
             }, 10000 )
             // set connection waiter
-            const waiter = ( e: MessageEvent<string> ) => {
+            const waiter = ( _: unknown, e: MessageEvent<string> ) => {
                 const response = JSON.parse(e.data)
                 if (response.Info && response.Info.status === "ok" && response.Info.action === 'Join'){
                     // add status
                     this.status.roomId = response.Info.payload.public_id
                     // clear listeners
                     clearTimeout(timeout)
-                    this.rws?.removeEventListener('message', waiter)
+                    this.rws?.removeEventListener(WebsocketEvent.message, waiter)
                     res(response.Info)
                 }
-                else if (response.Info.status === "bad" && response.Info.action === 'Join'){
+                else if (response.Info && response.Info.status === "bad" && response.Info.action === 'Join'){
                     rej(new NoSushRoomError(undefined, roomId))
                 }
             }
-            this.rws?.addEventListener('message', waiter)
+            this.rws?.addEventListener(WebsocketEvent.message, waiter)
             // do request
             this.send('Join', { public_id: roomId })            
         } )
