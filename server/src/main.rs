@@ -88,7 +88,16 @@ async fn user_connected(ws: WebSocket, users: WSUsers, rooms: Rooms) {
                 break;
             }
         };
-        user_message(my_id, msg, &users, &rooms).await;
+        let users = users.clone();
+        let rooms = rooms.clone();
+        let user_message_task = tokio::spawn(async move{
+            user_message(my_id, msg, &users, &rooms).await;
+        });
+        // disconnect user if there is a server error
+        if user_message_task.await.is_err(){
+            eprintln!("disconnect user(uid={my_id}) because of an error");
+            break;
+        }
     }
 
     // user_ws_rx stream will keep processing as long as the user stays
