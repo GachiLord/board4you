@@ -44,6 +44,10 @@ export default function bootstrap({ stage, boardManager, mode, roomId, setLoadin
         boardManager,
         roomId
     })
+    boardManager.handlers.retry = () => {
+        setLoading(true)
+    }
+    boardManager.handlers.reconnect = () => setLoading(false)
     // handle errors
     boardManager.handlers.onError = () => setRoomExists(false)     
     // listen for board events
