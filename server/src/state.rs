@@ -86,7 +86,7 @@ impl Board {
             undone: EditData {
                 should_be_created_edits: self.undone.iter()
                     .filter(|e| {
-                        undone_create.contains::<String>(&e.get("id").unwrap().to_string())
+                        undone_create.contains::<String>(&e.get("id").unwrap().as_str().unwrap().to_string())
                     })
                     .map(|v| serde_json::to_string(v).unwrap())
                     .collect(),
@@ -107,7 +107,7 @@ impl Board {
         };
         // check for id property
         Board::retrive_id(value_as_object)?;
-        
+        // push changes
         self.current.push(value_as_object.to_owned());
         Ok(())
     }
