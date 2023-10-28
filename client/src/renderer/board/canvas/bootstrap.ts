@@ -28,17 +28,21 @@ export default function bootstrap({ stage, boardManager, mode, roomId, setLoadin
     // update mode to run useEffect`s callback again
     if (roomId) store.dispatch(setMode('shared'))
     // join room if mode is shared
-    if (mode === 'shared') joinRoom({
-        setLoading,
-        setRoomExists,
-        boardManager,
-        roomId
-    })
+    if (mode === 'shared'){
+        setLoading(true)
+        boardManager.connect()
+    }
     // set listener for msgs
     boardManager.handlers.onMessage = (msg: string) => handleMessage(msg, {
         editManager,
         setError,
         setLoading
+    })
+    boardManager.handlers.onOpen = () => joinRoom({
+        setLoading,
+        setRoomExists,
+        boardManager,
+        roomId
     })
     // handle errors
     boardManager.handlers.onError = () => setRoomExists(false)     

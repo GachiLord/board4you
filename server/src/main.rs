@@ -53,7 +53,7 @@ async fn user_connected(ws: WebSocket, users: WSUsers, rooms: Rooms) {
 
     eprintln!("new board user: {}", my_id);
 
-    // Split the socket into a sender and receive of messages.
+    // Split the socket into a sender and receiver of messages.
     let (mut user_ws_tx, mut user_ws_rx) = ws.split();
 
     // Use an unbounded channel to handle buffering and flushing of messages
@@ -88,12 +88,22 @@ async fn user_connected(ws: WebSocket, users: WSUsers, rooms: Rooms) {
                 break;
             }
         };
-        user_message(my_id, msg, &users, &rooms).await;
+        let users = users.clone();
+        let rooms = rooms.clone();
+        let user_message_task = tokio::spawn(async move{
+            user_message(my_id, msg, &users, &rooms).await;
+        });
+        // disconnect user if there is a server error
+        if user_message_task.await.is_err(){
+            eprintln!("disconnect user(uid={my_id}) because of an error");
+            break;
+        }
     }
 
     // user_ws_rx stream will keep processing as long as the user stays
     // connected. Once they disconnect, then...
     user_disconnected(my_id, &users).await;
+    
 }
 
 async fn user_disconnected(my_id: usize, users: &WSUsers) {
