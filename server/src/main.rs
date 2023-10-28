@@ -2,6 +2,7 @@ use std::convert::Infallible;
 use std::env;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::path::Path;
+use tokio::signal::unix::signal;
 use tokio::sync::mpsc;
 use warp::Filter;
 use futures_util::{SinkExt, StreamExt, TryFutureExt};
@@ -43,8 +44,14 @@ async fn main() {
     let apis = room_filter(rooms.clone());
     // bundle all routes
     let routes = apis.or(board).or(static_site);
-    // run server 
-    warp::serve(routes).run(([0, 0, 0, 0], 3000)).await;
+    // run server
+    let mut stream = signal(tokio::signal::unix::SignalKind::terminate()).unwrap();
+    let (_, server) = warp::serve(routes)
+        .bind_with_graceful_shutdown(([0, 0, 0, 0], 3000), async move {
+            stream.recv().await
+                .expect("failed to listen to shutdown signal");
+    });
+    server.await;
 }
 
 async fn user_connected(ws: WebSocket, users: WSUsers, rooms: Rooms) {
