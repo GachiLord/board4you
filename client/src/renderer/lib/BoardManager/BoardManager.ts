@@ -127,12 +127,11 @@ export default class BoardManager{
             undone: history.undone.map( i => JSON.stringify(i) ),
             size: size
         }
-
-        return doRequest('rooms/create', roomInitials)
+        return await doRequest('room', roomInitials, 'POST')
     }
 
     static async deleteRoom(roomId: string, privateId: string): Promise<Info>{
-        return doRequest('rooms/delete', { room_id: roomId, private_id: privateId })
+        return await doRequest('room', { public_id: roomId, private_id: privateId }, 'DELETE')
     }
     
     send(messageType: MessageType, data: BoardMessage){
