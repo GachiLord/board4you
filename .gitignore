@@ -9,6 +9,7 @@ client/public/*.js
 client/public/*.js.map
 client/public/*.css.map
 client/public/data/
+client/test/dist
 electron-builder.env
 target/
 bun.lockb
