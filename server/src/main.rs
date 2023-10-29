@@ -3,17 +3,13 @@ use std::env;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::path::Path;
 use tokio::signal::unix::signal;
-use tokio::sync::mpsc;
 use warp::Filter;
-use futures_util::{SinkExt, StreamExt, TryFutureExt};
-use tokio_stream::wrappers::UnboundedReceiverStream;
-use warp::ws::WebSocket;
 // modules
 mod message;
 mod state;
 mod api;
-// use
-use crate::message::user_message;
+mod connect;
+use connect::user_connected;
 use crate::state::{Rooms, WSUsers};
 use crate::api::room_filter;
 
@@ -32,7 +28,7 @@ async fn main() {
         .and(with_ws_users(users))
         .and(with_rooms(rooms.clone()))
         .map(move |ws: warp::ws::Ws, users, rooms| {
-            ws.on_upgrade(move |socket| user_connected(socket, users, rooms))
+            ws.on_upgrade(move |socket| user_connected(NEXT_USER_ID.fetch_add(1, Ordering::Relaxed), socket, users, rooms))
         });
     // static paths
     let public_path = &env::var("PUBLIC_PATH").expect("$PUBLIC_PATH must be provided");
@@ -52,72 +48,6 @@ async fn main() {
                 .expect("failed to listen to shutdown signal");
     });
     server.await;
-}
-
-async fn user_connected(ws: WebSocket, users: WSUsers, rooms: Rooms) {
-    // Use a counter to assign a new unique ID for this user.
-    let my_id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed);
-
-    eprintln!("new board user: {}", my_id);
-
-    // Split the socket into a sender and receiver of messages.
-    let (mut user_ws_tx, mut user_ws_rx) = ws.split();
-
-    // Use an unbounded channel to handle buffering and flushing of messages
-    // to the websocket...
-    let (tx, rx) = mpsc::unbounded_channel();
-    let mut rx = UnboundedReceiverStream::new(rx);
-
-    tokio::task::spawn(async move {
-        while let Some(message) = rx.next().await {
-            user_ws_tx
-                .send(message)
-                .unwrap_or_else(|e| {
-                    eprintln!("websocket send error: {}", e);
-                })
-                .await;
-        }
-    });
-
-    // Save the sender in our list of connected users.
-    users.write().await.insert(my_id, tx);
-
-    // Return a `Future` that is basically a state machine managing
-    // this specific user's connection.
-
-    // Every time the user sends a message, broadcast it to
-    // all other users...
-    while let Some(result) = user_ws_rx.next().await {
-        let msg = match result {
-            Ok(msg) => msg,
-            Err(e) => {
-                eprintln!("websocket error(uid={}): {}", my_id, e);
-                break;
-            }
-        };
-        let users = users.clone();
-        let rooms = rooms.clone();
-        let user_message_task = tokio::spawn(async move{
-            user_message(my_id, msg, &users, &rooms).await;
-        });
-        // disconnect user if there is a server error
-        if user_message_task.await.is_err(){
-            eprintln!("disconnect user(uid={my_id}) because of an error");
-            break;
-        }
-    }
-
-    // user_ws_rx stream will keep processing as long as the user stays
-    // connected. Once they disconnect, then...
-    user_disconnected(my_id, &users).await;
-    
-}
-
-async fn user_disconnected(my_id: usize, users: &WSUsers) {
-    eprintln!("good bye user: {}", my_id);
-
-    // Stream closed up, so remove from the user list
-    users.write().await.remove(&my_id);
 }
 
 

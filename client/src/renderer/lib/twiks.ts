@@ -65,10 +65,15 @@ export function itemIn(item: unknown, ...items: unknown[]){
     return items.includes(item)
 }
 
-export async function doRequest(path: string, body: object, method: 'POST'|'GET' = 'POST'){
-    const response = await fetch(`${location.origin}/${path}`, {
+export async function doRequest(path: string, body?: object, method: 'POST'|'GET'|'PUT'|'DELETE' = 'GET'): Promise<any>{
+    const req = await fetch(`${location.origin}/${path}`, {
         method: method,
         body: JSON.stringify(body)
     })
-    return await response.json()
+    const json = await req.json()
+
+    return new Promise( (res, rej) => {
+        if (req.ok) res(json)
+        else return rej(req)
+    } )
 }
