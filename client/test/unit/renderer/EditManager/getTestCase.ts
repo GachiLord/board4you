@@ -1,13 +1,12 @@
-import LineFactory from "../../../../../src/renderer/lib/NodeFactories/LineFactory"
-import EditManager from "../../../../../src/renderer/lib/EditManager"
+import LineFactory from "../../../../src/renderer/lib/NodeFactories/LineFactory"
+import EditManager from "../../../../src/renderer/lib/EditManager"
 import Konva from "konva"
-import store from "../../../../../src/renderer/store/store"
-import CanvasUtils from "../../../../../src/renderer/lib/CanvasUtils"
-import { Edit } from "../../../../../src/renderer/lib/EditManager"
-import { addCurrent } from "../../../../../src/renderer/features/history"
+import store from "../../../../src/renderer/store/store"
+import CanvasUtils from "../../../../src/renderer/lib/CanvasUtils"
+import { Edit } from "../../../../src/renderer/lib/EditManager"
+import { addCurrent } from "../../../../src/renderer/features/history"
 import { v4 as uuid } from 'uuid'
-import BoardManager from "../../../../../src/renderer/lib/BoardManager/BoardManager"
-
+import BoardManager from "../../../../src/renderer/lib/BoardManager/BoardManager"
 
 export default function getTestCase(shapeAmount: number){
     const factory = new LineFactory()

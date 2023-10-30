@@ -1,9 +1,9 @@
-import CanvasUtils from "../../../../../src/renderer/lib/CanvasUtils";
+import CanvasUtils from "../../../../src/renderer/lib/CanvasUtils";
 import { test, describe } from "node:test"
 import assert from "node:assert"
 
 
-describe('getCoorFromPoints', () => {
+describe('unit/renderer/CanvasUtils/getCoorFromPoints', () => {
     test('should return points when length > 2 and coor is y', () => {
         const points = [22,33,44,777,11,21]
     

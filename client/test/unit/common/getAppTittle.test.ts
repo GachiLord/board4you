@@ -1,9 +1,9 @@
-import getAppTittle from "../../../../src/common/getAppTittle";
+import getAppTittle from "../../../src/common/getAppTittle";
 import path from 'node:path'
 import { test, describe } from "node:test"
 import assert from "node:assert"
 
-describe( "getAppTittle", () => {
+describe('unit/common/getAppTittle', () => {
     test('should work with link when "/" at the end', () => {
         assert.equal(getAppTittle('https://duckduckgo.com/'), 'duckduckgo.com')
     })

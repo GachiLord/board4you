@@ -1,7 +1,7 @@
 import Konva from "konva";
-import LineFactory from "../../../../src/renderer/lib/NodeFactories/LineFactory";
-import Selection from "../../../../src/renderer/lib/Selection";
-import BoardManager from "../../../../src/renderer/lib/BoardManager/BoardManager";
+import LineFactory from "../../../src/renderer/lib/NodeFactories/LineFactory";
+import Selection from "../../../src/renderer/lib/Selection";
+import BoardManager from "../../../src/renderer/lib/BoardManager/BoardManager";
 import { test, describe } from "node:test"
 import assert from "node:assert"
 
@@ -18,9 +18,14 @@ function getTestCase(amount = 5){
     }
 }
 
-describe( 'Selection', () => {
+describe('unit/renderer/Selection', () => {
+    // @ts-ignore
+    global.location = {
+        protocol: 'http',
+        host: 'localhost'
+    }
     test('should throw an error if there is no shapes', () => {
-        assert.doesNotThrow( () => { 
+        assert.throws( () => { 
             Selection.create([], new BoardManager())
         } )
     })

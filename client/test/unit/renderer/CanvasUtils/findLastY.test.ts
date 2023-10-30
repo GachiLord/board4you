@@ -1,11 +1,11 @@
 import Konva from "konva";
-import CanvasUtils from "../../../../../src/renderer/lib/CanvasUtils";
-import LineFactory from "../../../../../src/renderer/lib/NodeFactories/LineFactory";
+import CanvasUtils from "../../../../src/renderer/lib/CanvasUtils";
+import LineFactory from "../../../../src/renderer/lib/NodeFactories/LineFactory";
 import { test, describe } from "node:test"
 import assert from "node:assert"
 
 
-describe("findLastY", () => {
+describe("unit/renderer/CanvasUtils/findLastY", () => {
     test('lastY should be lower or equal than max height', () => {
         const size = { height: 900, width: 900 }
         const factory = new LineFactory({positionRestrictions: size})

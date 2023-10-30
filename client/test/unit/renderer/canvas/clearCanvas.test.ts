@@ -1,7 +1,7 @@
 import Konva from "konva";
-import clearCanvas from "../../../../../src/renderer/board/canvas/image/clearCanvas";
-import LineFactory from "../../../../../src/renderer/lib/NodeFactories/LineFactory";
-import store from "../../../../../src/renderer/store/store";
+import clearCanvas from "../../../../src/renderer/board/canvas/image/clearCanvas";
+import LineFactory from "../../../../src/renderer/lib/NodeFactories/LineFactory";
+import store from "../../../../src/renderer/store/store";
 import { test, describe } from "node:test"
 import assert from "node:assert"
 
@@ -21,7 +21,7 @@ function getLayers(){
 }
 
 
-describe("clearCanvas", () => {
+describe("unit/renderer/canvas/clearCanvas", () => {
     test('should destroy canvas children', () => {
         const layers = getLayers()
     
@@ -38,10 +38,11 @@ describe("clearCanvas", () => {
         assert.equal(layers.temporaryLayer.children.length, 0)
     })
     
-    test('should clear history.current', async (_, done) => {
+    test('should clear history.current', (_, done) => {
         const layers = getLayers()
     
-        store.subscribe( () => {
+        const unsub = store.subscribe( () => {
+            unsub()
             assert.equal(store.getState().history.current.length, 0)
             done()
         } )
@@ -52,7 +53,8 @@ describe("clearCanvas", () => {
     test('should clear history.undone', (_, done) => {
         const layers = getLayers()
     
-        store.subscribe( () => {
+        const unsub = store.subscribe( () => {
+            unsub()
             assert.equal(store.getState().history.undone.length, 0)
             done()
         } )

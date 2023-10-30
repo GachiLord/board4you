@@ -1,10 +1,10 @@
-import getLocalizationCfg from "../../../../src/common/getLocalizationCfg";
-import localization from "../../../../src/common/localization";
+import getLocalizationCfg from "../../../src/common/getLocalizationCfg";
+import localization from "../../../src/common/localization";
 import { test, describe } from "node:test"
 import assert from "node:assert"
 
 
-describe("getLocalizationCfg", () => {
+describe("unit/common/getLocalizationCfg", () => {
     test('should return English localization for "en"', () => {
         assert.deepStrictEqual(getLocalizationCfg('en'), localization['en'])
     })

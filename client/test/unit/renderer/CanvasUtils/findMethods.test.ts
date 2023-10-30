@@ -1,5 +1,5 @@
 import Konva from "konva";
-import CanvasUtils from "../../../../../src/renderer/lib/CanvasUtils";
+import CanvasUtils from "../../../../src/renderer/lib/CanvasUtils";
 import { test, describe } from "node:test"
 import assert from "node:assert"
 
@@ -15,7 +15,7 @@ const children = [
 layer.add(...children)
 
 
-describe('findMehods', () => {
+describe('unit/renderer/CanvasUtils/findMehods', () => {
     test('findOne should be able to search by shapeId', () => {
         const shape = CanvasUtils.findOne(layer, {shapeId: '1'})
     

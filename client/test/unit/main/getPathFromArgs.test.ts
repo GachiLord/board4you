@@ -1,9 +1,9 @@
-import getPathFromArgs from "../../../../src/main/getPathFromArgs";
+import getPathFromArgs from "../../../src/main/getPathFromArgs";
 import { test, describe } from "node:test"
 import assert from "node:assert"
 
 
-describe("getPathFromArgs", () => {
+describe("unit/main/getPathFromArgs", () => {
     test('should return null if there is no document path in args', () => {
         assert.equal(getPathFromArgs(process.argv), null)
     })

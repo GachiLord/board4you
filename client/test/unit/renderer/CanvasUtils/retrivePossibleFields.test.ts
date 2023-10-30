@@ -1,9 +1,9 @@
-import CanvasUtils from "../../../../../src/renderer/lib/CanvasUtils";
+import CanvasUtils from "../../../../src/renderer/lib/CanvasUtils";
 import { test, describe } from "node:test"
 import assert from "node:assert"
 
 
-describe('retrivePossibleFields', () => {
+describe('unit/renderer/CanvasUtils/retrivePossibleFields', () => {
     test('should return empty object if there are no possible fields', () => {
         const fields = { a: 0, b: 0 }
     

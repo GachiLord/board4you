@@ -16,7 +16,8 @@
         "sourceType": "module"
     },
     "ignorePatterns": [
-        "*.js"
+        "*.js",
+        "*.test.ts"
     ],
     "plugins": [
         "react",
