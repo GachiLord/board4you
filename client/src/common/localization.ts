@@ -2,6 +2,8 @@ export interface localization{
     [key: string]: string|string[]
     //common
     loading: string,
+    changeScreenOrientation: string,
+    appIsDesignedToWorkInLandScapeMode: string,
     // header
     home: string,
     createBoard: string,
@@ -75,6 +77,8 @@ const loc: localizationConfig = {
     en: {
         //common
         loading: 'Loading',
+        changeScreenOrientation: 'Change screen orientation',
+        appIsDesignedToWorkInLandScapeMode: 'Board4you is designed to work in landscape mode',
         // header
         home: 'Home',
         createBoard: 'Create board',
@@ -143,6 +147,8 @@ const loc: localizationConfig = {
     ru: {
         //common
         loading: 'Загрузка',
+        changeScreenOrientation: 'Поменяйте ориентацию экрана',
+        appIsDesignedToWorkInLandScapeMode: 'Board4you требуется ландшафтный режим для работы',
         // header
         home: 'Домашняя страница',
         createBoard: 'Создать доску',

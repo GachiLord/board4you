@@ -14,7 +14,7 @@ import BoardManager from "../../../../lib/BoardManager/BoardManager";
 
 
 
-export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardManager, props: IDrawerProps){
+export default function(e: KonvaEventObject<MouseEvent|TouchEvent>, boardManager: BoardManager, props: IDrawerProps){
     // start drawing
     store.dispatch(setDrawable(true))
     //shape style vars

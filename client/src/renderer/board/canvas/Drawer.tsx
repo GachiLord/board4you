@@ -19,6 +19,8 @@ import Loading from "../../base/components/Loading";
 import clearCanvas from "./image/clearCanvas";
 import { LocaleContext } from "../../base/constants/LocaleContext";
 import bootstrap from "./bootstrap";
+import isMobile from '../../lib/isMobile'
+import useResize from '.././../lib/useResize'
 
 
 export interface IDrawerProps{
@@ -31,18 +33,29 @@ export interface IDrawerProps{
 new Persister(store, 'rooms')
 
 export default function Drawer(props: IDrawerProps){
-    const dispatch = useDispatch()
+    // constants
+    const mode = useSelector((state: RootState) => state.board.mode)
     const localization = useContext(LocaleContext)
     const boardManager = useContext<BoardManager>(BoardManagerContext)
-    const stage = useRef<Konva.Stage | null>(null)
-    const stageState = useSelector((state: RootState) => state.stage)
-    const mode = useSelector((state: RootState) => state.board.mode)
+    // alerts
     const [roomExists, setRoomExists] = useState(true)
     const [isError, setError] = useState(false)
+    const [isLoading, setLoading] = useState(mode === 'shared' && roomExists)
+    // state
+    const dispatch = useDispatch()
+    const stage = useRef<Konva.Stage | null>(null)
+    const stageState = useSelector((state: RootState) => state.stage)
     const routerLocation = useLocation()
+    // navigation
     const { roomId } = useParams()
     const navigate = useNavigate()
-    const [isLoading, setLoading] = useState(mode === 'shared' && roomExists)
+    // responsiveness stuff
+    const { width, height } = useResize()
+    const minScale = Math.min(height / stageState.baseHeight, width / stageState.width)
+    const scale = Math.max(minScale, 0.5)
+    const deviceIsMobile = isMobile()
+    const orientationIsPortrait = screen.orientation.type === 'portrait-primary' || screen.orientation.type === 'portrait-secondary'
+    // func
     const cleanUp = () => { 
         setError(false)
         setRoomExists(true)
@@ -75,9 +88,14 @@ export default function Drawer(props: IDrawerProps){
         })
     }, [mode, routerLocation])
 
-
     return  (
         <>
+        { orientationIsPortrait && (
+            <Alert 
+                title={localization.changeScreenOrientation}
+                body={localization.appIsDesignedToWorkInLandScapeMode}
+            />
+        ) }
         { isError && (
             <Alert 
                 title={localization.unexpectedError}
@@ -100,16 +118,23 @@ export default function Drawer(props: IDrawerProps){
         }
         <div className="d-flex justify-content-center">
             <Stage
+                scaleX={deviceIsMobile ? scale: undefined}
+                scaleY={deviceIsMobile ? scale: undefined}
                 ref={stage}
-                height={stageState.baseHeight}
-                width={stageState.width}
+                height={deviceIsMobile ? stageState.baseHeight * scale : stageState.baseHeight}
+                width={deviceIsMobile ? stageState.width * scale: stageState.width}
                 className="border"
+                style={ props.tool !== 'move' ? {"touchAction": "none"}: {"touchAction": "auto"} }
                 // mouse
                 onMouseEnter={(e) => mouseEnter(e, boardManager, props)}
                 onMouseDown={(e) => mouseDown(e, boardManager, props)}
                 onMouseMove={(e) => mouseMove(e, boardManager, props)}
                 onMouseUp={(e) => mouseUpLeave(e, boardManager, props)}
                 onMouseLeave={(e) => mouseUpLeave(e, boardManager, props)}
+                // touch events
+                onTouchStart={(e) => mouseDown(e, boardManager, props)}
+                onTouchMove={(e) => mouseMove(e, boardManager, props)}
+                onTouchEnd={(e) => mouseUpLeave(e, boardManager, props)}
                 // drag
                 draggable={props.tool === 'move'}
                 dragBoundFunc={stageDragBound}
@@ -130,4 +155,5 @@ export default function Drawer(props: IDrawerProps){
         </>
     )
 }
+
 

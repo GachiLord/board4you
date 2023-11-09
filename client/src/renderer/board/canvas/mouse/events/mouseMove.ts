@@ -10,7 +10,7 @@ import BoardManager from "../../../../lib/BoardManager/BoardManager";
 import CanvasUtils from "../../../../lib/CanvasUtils";
 import { ShareData } from "../../share/ShareData";
 
-export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardManager, props: IDrawerProps){
+export default function(e: KonvaEventObject<MouseEvent|TouchEvent>, boardManager: BoardManager, props: IDrawerProps){
     const tool = props.tool
     const state = store.getState()
     const drawingShapeId = store.getState().stage.drawingShapeId
