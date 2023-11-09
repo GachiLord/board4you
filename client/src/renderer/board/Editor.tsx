@@ -15,7 +15,7 @@ const boardManager = new BoardManager()
 export default function Editor(){
     const currentTool = useSelector((state: RootState) => state.tool.active)
     const toolSettings = useSelector((state: RootState) => state.toolSettings)
-    const panelStyle = {zIndex: 3, maxHeight: `${Math.max(window.screen.height, 250)}px`}
+    const panelStyle = {zIndex: 3}
     const barBlockStyle = {...panelStyle}
     const drawerStyle = {'margin': '5px 0 0 120px'}
 

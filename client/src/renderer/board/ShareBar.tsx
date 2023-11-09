@@ -6,9 +6,11 @@ import { setMode } from "../features/board"
 import { RootState } from "../store/store"
 import { useSelector } from "react-redux"
 import boardEvents from "../base/constants/boardEvents"
+import isMobile from "../lib/isMobile"
 
 
 export default function ShareBar(){
+    const isDeviceMobile = isMobile()
     const [isOpen, setOpen] = useState(false)
     const mode = useSelector( (state: RootState) => state.board.mode )
     const dispatch = useDispatch()
@@ -20,7 +22,9 @@ export default function ShareBar(){
         left: '0px',
     }
     const share: CSSProperties = {
-        minWidth: '100px'
+        bottom: isDeviceMobile && '160px',
+        minWidth: '100px',
+        zIndex: 4
     }
     const onShare = () => {
         boardEvents.emit('roomCreated')
