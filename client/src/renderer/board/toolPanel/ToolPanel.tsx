@@ -29,7 +29,7 @@ export default function ToolPanel(){
     } )
 
     return (
-        <div className="d-flex align-items-center flex-column">
+        <div className="d-flex align-items-center flex-column" style={{"overflow": "auto"}}>
                 <ToolButton name="move">
                     <BsArrowsMove />
                 </ToolButton>

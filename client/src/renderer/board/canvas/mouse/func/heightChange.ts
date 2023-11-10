@@ -4,12 +4,15 @@ import Konva from "konva";
 
 
 export default function(linesLayer: Konva.Layer){
+    // get real height by sclale
+    const scale = 1 / linesLayer.getStage().scaleY()
+    // set height vars
     const stage = store.getState().stage
     const stagePos = stage.stagePos
     const currentHeight = stage.height
     const baseHeight = stage.baseHeight
 
-    if ( (Math.abs(stagePos.y)) + baseHeight >= currentHeight - baseHeight){
+    if ( (Math.abs(stagePos.y * scale)) + baseHeight >= currentHeight - baseHeight){
         const width = stage.width
         // update height
         store.dispatch(setHeight(currentHeight + baseHeight))

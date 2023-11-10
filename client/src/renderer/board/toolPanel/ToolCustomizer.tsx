@@ -10,14 +10,17 @@ import { useDispatch } from "react-redux";
 import { setToolSetting } from "../../features/toolSettings";
 import { ColorResult } from "react-color";
 import { RootState } from "../../store/store";
+import isMobile from "../../lib/isMobile";
 
 
 
 export default function ToolCustomizer(props: any){
+    const deviceIsMobile = isMobile()
     const common: { style: CSSProperties, defaultColors: string[], closeArea: CSSProperties, labelStyle: CSSProperties, locCfg: any } = {
         style: {
+            'top': deviceIsMobile && '40px',
             'marginLeft': '30pt',
-            'zIndex': 3,
+            'zIndex': 4,
             'minWidth': '300pt',
         },
         defaultColors: [

@@ -43,7 +43,7 @@ export interface DrawVars{
     boardManager: BoardManager
 }
 
-export function whenDraw(event: KonvaEventObject<MouseEvent>, boardManager: BoardManager, f: (drawVars: DrawVars) => void){
+export function whenDraw(event: KonvaEventObject<MouseEvent|TouchEvent>, boardManager: BoardManager, f: (drawVars: DrawVars) => void){
     const stage = getStage(event)
     // do nothing if clicked on stage or draggable shape
     if (event.target.attrs.draggable && event.target !== stage) return
@@ -57,7 +57,7 @@ export function whenDraw(event: KonvaEventObject<MouseEvent>, boardManager: Boar
     })
 }
 
-export function getStage(event: KonvaEventObject<MouseEvent>){
+export function getStage(event: KonvaEventObject<MouseEvent|TouchEvent>){
     return event.target.getStage()
 }
 

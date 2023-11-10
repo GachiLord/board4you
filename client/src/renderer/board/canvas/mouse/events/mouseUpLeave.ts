@@ -18,7 +18,7 @@ import { Edit } from "../../../../lib/EditManager";
 import { convertToStrings } from "../../share/convert";
 
 
-export default function(e: KonvaEventObject<MouseEvent>, boardManager: BoardManager, props: IDrawerProps){
+export default function(e: KonvaEventObject<MouseEvent|TouchEvent>, boardManager: BoardManager, props: IDrawerProps){
     const state = store.getState()
     const isShared = state.board.mode === 'shared'
     const isDrawing = state.stage.isDrawable
