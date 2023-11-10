@@ -95,15 +95,15 @@ impl Board {
         };        
     }
 
-    pub fn push(&mut self, data: String) -> Result<(), String>{
+    pub fn push(&mut self, data: String) -> Result<(), &'static str>{
         // parse data as HashMap
         let value: Value = match serde_json::from_str(&data) {
             Ok(v) => v,
-            Err(_) => return Err(String::from("data is not a json"))
+            Err(_) => return Err("data is not a json")
         };
         let value_as_object = match value.as_object(){
             Some(v) => v,
-            None => return Err(String::from("data is not an object"))
+            None => return Err("data is not an object")
         };
         // check for id property
         Board::retrive_id(value_as_object)?;
@@ -112,7 +112,7 @@ impl Board {
         Ok(())
     }
 
-    pub fn exec_command(&mut self, command: Command) -> Result<(), String>{
+    pub fn exec_command(&mut self, command: Command) -> Result<(), &'static str>{
         match command.name {
             CommandName::Undo => {
                 let edit_index = self.current.iter().position(|e| {
@@ -121,7 +121,7 @@ impl Board {
                 });
                 let edit_index = match edit_index {
                     Some(id) => id,
-                    None => return Err(String::from("no sush id"))
+                    None => return Err("no sush id")
                 };
                 let edit = self.current.remove(edit_index);
                 self.undone.push(edit);
@@ -133,7 +133,7 @@ impl Board {
                 });
                 let edit_index = match edit_index {
                     Some(id) => id,
-                    None => return Err(String::from("no sush id"))
+                    None => return Err("no sush id")
                 };
                 let edit = self.undone.remove(edit_index);
                 self.current.push(edit);
@@ -151,16 +151,16 @@ impl Board {
         self.undone.clear();
     }
 
-    fn retrive_id(item: &Map<String, Value>) -> Result<String, String>{
+    fn retrive_id(item: &Map<String, Value>) -> Result<String, &'static str>{
         // check if id is present
         let id = match item.get("id"){
             Some(id) => {
                 match id.as_str() {
                     Some(id) => id,
-                    None => return Err(String::from("id is not a string"))
+                    None => return Err("id is not a string")
                 }
             },
-            None => return Err(String::from("data has no id"))
+            None => return Err("data has no id")
         };
 
         return Ok(id.to_string())
