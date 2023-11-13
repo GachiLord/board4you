@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use tokio::sync::mpsc;
 use futures_util::{SinkExt, StreamExt, TryFutureExt};
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -9,6 +10,8 @@ use crate::state::{Rooms, WSUsers};
 
 pub async fn user_connected(user_id: usize, ws: WebSocket, users: WSUsers, rooms: Rooms) {
     eprintln!("new board user: {}", user_id);
+    // create user_id Arc pointer
+    let user_id_arc = Arc::new(user_id);
 
     // Split the socket into a sender and receiver of messages.
     let (mut user_ws_tx, mut user_ws_rx) = ws.split();
@@ -30,7 +33,7 @@ pub async fn user_connected(user_id: usize, ws: WebSocket, users: WSUsers, rooms
     });
 
     // Save the sender in our list of connected users.
-    users.write().await.insert(user_id, tx);
+    users.write().await.insert(user_id_arc.clone(), tx);
 
     // Return a `Future` that is basically a state machine managing
     // this specific user's connection.
@@ -47,8 +50,9 @@ pub async fn user_connected(user_id: usize, ws: WebSocket, users: WSUsers, rooms
         };
         let users = users.clone();
         let rooms = rooms.clone();
+        let user_id_arc = user_id_arc.clone();
         let user_message_task = tokio::spawn(async move{
-            user_message(user_id, msg, &users, &rooms).await;
+            user_message(user_id_arc, msg, &users, &rooms).await;
         });
         // disconnect user if there is a server error
         if user_message_task.await.is_err(){
@@ -59,13 +63,13 @@ pub async fn user_connected(user_id: usize, ws: WebSocket, users: WSUsers, rooms
 
     // user_ws_rx stream will keep processing as long as the user stays
     // connected. Once they disconnect, then...
-    user_disconnected(user_id, &users).await;
-    
+    user_disconnected(user_id_arc.clone(), &users).await;
 }
 
-async fn user_disconnected(my_id: usize, users: &WSUsers) {
-    eprintln!("good bye user: {}", my_id);
-
+async fn user_disconnected(id: Arc<usize>, users: &WSUsers){
+    eprintln!("good bye user: {}", id);
     // Stream closed up, so remove from the user list
-    users.write().await.remove(&my_id);
+    users.write().await.remove(&id);
+    // drop user_id_arc to remove user from room automatically
+    drop(id);
 }

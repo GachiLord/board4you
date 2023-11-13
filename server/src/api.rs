@@ -1,9 +1,9 @@
-use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use warp::{hyper::body::Bytes, Filter, http::StatusCode, reply::{WithStatus, Json, with_status, json}};
 use jwt_simple::prelude::*;
 use data_encoding::BASE64URL;
+use weak_table::WeakHashSet;
 use crate::{state::{Rooms, Board, Room, BoardSize}, with_rooms};
 
 
@@ -63,7 +63,7 @@ async fn create_room(room_initials: String, rooms: Rooms) -> Result<WithStatus<J
     let room = Room {
         public_id: public_id.to_owned(),
         private_id: private_id.to_owned(),
-        users: HashSet::new(),
+        users: WeakHashSet::new(),
         board: Board {
             current: room.current.iter().map( |e| serde_json::from_str(e).unwrap()).collect(),
             undone: room.undone.iter().map( |e| serde_json::from_str(e).unwrap()).collect(),
