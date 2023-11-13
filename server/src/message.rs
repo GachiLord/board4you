@@ -4,7 +4,7 @@ use warp::ws::Message;
 use serde::{Deserialize, Serialize};
 use crate::state::{Room, BoardSize, Command, CommandName};
 use super::state::{Rooms, WSUsers, PullData};
-use std::{mem, collections::HashMap};
+use std::{mem, collections::HashMap, sync::Arc};
 
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -29,7 +29,7 @@ enum BoardMessage{
     SizeData { data: BoardSize }
 }
 
-pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: &Rooms) {
+pub async fn user_message(user_id: Arc<usize>, msg: Message, users: &WSUsers, rooms: &Rooms) {
     // looks weird
     let msg: BoardMessage = match msg.to_str(){
         Ok(s) => match serde_json::from_str(s) {
@@ -38,7 +38,7 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
         },
         Err(_) => return
     };
-    // check if user exists
+    // clients and rooms
     let clients = users.read().await;
     let client = clients.get(&user_id).expect("WsUser does not exist");
     let mut rooms = rooms.write().await;
@@ -264,16 +264,16 @@ pub async fn user_message(user_id: usize, msg: Message, users: &WSUsers, rooms: 
 }
 
 fn send_all_except_sender(
-    clients: RwLockReadGuard<'_, HashMap<usize, UnboundedSender<Message>>>, 
+    clients: RwLockReadGuard<'_, HashMap<Arc<usize>, UnboundedSender<Message>>>, 
     room: &Room,
-    sender_id: usize, 
+    sender_id: Arc<usize>, 
     mut data: String)
 {
 
     // send Push msg to all room users except the sender
     room.users.iter().for_each(|u| {
-        if u != &sender_id{
-            let user = clients.get(u);
+        if u != sender_id{
+            let user = clients.get(&u);
             match user{
                 Some(user) => {
                     let _ = user.send(Message::text(mem::take(&mut data)));
