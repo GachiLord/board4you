@@ -3,15 +3,18 @@ use std::env;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::path::Path;
 use tokio::signal::unix::signal;
+use tokio::time;
 use warp::Filter;
 // modules
 mod message;
 mod state;
 mod api;
 mod connect;
+mod cleanup;
 use connect::user_connected;
 use crate::state::{Rooms, WSUsers};
 use crate::api::room_filter;
+use crate::cleanup::remove_unused_rooms;
 
 // unique id
 static NEXT_USER_ID: AtomicUsize = AtomicUsize::new(1);
@@ -40,6 +43,14 @@ async fn main() {
     let apis = room_filter(rooms.clone());
     // bundle all routes
     let routes = apis.or(board).or(static_site);
+    // create cleanup task to remove unuesed rooms
+    let cleanup_interval: u64 = match &env::var("CLEANUP_INTERVAL_MINUTES"){
+        Ok(t) => t.parse().expect("$CLEANUP_INTERVAL_MINUTES must be u64 number"),
+        Err(_) => 30
+    };
+    tokio::spawn(async move {
+        remove_unused_rooms(&rooms, time::Duration::from_secs(cleanup_interval * 60)).await;
+    });
     // run server
     let mut stream = signal(tokio::signal::unix::SignalKind::terminate()).unwrap();
     let (_, server) = warp::serve(routes)

@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, Map};
 use tokio::sync::{mpsc, RwLock};
 use warp::ws::Message;
-use std::{sync::Arc, collections::{HashMap, HashSet}};
+use std::{sync::{Arc, Weak}, collections::{HashMap, HashSet}};
+use weak_table::WeakHashSet;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Board{
@@ -168,22 +169,23 @@ impl Board {
 }
 
 
+#[derive(Debug)]
 pub struct Room{
     pub public_id: String,
     pub private_id: String,
-    pub users: HashSet<usize>,
+    pub users: WeakHashSet<Weak<usize>>,
     pub board: Board,
 }
 
 impl Room{
-    pub fn add_user(&mut self, id: usize){
+    pub fn add_user(&mut self, id: Arc<usize>){
         self.users.insert(id);
     }
 
-    pub fn remove_user(&mut self, id: usize){
+    pub fn remove_user(&mut self, id: Arc<usize>){
         self.users.remove(&id);
     }
 }
 
 pub type Rooms = Arc<RwLock<HashMap<String, Room>>>;
-pub type WSUsers = Arc<RwLock<HashMap<usize, mpsc::UnboundedSender<Message>>>>;
+pub type WSUsers = Arc<RwLock<HashMap<Arc<usize>, mpsc::UnboundedSender<Message>>>>;
