@@ -34,6 +34,7 @@ export default function bootstrap({ stage, boardManager, mode, roomId, setLoadin
     }
     // set listener for msgs
     boardManager.handlers.onMessage = (msg: string) => handleMessage(msg, {
+        boardManager,
         editManager,
         setError,
         setLoading

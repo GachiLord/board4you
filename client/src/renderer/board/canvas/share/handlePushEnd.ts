@@ -5,9 +5,18 @@ import store from "../../../store/store";
 import { itemIn } from "../../../lib/twiks";
 import { setHeight } from "../../../features/stage";
 import boardEvents from "../../../base/constants/boardEvents";
+import pull from "./pull";
+import BoardManager from "../../../lib/BoardManager/BoardManager";
 
-export default function handlePushEnd(canvas: Konva.Layer, shapeId: string){
+export default function handlePushEnd(canvas: Konva.Layer, boardManager: BoardManager, shapeId: string){
     const shape = CanvasUtils.findLastOne(canvas, { shapeId: shapeId })
+    // if shape isn't on canvas, it might hasn't been sended from server due to the race-condition
+    if (!shape) {
+        // stop function execution and
+        // make pull to fetch that shape
+        pull(boardManager)
+        return
+    }
     if ( !(shape instanceof Konva.Shape) ) throw new TypeError('shape must be Konva.Shape')
     // save edit
     store.dispatch(addCurrent(
