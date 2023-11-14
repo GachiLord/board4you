@@ -9,16 +9,18 @@ import handlePushEnd from "./handlePushEnd"
 import store from "../../../store/store"
 import { emptyCurrent, emptyHistory, emptyUndone } from "../../../features/history"
 import setCanvasSize from "../../../lib/setCanvasSize"
+import BoardManager from "../../../lib/BoardManager/BoardManager"
 
 
 interface props{
+    boardManager: BoardManager,
     editManager: EditManager,
     setLoading: (s: boolean) => void,
     setError: (s: boolean) => void
 }
 
 
-export default function(msg: string, {editManager, setLoading, setError}: props){
+export default function(msg: string, {editManager, boardManager, setLoading, setError}: props){
     const canvas = editManager.layer
     const parsed = JSON.parse(msg)
     const key = Object.keys(parsed)[0]
@@ -38,7 +40,7 @@ export default function(msg: string, {editManager, setLoading, setError}: props)
             const t = segment.action_type
             if (t === 'Start') handlePushStart(canvas, JSON.parse(segment.data))
             if (t === 'Update') handlePushUpdate(canvas, JSON.parse(segment.data))
-            if (t === 'End') handlePushEnd(canvas, segment.data)
+            if (t === 'End') handlePushEnd(canvas, boardManager, segment.data)
             break
         }
         case 'UndoRedoData':{
