@@ -10,7 +10,7 @@ COPY ./client/scripts ./scripts
 COPY ./client/bunfig.toml ./bunfig.toml
 COPY ./client/public/web.html ./public/web.html
 # install deps
-RUN bun install
+RUN bun install --legacy-peer-deps
 # build static
 RUN bun run buildWeb
 
