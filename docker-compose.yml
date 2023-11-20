@@ -4,7 +4,7 @@ services:
     build: .
     command: ./server
     ports:
-      - "3000:3000"
+      - "80:3000"
     depends_on:
       db:
         condition: service_healthy
@@ -15,12 +15,16 @@ services:
     environment:
       POSTGRES_DB: "board4you"
       POSTGRES_USER: "board4you_user"
-      POSTGRES_PASSWORD: "pgpwd4habr"
+      POSTGRES_PASSWORD_FILE: "/run/secrets/db_password"
       PGDATA: "/var/lib/postgresql/data/pgdata"
     volumes:
       - /var/lib/postgresql/data
+      - ./db/init/:/docker-entrypoint-initdb.d
+
     ports:
       - "4000:4000"
+    secrets:
+      - db_password
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U board4you_user -d board4you"]
       interval: 10s
@@ -33,3 +37,7 @@ services:
     restart: always
     ports:
       - 8080:8080
+
+secrets:
+  db_password:
+    file: ./db/credentials/password.txt
