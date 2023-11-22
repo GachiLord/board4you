@@ -1,10 +1,12 @@
 use std::convert::Infallible;
-use std::env;
+use std::{env, fs};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::path::Path;
 use tokio::signal::unix::signal;
 use tokio::time;
 use warp::Filter;
+use tokio_postgres::NoTls;
+use std::error::Error;
 // modules
 mod message;
 mod state;
@@ -20,7 +22,23 @@ use crate::cleanup::remove_unused_rooms;
 static NEXT_USER_ID: AtomicUsize = AtomicUsize::new(1);
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn Error>>{
+    // Connect to the database.
+    let db_host = &env::var("DB_HOST").expect("$DB_HOST is not provided");
+    let db_port = &env::var("DB_PORT").expect("$DB_PORT is not provided");
+    let db_password = fs::read_to_string(&env::var("DB_PASSWORD_PATH").unwrap_or("/run/secrets/db_password".to_string())).unwrap_or("root".to_string());
+    let init_sql = fs::read_to_string(&env::var("DB_INIT_PATH").expect("$DB_INIT_PATH is not provided"))?;
+    let (client, connection) =
+        tokio_postgres::connect(format!("host={db_host} port={db_port} user=board4you password={db_password}").as_ref(), NoTls).await?;
+    // The connection object performs the actual communication with the database,
+    // so spawn it off to run on its own.
+    tokio::spawn(async move {
+        if let Err(e) = connection.await {
+            eprintln!("connection error: {}", e);
+        }
+    });
+    // initialize db
+    client.batch_execute(&init_sql).await?;
     // create state of the app
     let users = WSUsers::default();
     let rooms = Rooms::default();
@@ -34,7 +52,7 @@ async fn main() {
             ws.on_upgrade(move |socket| user_connected(NEXT_USER_ID.fetch_add(1, Ordering::Relaxed), socket, users, rooms))
         });
     // static paths
-    let public_path = &env::var("PUBLIC_PATH").expect("$PUBLIC_PATH must be provided");
+    let public_path = &env::var("PUBLIC_PATH").expect("$PUBLIC_PATH is not provided");
     let index_path = Path::new(&public_path).join("web.html");
     // routing static files
     let default_route = warp::fs::file(index_path);
@@ -59,6 +77,7 @@ async fn main() {
                 .expect("failed to listen to shutdown signal");
     });
     server.await;
+    Ok(())
 }
 
 
