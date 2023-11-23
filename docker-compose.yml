@@ -6,6 +6,7 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: "5432"
+      DB_USER: "board4you"
     ports:
       - "80:3000"
     secrets:

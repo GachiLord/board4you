@@ -1,5 +1,6 @@
 use serde_json::json;
 use tokio::sync::{RwLockReadGuard, mpsc::UnboundedSender};
+use tokio_postgres::Client;
 use warp::ws::Message;
 use serde::{Deserialize, Serialize};
 use crate::state::{Room, BoardSize, Command, CommandName};
@@ -29,7 +30,7 @@ enum BoardMessage{
     SizeData { data: BoardSize }
 }
 
-pub async fn user_message(user_id: Arc<usize>, msg: Message, users: &WSUsers, rooms: &Rooms) {
+pub async fn user_message(user_id: Arc<usize>, msg: Message, db_client: &Arc<Client>, users: &WSUsers, rooms: &Rooms) {
     // looks weird
     let msg: BoardMessage = match msg.to_str(){
         Ok(s) => match serde_json::from_str(s) {
