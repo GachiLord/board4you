@@ -1,6 +1,6 @@
 use tokio::time::{self, Duration};
 use tokio_postgres::Client;
-use crate::{Rooms, board::create};
+use crate::{Rooms, board::save};
 use std::{mem::take, sync::Arc};
 
 pub async fn remove_unused_rooms(client: &Arc<Client>, rooms: &Rooms, duration: Duration) {
@@ -23,7 +23,7 @@ pub async fn remove_unused_rooms(client: &Arc<Client>, rooms: &Rooms, duration: 
         });
         // save expired rooms to db
         for room in &expired_rooms{
-            create(&client, &room).await.unwrap();
+            let _ = save(&client, &room).await;
         }
         // cleanup log
         println!("{} unused room(s) removed", expired_rooms.len());
