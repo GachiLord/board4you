@@ -1,8 +1,10 @@
 use serde_json::json;
 use tokio::sync::{RwLockReadGuard, mpsc::UnboundedSender};
+use tokio_postgres::Client;
 use warp::ws::Message;
 use serde::{Deserialize, Serialize};
-use crate::state::{Room, BoardSize, Command, CommandName};
+use weak_table::WeakHashSet;
+use crate::{state::{Room, BoardSize, Command, CommandName}, board::get};
 use super::state::{Rooms, WSUsers, PullData};
 use std::{mem, collections::HashMap, sync::Arc};
 
@@ -29,7 +31,7 @@ enum BoardMessage{
     SizeData { data: BoardSize }
 }
 
-pub async fn user_message(user_id: Arc<usize>, msg: Message, users: &WSUsers, rooms: &Rooms) {
+pub async fn user_message(user_id: Arc<usize>, msg: Message, db_client: &Arc<Client>, users: &WSUsers, rooms: &Rooms) {
     // looks weird
     let msg: BoardMessage = match msg.to_str(){
         Ok(s) => match serde_json::from_str(s) {
@@ -46,21 +48,41 @@ pub async fn user_message(user_id: Arc<usize>, msg: Message, users: &WSUsers, ro
     match msg {
 
         BoardMessage::Join { public_id } => {
+            fn send_join_info(public_id: String, board_size: BoardSize, client: &UnboundedSender<Message>){
+                let _ = client.send(Message::text(
+                    json!({ "Info": {"status": "ok", "action":"Join", "payload": {"public_id": public_id} } }).to_string()
+                ));
+                let _ = client.send(Message::text(
+                    serde_json::to_string(&BoardMessage::SizeData { data: (board_size) }).unwrap()
+                ));
+            }
+
         
             match rooms.get_mut(&public_id) {
                 Some(r) => {
-                    r.add_user(user_id);
-                    let _ = client.send(Message::text(
-                        json!({ "Info": {"status": "ok", "action":"Join", "payload": {"public_id": public_id} } }).to_string()
-                    ));
-                    let _ = client.send(Message::text(
-                        serde_json::to_string(&BoardMessage::SizeData { data: (r.board.size) }).unwrap()
-                    ));
+                    r.add_user(user_id.to_owned());
+                    send_join_info(public_id.to_owned(), r.board.size, client);
                 },
                 None => {
-                    let _ = client.send(Message::text(
-                        json!({ "Info": {"status": "bad", "action":"Join", "payload": "no such room"} }).to_string()
-                    ));
+                    match get(&db_client, &public_id).await {
+                        Ok( (private_id, board) ) => {
+                            let room = Room {
+                                public_id: public_id.to_owned(),
+                                private_id,
+                                board,
+                                users: WeakHashSet::new()
+                            };
+                            send_join_info( public_id.to_owned(), room.board.size, client);
+                            rooms.insert(public_id, room);
+                            
+                        }
+                        Err(e) => {
+                            eprintln!("{e}");
+                            let _ = client.send(Message::text(
+                                json!({ "Info": {"status": "bad", "action":"Join", "payload": "no such room"} }).to_string()
+                            ));
+                        }
+                    }
                 }
             }
 

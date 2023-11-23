@@ -13,3 +13,4 @@ client/test/dist
 electron-builder.env
 target/
 bun.lockb
+db/credentials/password.txt

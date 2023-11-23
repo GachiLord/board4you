@@ -168,6 +168,11 @@ impl Board {
     }
 }
 
+impl Default for Board{
+    fn default() -> Self{
+        Board { current: (vec![]), undone: (vec![]), size: (BoardSize { height: (1720), width: (900) }) }
+    }
+}
 
 #[derive(Debug)]
 pub struct Room{
@@ -184,6 +189,17 @@ impl Room{
 
     pub fn remove_user(&mut self, id: Arc<usize>){
         self.users.remove(&id);
+    }  
+}
+
+impl Default for Room{
+    fn default() -> Self{
+        Room {
+            public_id: ("".to_string()),
+            private_id: ("".to_string()),
+            users: (WeakHashSet::default()),
+            board: Board::default()
+        }
     }
 }
 

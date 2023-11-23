@@ -3,5 +3,44 @@ services:
     container_name: board4you-server
     build: .
     command: ./server
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: "board4you"
     ports:
-      - "3000:3000"
+      - "80:3000"
+    secrets:
+      - db_password
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    container_name: board4you-db
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: "board4you"
+      POSTGRES_PASSWORD_FILE: "/run/secrets/db_password"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - /var/lib/postgresql/data:/var/lib/postgresql/data
+    secrets:
+      - db_password
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U board4you -d board4you"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  adminer:
+    container_name: board4you-db-adminer
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+secrets:
+  db_password:
+    file: ./db/credentials/password.txt

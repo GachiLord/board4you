@@ -10,7 +10,7 @@ COPY ./client/scripts ./scripts
 COPY ./client/bunfig.toml ./bunfig.toml
 COPY ./client/public/web.html ./public/web.html
 # install deps
-RUN bun install
+RUN bun install --legacy-peer-deps
 # build static
 RUN bun run buildWeb
 
@@ -43,6 +43,7 @@ RUN apk update \
 
 COPY --from=server-builder /board4you-build/target/x86_64-unknown-linux-musl/release/server ${APP}/server
 COPY --from=client-builder /public ${APP}/public
+COPY ./db/init/init.sql ${APP}
 
 RUN chown -R $APP_USER:$APP_USER ${APP}
 
@@ -50,5 +51,5 @@ USER $APP_USER
 WORKDIR ${APP}
 
 ENV PUBLIC_PATH=${APP}/public
-
+ENV DB_INIT_PATH=${APP}/init.sql
 CMD ["./server"]

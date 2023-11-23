@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use futures_util::{SinkExt, StreamExt, TryFutureExt};
+use tokio_postgres::Client;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::WebSocket;
 // use
@@ -8,7 +9,7 @@ use crate::message::user_message;
 use crate::state::{Rooms, WSUsers};
 
 
-pub async fn user_connected(user_id: usize, ws: WebSocket, users: WSUsers, rooms: Rooms) {
+pub async fn user_connected(user_id: usize, db_client: Arc<Client>, ws: WebSocket, users: WSUsers, rooms: Rooms) {
     eprintln!("new board user: {}", user_id);
     // create user_id Arc pointer
     let user_id_arc = Arc::new(user_id);
@@ -51,8 +52,9 @@ pub async fn user_connected(user_id: usize, ws: WebSocket, users: WSUsers, rooms
         let users = users.clone();
         let rooms = rooms.clone();
         let user_id_arc = user_id_arc.clone();
+        let db_client = db_client.clone();
         let user_message_task = tokio::spawn(async move{
-            user_message(user_id_arc, msg, &users, &rooms).await;
+            user_message(user_id_arc, msg, &db_client, &users, &rooms).await;
         });
         // disconnect user if there is a server error
         if user_message_task.await.is_err(){
