@@ -1,6 +1,7 @@
 services:
   web:
     container_name: board4you-server
+    restart: on-failure
     build: .
     command: ./server
     environment:

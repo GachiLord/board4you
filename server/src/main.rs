@@ -9,6 +9,7 @@ use warp::Filter;
 use tokio_postgres::{NoTls, Client};
 use std::error::Error;
 // modules
+mod user;
 mod message;
 mod board;
 mod state;
