@@ -7,9 +7,10 @@ use weak_table::WeakHashSet;
 use crate::{state::{Rooms, Board, Room, BoardSize}, with_rooms};
 
 
+// common
 const CONTENT_LENGTH_LIMIT: u64 = 1024 * 16;
 
-
+// room
 pub fn room_filter(rooms: Rooms) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone{
     let room_base = warp::path("room");
     
@@ -127,7 +128,6 @@ async fn delete_room(room_info: String, rooms: Rooms) -> Result<WithStatus<Json>
         StatusCode::OK,
     ))
 }
-
 
 // helpers
 fn as_string(
