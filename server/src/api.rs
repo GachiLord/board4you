@@ -7,7 +7,7 @@ use warp::{hyper::body::Bytes, Filter, http::{StatusCode, Response}, reply::{Wit
 use jwt_simple::prelude::*;
 use data_encoding::BASE64URL;
 use weak_table::WeakHashSet;
-use crate::{state::{Rooms, Board, Room, BoardSize}, with_rooms, user::{User, self}, with_db_client, with_jwt_key, auth::{UserData, verify_access_token, JwtExpired, get_jwt_tokens, get_jwt_tokens_from_refresh, set_jwt_token_response, verify_refresh_token}, with_expired_jwt_tokens};
+use crate::{state::{Rooms, Board, Room, BoardSize}, with_rooms, user::{User, self}, with_db_client, with_jwt_key, auth::{UserData, verify_access_token, JwtExpired, get_jwt_tokens, get_jwt_tokens_from_refresh, set_jwt_token_response, verify_refresh_token, get_access_token_cookie, get_refresh_token_cookie}, with_expired_jwt_tokens};
 
 
 // common
@@ -270,6 +270,7 @@ fn with_user_data(jwt_key: Arc<HS256Key>, expired_jwt_tokens: JwtExpired<'_>) ->
     .and_then(retrive_user_data)
 }
 
+#[derive(Debug)]
 struct UserDataFromJwt{
     user_data: Option<UserData>,
     new_jwt_cookie_values: Option<(String, String)>
@@ -292,7 +293,7 @@ async fn retrive_user_data(jwt_key: Arc<HS256Key>, expired_jwt_tokens: JwtExpire
         if let Ok((access_token, refresh_token, user_data)) = get_jwt_tokens_from_refresh(jwt_key, refresh_token, expired_jwt_tokens).await {
             return Ok(UserDataFromJwt { 
                 user_data: Some(user_data),
-                new_jwt_cookie_values: Some((format!("access_token={access_token}"), format!("refresh_token={refresh_token}"))) 
+                new_jwt_cookie_values: Some(( get_access_token_cookie(access_token), get_refresh_token_cookie(refresh_token) ))
             })
         }
     }

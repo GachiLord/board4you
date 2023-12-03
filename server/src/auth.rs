@@ -10,7 +10,7 @@ use warp::Reply;
 // types
 pub type JwtExpired<'a> = Arc<RwLock<HashSet<&'a str>>>;
 
-#[derive(Serialize, Deserialize, Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub struct UserData {
     pub user_id: i32,
 }
@@ -20,13 +20,21 @@ pub struct UserData {
 pub fn set_jwt_token_response(reply: impl Reply, access_token: String, refresh_token: String) -> Response {
     // set cookies
     let mut cookies = HeaderMap::new();
-    cookies.append("Set-Cookie", HeaderValue::from_str(&format!("access_token={access_token}")).unwrap());
-    cookies.append("Set-Cookie", HeaderValue::from_str(&format!("refresh_token={refresh_token}")).unwrap());
+    cookies.append("Set-Cookie", HeaderValue::from_str(&get_access_token_cookie(access_token)).unwrap());
+    cookies.append("Set-Cookie", HeaderValue::from_str(&get_refresh_token_cookie(refresh_token)).unwrap());
     let mut response = reply.into_response();
     let headers = response.headers_mut();
     headers.extend(cookies);
     // send cookies
     return response
+}
+
+pub fn get_access_token_cookie(value: String) -> String {
+    format!("access_token={value}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age={}", 60 * 60)
+}
+
+pub fn get_refresh_token_cookie(value: String) -> String {
+    format!("refresh_token={value}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age={}", 60 * 60 * 24 * 30)
 }
 
 pub fn get_jwt_tokens(jwt_key: Arc<HS256Key>, data: UserData) -> (String, String) {

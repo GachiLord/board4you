@@ -14,8 +14,8 @@ pub async fn save(client: &Arc<Client>, room: &Room) -> Result<SaveAction,  Box<
         Ok(res) => {
             if res.len() == 0{
                 client.execute(
-                    "INSERT INTO boards(public_id, private_id, board_state) VALUES ($1, $2, $3)",
-                    &[&room.public_id, &room.private_id, &board_state]
+                    "INSERT INTO boards(public_id, private_id, board_state, owner_id) VALUES ($1, $2, $3, $4)",
+                    &[&room.public_id, &room.private_id, &board_state, &room.owner_id]
                 ).await?;
             }
             else {
