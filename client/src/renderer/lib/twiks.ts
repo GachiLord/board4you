@@ -70,7 +70,13 @@ export async function doRequest(path: string, body?: object, method: 'POST'|'GET
         method: method,
         body: JSON.stringify(body)
     })
-    const json = await req.json()
+    let json: unknown
+    try{
+        json = await req.json()
+    }
+    catch{
+        json = {}
+    }
 
     return new Promise( (res, rej) => {
         if (req.ok) res(json)
