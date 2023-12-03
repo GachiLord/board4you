@@ -180,6 +180,7 @@ pub struct Room{
     pub private_id: String,
     pub users: WeakHashSet<Weak<usize>>,
     pub board: Board,
+    pub owner_id: Option<i32>
 }
 
 impl Room{
@@ -198,7 +199,8 @@ impl Default for Room{
             public_id: ("".to_string()),
             private_id: ("".to_string()),
             users: (WeakHashSet::default()),
-            board: Board::default()
+            board: Board::default(),
+            owner_id: None
         }
     }
 }

@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 ALTER TABLE users
     ADD COLUMN IF NOT EXISTS login varchar(36) NOT NULL,
-    ADD COLUMN IF NOT EXISTS password varchar(64) NOT NULL,
+    ADD COLUMN IF NOT EXISTS password varchar(97) NOT NULL,
     ADD COLUMN IF NOT EXISTS public_login varchar(36) NOT NULL,
     ADD COLUMN IF NOT EXISTS first_name varchar(36) NOT NULL,
     ADD COLUMN IF NOT EXISTS second_name varchar(36) NOT NULL;
@@ -16,6 +16,7 @@ ALTER TABLE users
 -- boards 
 CREATE TABLE IF NOT EXISTS boards (
     id SERIAL PRIMARY KEY,
+    owner_id INT,
     CONSTRAINT fk_user
         FOREIGN KEY(owner_id)
 	    REFERENCES users(id)

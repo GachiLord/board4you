@@ -70,7 +70,8 @@ pub async fn user_message(user_id: Arc<usize>, msg: Message, db_client: &Arc<Cli
                                 public_id: public_id.to_owned(),
                                 private_id,
                                 board,
-                                users: WeakHashSet::new()
+                                users: WeakHashSet::new(),
+                                owner_id: None
                             };
                             send_join_info( public_id.to_owned(), room.board.size, client);
                             rooms.insert(public_id, room);
