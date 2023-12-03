@@ -7,7 +7,7 @@ use warp::{hyper::body::Bytes, Filter, http::{StatusCode, Response}, reply::{Wit
 use jwt_simple::prelude::*;
 use data_encoding::BASE64URL;
 use weak_table::WeakHashSet;
-use crate::{state::{Rooms, Board, Room, BoardSize}, with_rooms, user::{User, self}, with_db_client, with_jwt_key, auth::{UserData, verify_access_token, JwtExpired, get_jwt_tokens, get_jwt_tokens_from_refresh, set_jwt_token_response}, with_expired_jwt_tokens};
+use crate::{state::{Rooms, Board, Room, BoardSize}, with_rooms, user::{User, self}, with_db_client, with_jwt_key, auth::{UserData, verify_access_token, JwtExpired, get_jwt_tokens, get_jwt_tokens_from_refresh, set_jwt_token_response, verify_refresh_token}, with_expired_jwt_tokens};
 
 
 // common
@@ -203,7 +203,7 @@ async fn create_user(user: String, client: Arc<Client>) -> Result<WithStatus<Jso
 
 // auth
 
-pub fn auth_filter(client: &Arc<Client>, jwt_key: &Arc<HS256Key>) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone{
+pub fn auth_filter<'a>(client: &Arc<Client>, jwt_key: &Arc<HS256Key>, expired_jwt_tokens: JwtExpired<'a>) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone + 'a{
     let base_route = warp::path("auth");
     
     let login = base_route
@@ -212,16 +212,11 @@ pub fn auth_filter(client: &Arc<Client>, jwt_key: &Arc<HS256Key>) -> impl Filter
         .and(as_string(CONTENT_LENGTH_LIMIT))
         .and(with_db_client(client.clone()))
         .and(with_jwt_key(jwt_key.clone()))
-        .and_then(login);
-    let show_tokens = base_route
-        .and(warp::path("jwt"))
         .and(with_jwt_cookies())
-        .map(|t1, t2| {
-            dbg!(t1, t2);
-            warp::reply()
-        });
+        .and(with_expired_jwt_tokens(expired_jwt_tokens))
+        .and_then(login);
 
-    login.or(show_tokens)
+    login
 }
 
 #[derive(Deserialize)]
@@ -230,7 +225,19 @@ struct Credentials{
     password: String
 }
 
-async fn login(data: String, client: Arc<Client>, jwt_key: Arc<HS256Key>) -> Result<impl warp::Reply, warp::Rejection>{
+async fn login(data: String, client: Arc<Client>, jwt_key: Arc<HS256Key>, access_token: Option<String>, refresh_token: Option<String>, expired_jwt_tokens: JwtExpired<'_>
+) -> Result<impl warp::Reply, warp::Rejection>
+ {
+    // if user is authed, send current tokens
+    if let Some(refresh_token) = refresh_token{
+        let expired_jwt_tokens = expired_jwt_tokens.write().await;
+        if let Ok(_) = verify_refresh_token(&jwt_key, &refresh_token, &expired_jwt_tokens).await {
+            let access_token = access_token.unwrap_or_default();
+            let reply = warp::reply();
+            return Ok(set_jwt_token_response(reply, access_token, refresh_token))
+        }
+    }
+    // else generate new tokens
     let credentials: Credentials = match serde_json::from_str(&data) {
         Ok(u) => u,
         Err(_) => return Err(warp::reject())

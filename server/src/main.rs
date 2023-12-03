@@ -77,7 +77,7 @@ async fn main() -> Result<(), Box<dyn Error>>{
     // expired jwt_refresh_tokens
     let expired_jwt_tokens = JwtExpired::default();
     // apis
-    let apis = room_filter(rooms.clone(), jwt_key.clone(), expired_jwt_tokens).or(user_filter(&client)).or(auth_filter(&client, &jwt_key));
+    let apis = room_filter(rooms.clone(), jwt_key.clone(), expired_jwt_tokens.clone()).or(user_filter(&client)).or(auth_filter(&client, &jwt_key, expired_jwt_tokens));
     // bundle all routes
     let routes = apis.or(board).or(static_site).recover(handle_rejection);
     // create cleanup task to remove unused rooms

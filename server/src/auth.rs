@@ -46,12 +46,6 @@ pub async fn get_jwt_tokens_from_refresh<'a>(jwt_key: Arc<HS256Key>, refresh_tok
     }
     Err(())
 }
-// pub async fn update_jwt_token_response<'a>(reply: impl Reply, jwt_key: Arc<HS256Key>, jwt_refresh_token: &'a str, expired_jwt_tokens: JwtExpired<'a>) -> Response {
-//     match expire_jwt_token(&jwt_key, jwt_refresh_token, expired_jwt_tokens).await {
-//         Ok(data) => return set_jwt_token_response(reply, jwt_key, data),
-//         Err(_) => return warp::reply::with_status(warp::reply(), StatusCode::UNAUTHORIZED).into_response()
-//     };
-// }
 
 // helpers
 
@@ -62,7 +56,7 @@ pub fn verify_access_token(jwt_key: Arc<HS256Key>, jwt_token: &str) -> Result<Us
     }
 }
 
-async fn verify_refresh_token(jwt_key: &Arc<HS256Key>, jwt_token: &str, expired_jwt_tokens: &RwLockWriteGuard<'_, HashSet<&str>>) -> Result<UserData, ()> {
+pub async fn verify_refresh_token(jwt_key: &Arc<HS256Key>, jwt_token: &str, expired_jwt_tokens: &RwLockWriteGuard<'_, HashSet<&str>>) -> Result<UserData, ()> {
     match jwt_key.verify_token(jwt_token, None) {
         Ok(claims) => {
             if !expired_jwt_tokens.contains(jwt_token){
