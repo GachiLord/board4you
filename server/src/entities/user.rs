@@ -43,7 +43,7 @@ pub async fn validate(
     user: &User
 ) -> Result<(), ValidationError>
 {
-    if user.login.len() < 8  || user.password.len() < 8 || user.public_login.len() < 8{
+    if user.login.len() < 8  || user.password.len() < 8 {
         return Err(ValidationError::TooShort)
     }
     if user.login.len() > 36  || user.password.len() > 36 || user.public_login.len() > 36 

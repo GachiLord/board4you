@@ -73,7 +73,7 @@ pub async fn retrive_user_data(jwt_key: JwtKey, expired_jwt_tokens: JwtExpired<'
         if let Ok((access_token, refresh_token, user_data)) = get_jwt_tokens_from_refresh(jwt_key, refresh_token, expired_jwt_tokens).await {
             return Ok(UserDataFromJwt { 
                 user_data: Some(user_data),
-                new_jwt_cookie_values: Some(( get_access_token_cookie(access_token), get_refresh_token_cookie(refresh_token) ))
+                new_jwt_cookie_values: Some(( get_access_token_cookie(access_token, None), get_refresh_token_cookie(refresh_token, None) ))
             })
         }
     }

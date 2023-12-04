@@ -20,8 +20,8 @@ pub struct UserData {
 pub fn set_jwt_token_response(reply: impl Reply, access_token: String, refresh_token: String) -> Response {
     // set cookies
     let mut cookies = HeaderMap::new();
-    cookies.append("Set-Cookie", HeaderValue::from_str(&get_access_token_cookie(access_token)).unwrap());
-    cookies.append("Set-Cookie", HeaderValue::from_str(&get_refresh_token_cookie(refresh_token)).unwrap());
+    cookies.append("Set-Cookie", HeaderValue::from_str(&get_access_token_cookie(access_token, None)).unwrap());
+    cookies.append("Set-Cookie", HeaderValue::from_str(&get_refresh_token_cookie(refresh_token, None)).unwrap());
     let mut response = reply.into_response();
     let headers = response.headers_mut();
     headers.extend(cookies);
@@ -29,12 +29,12 @@ pub fn set_jwt_token_response(reply: impl Reply, access_token: String, refresh_t
     return response
 }
 
-pub fn get_access_token_cookie(value: String) -> String {
-    format!("access_token={value}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age={}", 60 * 60)
+pub fn get_access_token_cookie(value: String, max_age: Option<i32>) -> String {
+    format!("access_token={value}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age={}", max_age.unwrap_or(60 * 60))
 }
 
-pub fn get_refresh_token_cookie(value: String) -> String {
-    format!("refresh_token={value}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age={}", 60 * 60 * 24 * 30)
+pub fn get_refresh_token_cookie(value: String, max_age: Option<i32>) -> String {
+    format!("refresh_token={value}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age={}", max_age.unwrap_or(60 * 60 * 24 * 30))
 }
 
 pub fn get_jwt_tokens(jwt_key: Arc<HS256Key>, data: UserData) -> (String, String) {
