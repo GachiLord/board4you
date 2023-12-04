@@ -3,26 +3,23 @@ use std::sync::Arc;
 use std::{env, fs};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::path::Path;
-use api::{room_filter, user_filter, handle_rejection, auth_filter};
-use auth::JwtExpired;
+use api::handle_rejection;
+use libs::auth::JwtExpired;
+use libs::state::{WSUsers, Rooms};
+use lifecycle::remove_unused_rooms;
 use tokio::signal::unix::signal;
 use tokio::time;
 use warp::Filter;
 use tokio_postgres::{NoTls, Client};
+use websocket::user_connected;
 use std::error::Error;
 use jwt_simple::prelude::*;
 // modules
-mod auth;
-mod user;
-mod message;
-mod board;
-mod state;
 mod api;
-mod connect;
-mod cleanup;
-use connect::user_connected;
-use crate::state::{Rooms, WSUsers};
-use crate::cleanup::remove_unused_rooms;
+mod entities;
+mod libs;
+mod lifecycle;
+mod websocket;
 
 // unique id
 static NEXT_USER_ID: AtomicUsize = AtomicUsize::new(1);
@@ -77,7 +74,7 @@ async fn main() -> Result<(), Box<dyn Error>>{
     // expired jwt_refresh_tokens
     let expired_jwt_tokens = JwtExpired::default();
     // apis
-    let apis = room_filter(rooms.clone(), jwt_key.clone(), expired_jwt_tokens.clone()).or(user_filter(&client)).or(auth_filter(&client, &jwt_key, expired_jwt_tokens));
+    let apis = api::api(client.clone(), jwt_key, expired_jwt_tokens, rooms.clone());
     // bundle all routes
     let routes = apis.or(board).or(static_site).recover(handle_rejection);
     // create cleanup task to remove unused rooms

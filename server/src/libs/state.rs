@@ -1,6 +1,8 @@
+use jwt_simple::algorithms::HS256Key;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, Map};
 use tokio::sync::{mpsc, RwLock};
+use tokio_postgres::Client;
 use warp::ws::Message;
 use std::{sync::{Arc, Weak}, collections::{HashMap, HashSet}};
 use weak_table::WeakHashSet;
@@ -207,3 +209,5 @@ impl Default for Room{
 
 pub type Rooms = Arc<RwLock<HashMap<String, Room>>>;
 pub type WSUsers = Arc<RwLock<HashMap<Arc<usize>, mpsc::UnboundedSender<Message>>>>;
+pub type JwtKey = Arc<HS256Key>;
+pub type DbClient = Arc<Client>;

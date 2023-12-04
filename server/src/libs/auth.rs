@@ -44,7 +44,8 @@ pub fn get_jwt_tokens(jwt_key: Arc<HS256Key>, data: UserData) -> (String, String
 
 pub async fn get_jwt_tokens_from_refresh<'a>(jwt_key: Arc<HS256Key>, refresh_token: &'a str, expired_jwt_tokens: JwtExpired<'a>) 
 -> Result<(String, String, UserData), ()> 
-{   let mut expired_jwt_tokens = expired_jwt_tokens.write().await;
+{   
+    let mut expired_jwt_tokens = expired_jwt_tokens.write().await;
     if let Ok(user_data) = verify_refresh_token(&jwt_key, refresh_token, &expired_jwt_tokens).await {
         // expire this token
         expired_jwt_tokens.insert(refresh_token);
@@ -72,7 +73,9 @@ pub async fn verify_refresh_token(jwt_key: &Arc<HS256Key>, jwt_token: &str, expi
             }
             return Err(())
         },
-        Err(_) => return Err(())
+        Err(_) => {
+            return Err(())
+        }
     }
 }
 
