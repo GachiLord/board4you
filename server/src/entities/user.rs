@@ -13,7 +13,8 @@ use argon2::{
 pub enum ValidationError{
     TooShort,
     TooLong,
-    AlreadyExist
+    AlreadyExist,
+    Unexpected
 }
 
 impl Display for ValidationError{
@@ -22,6 +23,7 @@ impl Display for ValidationError{
             ValidationError::TooShort => "too short",
             ValidationError::TooLong => "too long",
             ValidationError::AlreadyExist => "already exist",
+            ValidationError::Unexpected => "unexpeced error"
         };
 
         write!(f, "{output}")
@@ -51,16 +53,16 @@ pub async fn validate(
         return Err(ValidationError::TooLong)
     }
     // check if logins in use
-    let login_count = client.query_one("SELECT COUNT(id) FROM users WHERE login = '$1' OR public_login = '$2'", &[&user.login, &user.public_login]).await;
+    let user_count = client.query_one("SELECT COUNT(id) FROM users WHERE login = ($1) OR public_login = ($2)", &[&user.login, &user.public_login]).await;
     
-    match login_count {
-        Ok(row) => {
-            if row.get::<&str, u32>("count") > 0 {
+    match user_count {
+        Ok(row) => {        
+            if row.get::<&str, i64>("count") > 0 {
                 return Err(ValidationError::AlreadyExist)
             }
         },
         Err(_) => {
-            return Ok(())
+            return Err(ValidationError::Unexpected)
         }
     }
 
