@@ -10,9 +10,13 @@ use warp::Reply;
 // types
 pub type JwtExpired<'a> = Arc<RwLock<HashSet<&'a str>>>;
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UserData {
-    pub user_id: i32,
+    pub id: i32,
+    pub login: String,
+    pub public_login: String,
+    pub first_name: String,
+    pub second_name: String
 }
 
 // funs
@@ -50,7 +54,7 @@ pub async fn get_jwt_tokens_from_refresh<'a>(jwt_key: Arc<HS256Key>, refresh_tok
         // expire this token
         expired_jwt_tokens.insert(refresh_token);
         // generate new ones
-        let (a_t, r_t) = get_jwt_tokens(jwt_key, user_data);
+        let (a_t, r_t) = get_jwt_tokens(jwt_key, user_data.clone());
         return Ok( (a_t, r_t, user_data) )
     }
     Err(())

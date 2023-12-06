@@ -18,6 +18,6 @@ pub fn api(client: DbClient, jwt_key: JwtKey, expired_jwt_tokens: JwtExpired, ro
 -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone + '_
 {
     auth_filter(&client, &jwt_key, expired_jwt_tokens.clone())
-    .or(room_filter(rooms, jwt_key, expired_jwt_tokens))
-    .or(user_filter(&client))
+    .or(room_filter(rooms, jwt_key.clone(), expired_jwt_tokens.clone()))
+    .or(user_filter(client, jwt_key, expired_jwt_tokens))
 }

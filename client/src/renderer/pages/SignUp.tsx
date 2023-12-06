@@ -38,7 +38,6 @@ function SignIn() {
         doRequest('user', req, 'POST')
             .then( () => {
                 if (validate()) navigate('/signin')
-                // change user state
             } )
             .catch( () => {
                 setLoginMsg(getLoginValidMsg('Login', 'exist'))

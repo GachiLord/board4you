@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Container } from 'react-bootstrap';
 import { doRequest } from '../lib/twiks';
 import { useNavigate } from 'react-router';
+import { updateAuth } from '../lib/auth';
 
 function SignIn() {
     const [login, setLogin] = useState("")
@@ -15,6 +16,7 @@ function SignIn() {
         e.preventDefault()
         doRequest('auth/login', { login, password }, 'POST')
             .then( () => {
+                updateAuth()
                 navigate('/')
             } )
             .catch( () => {

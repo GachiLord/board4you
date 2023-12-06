@@ -69,7 +69,7 @@ async fn create_room(room_initials: String, rooms: Rooms, user_data: UserDataFro
     let mut owner_id: Option<i32> = None;
     // add owner if user is authed
     if let Some(data) = user_data.user_data{
-        owner_id = Some(data.user_id)
+        owner_id = Some(data.id)
     }
     // create Room instance
     let room = Room {

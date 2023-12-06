@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use warp::Filter;
 
-use crate::{libs::{state::{DbClient, JwtKey}, auth::{JwtExpired, verify_refresh_token, set_jwt_token_response, UserData, get_jwt_tokens, get_access_token_cookie}}, with_db_client, with_jwt_key, with_expired_jwt_tokens, entities::user};
+use crate::{libs::{state::{DbClient, JwtKey}, auth::{JwtExpired, verify_refresh_token, set_jwt_token_response, get_jwt_tokens, get_access_token_cookie}}, with_db_client, with_jwt_key, with_expired_jwt_tokens, entities::user};
 use super::common::{CONTENT_LENGTH_LIMIT, as_string, with_jwt_cookies};
 
 
@@ -49,9 +49,9 @@ async fn login(data: String, client: DbClient, jwt_key: JwtKey, access_token: Op
         Err(_) => return Err(warp::reject())
     };
     match user::verify_password(&client, &credentials.login, &credentials.password).await {
-        Ok(user_id) => {
+        Ok(user) => {
             let reply = warp::reply();
-            let user_data = UserData{ user_id };
+            let user_data = user; 
             let (a_t, r_t) = get_jwt_tokens(jwt_key.clone(), user_data);
             return Ok(set_jwt_token_response(reply, a_t, r_t))
         }

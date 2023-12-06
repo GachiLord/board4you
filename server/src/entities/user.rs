@@ -8,6 +8,7 @@ use argon2::{
     },
     Argon2
 };
+use crate::libs::auth::UserData;
 
 // user-related structs
 pub enum ValidationError{
@@ -90,7 +91,7 @@ pub async fn create(
     Ok(())
 }
 
-pub async fn verify_password(client: &Arc<Client>, login: &String, password: &String) -> Result<i32, ()>{
+pub async fn verify_password(client: &Arc<Client>, login: &String, password: &String) -> Result<UserData, ()>{
     let argon2 = Argon2::default();
     let err = Err(());
     let user = client.query_one(
@@ -111,7 +112,13 @@ pub async fn verify_password(client: &Arc<Client>, login: &String, password: &St
     // verify hash
     let verify_result = argon2.verify_password(password.as_bytes(), &parsed_hash.unwrap());
     if verify_result.is_ok(){
-        return Ok(user.get("id"))
+        return Ok(UserData { 
+            id: user.get("id"), 
+            login: user.get("login"),
+            public_login: user.get("public_login"), 
+            first_name: user.get("first_name"), 
+            second_name: user.get("second_name") 
+        })
     }
     err
 }

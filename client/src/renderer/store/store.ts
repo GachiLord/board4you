@@ -7,6 +7,7 @@ import toolReducer from '../features/tool'
 import progressReducer from '../features/progress'
 import boardReducer from '../features/board' 
 import roomsReducer from '../features/rooms'
+import userReducer from '../features/user'
 
 
 const store = configureStore({
@@ -18,7 +19,8 @@ const store = configureStore({
     'tool': toolReducer,
     'progress': progressReducer,
     'board': boardReducer,
-    'rooms': roomsReducer
+    'rooms': roomsReducer,
+    'user': userReducer
   }
 })
 
