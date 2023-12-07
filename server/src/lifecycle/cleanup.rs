@@ -1,6 +1,7 @@
 use tokio::time::{self, Duration};
 use tokio_postgres::Client;
-use crate::{Rooms, board::save};
+use crate::libs::state::Rooms;
+use crate::entities::board::save;
 use std::{mem::take, sync::Arc};
 
 pub async fn remove_unused_rooms(client: &Arc<Client>, rooms: &Rooms, duration: Duration) {

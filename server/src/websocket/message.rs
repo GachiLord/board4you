@@ -4,8 +4,9 @@ use tokio_postgres::Client;
 use warp::ws::Message;
 use serde::{Deserialize, Serialize};
 use weak_table::WeakHashSet;
-use crate::{state::{Room, BoardSize, Command, CommandName}, board::get};
-use super::state::{Rooms, WSUsers, PullData};
+use crate::libs::state::{Room, BoardSize, Command, CommandName};
+use crate::entities::board::get;
+use crate::libs::state::{Rooms, WSUsers, PullData};
 use std::{mem, collections::HashMap, sync::Arc};
 
 
@@ -70,7 +71,8 @@ pub async fn user_message(user_id: Arc<usize>, msg: Message, db_client: &Arc<Cli
                                 public_id: public_id.to_owned(),
                                 private_id,
                                 board,
-                                users: WeakHashSet::new()
+                                users: WeakHashSet::new(),
+                                owner_id: None
                             };
                             send_join_info( public_id.to_owned(), room.board.size, client);
                             rooms.insert(public_id, room);

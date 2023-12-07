@@ -1,6 +1,7 @@
 services:
   web:
     container_name: board4you-server
+    restart: on-failure
     build: .
     command: ./server
     environment:
@@ -16,7 +17,7 @@ services:
         condition: service_healthy
   db:
     container_name: board4you-db
-    image: postgres
+    image: postgres:14
     restart: always
     environment:
       POSTGRES_USER: "board4you"

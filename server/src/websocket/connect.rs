@@ -5,8 +5,8 @@ use tokio_postgres::Client;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::WebSocket;
 // use
-use crate::message::user_message;
-use crate::state::{Rooms, WSUsers};
+use crate::websocket::message::user_message;
+use crate::libs::state::{Rooms, WSUsers};
 
 
 pub async fn user_connected(user_id: usize, db_client: Arc<Client>, ws: WebSocket, users: WSUsers, rooms: Rooms) {

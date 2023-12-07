@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use std::error::Error;
-use crate::state::{Room, Board};
+use crate::libs::state::{Room, Board};
 use tokio_postgres::Client;
 
 
@@ -14,13 +14,13 @@ pub async fn save(client: &Arc<Client>, room: &Room) -> Result<SaveAction,  Box<
         Ok(res) => {
             if res.len() == 0{
                 client.execute(
-                    "INSERT INTO boards(public_id, private_id, board_state) VALUES ($1, $2, $3)",
-                    &[&room.public_id, &room.private_id, &board_state]
+                    "INSERT INTO boards(public_id, private_id, board_state, owner_id) VALUES ($1, $2, $3, $4)",
+                    &[&room.public_id, &room.private_id, &board_state, &room.owner_id]
                 ).await?;
             }
             else {
                 client.execute(
-                    "UPDATE boards SET board_state = $1 WHERE public_id = $2",
+                    "UPDATE boards SET board_state = ($1) WHERE public_id = ($2)",
                     &[&board_state, &room.public_id]
                 ).await?;
                 return Ok(SaveAction::Updated)
