@@ -47,7 +47,6 @@ function SignIn() {
     }
     const validate = (target?: 'login'|'nickname'|'password') => {
         let result = true
-        console.log(target)
         if ((login.length < 8 || login.length > 36) && (!target || target === 'login')) {
             setLoginMsg(getLoginValidMsg('Login', 'length'))
             setIsLoginInvalid(true)
@@ -74,7 +73,7 @@ function SignIn() {
     return (
         <Container className='d-flex justify-content-center align-items-center mt-5'>
             <Form noValidate onSubmit={(e) => handleSubmit(e)}>
-                <Form.Group className="mb-3" controlId="formBasicEmail">
+                <Form.Group className="mb-3">
                     <Form.Label>Login</Form.Label>
                     <Form.Control 
                         isInvalid={isLoginInvalid} 
@@ -88,7 +87,7 @@ function SignIn() {
                     </Form.Control.Feedback>
                 </Form.Group>
 
-                <Form.Group className="mb-3" controlId="formBasicEmail">
+                <Form.Group className="mb-3">
                     <Form.Label>Nickname</Form.Label>
                     <Form.Control 
                         isInvalid={isPublicLoginInvalid} 
@@ -103,12 +102,12 @@ function SignIn() {
                     </Form.Control.Feedback>
                 </Form.Group>
 
-                <Form.Group className="mb-3" controlId="formBasicEmail">
+                <Form.Group className="mb-3">
                     <Form.Label>First name</Form.Label>
                     <Form.Control type="text" placeholder='Optional' onChange={(e) => setFirstName(e.target.value)} />
                 </Form.Group>
                 
-                <Form.Group className="mb-3" controlId="formBasicEmail">
+                <Form.Group className="mb-3">
                     <Form.Label>Second name</Form.Label>
                     <Form.Control type="text" placeholder='Optional' onChange={(e) => setSecondName(e.target.value)} />
                 </Form.Group>

@@ -6,33 +6,40 @@ use warp::{
     Filter, 
     reply::{json, WithStatus, Json, with_status}, 
     http::StatusCode,
-    http::Response
+    http::Response,
+    http::header::SET_COOKIE
 };
 use weak_table::WeakHashSet;
 use crate::{
-    libs::{state::{Rooms, JwtKey, BoardSize, Room, Board}, 
+    libs::{state::{Rooms, JwtKey, BoardSize, Room, Board, DbClient}, 
     auth::JwtExpired}, 
-    with_rooms
+    with_rooms, with_db_client
 };
 use serde_json::json;
 use super::common::{as_string, with_user_data, CONTENT_LENGTH_LIMIT, UserDataFromJwt, ReplyWithPayload, Reply};
 
-pub fn room_filter(rooms: Rooms, jwt_key: JwtKey, expired_jwt_tokens: JwtExpired) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone + '_{
+pub fn room_filter(rooms: Rooms, db_client: DbClient, jwt_key: JwtKey, expired_jwt_tokens: JwtExpired) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone + '_{
     let room_base = warp::path("room");
     
     let create = room_base
         .and(warp::post())
         .and(as_string(1024 * 1024 * 16))
         .and(with_rooms(rooms.clone()))
-        .and(with_user_data(jwt_key, expired_jwt_tokens))
+        .and(with_user_data(jwt_key.clone(), expired_jwt_tokens.clone()))
         .and_then(create_room);
     let delete = room_base
         .and(warp::delete())
         .and(as_string(CONTENT_LENGTH_LIMIT))
         .and(with_rooms(rooms.clone()))
         .and_then(delete_room);
+    let get_private_ids = room_base
+        .and(warp::path("private"))
+        .and(warp::get())
+        .and(with_db_client(db_client))
+        .and(with_user_data(jwt_key, expired_jwt_tokens))
+        .and_then(get_private_ids);
 
-    create.or(delete)
+    create.or(delete).or(get_private_ids)
 }
 
 #[derive(Deserialize, Serialize)]
@@ -95,8 +102,8 @@ async fn create_room(room_initials: String, rooms: Rooms, user_data: UserDataFro
     if let Some((a_t, r_t)) = user_data.new_jwt_cookie_values{
         let res = Response::builder()
             .status(StatusCode::CREATED)
-            .header("Set-Cookie", a_t)
-            .header("Set-Cookie", r_t)
+            .header(SET_COOKIE, a_t)
+            .header(SET_COOKIE, r_t)
             .body(body);
         return Ok(res)
     }
@@ -151,4 +158,47 @@ async fn delete_room(room_info: String, rooms: Rooms) -> Result<WithStatus<Json>
         } ),
         StatusCode::OK,
     ))
+}
+
+#[derive(Serialize)]
+struct RoomData{
+    public_id: String,
+    private_id: String           
+}
+
+async fn get_private_ids(db_client: DbClient, jwt_data: UserDataFromJwt) -> Result<impl warp::Reply, warp::Rejection> {
+    if let Some(user) = jwt_data.user_data{
+        let owned_rooms =  db_client.query(
+            "SELECT private_id, public_id FROM boards WHERE owner_id=($1)", 
+            &[&user.id]
+        ).await;
+
+        match owned_rooms {
+            Ok(rows) => {
+                let rooms = rows
+                    .iter()
+                    .map(|row| {
+                        return RoomData { public_id: row.get("public_id"), private_id: row.get("private_id") }
+                    } )
+                    .collect::<Vec<RoomData>>();
+                let body = serde_json::to_string(&rooms).unwrap();
+                // send with headers
+                match jwt_data.new_jwt_cookie_values {
+                    Some((c1, c2)) => return Ok(
+                        Response::builder()
+                            .header(SET_COOKIE, c1)
+                            .header(SET_COOKIE, c2)
+                            .status(StatusCode::OK)
+                            .body(body)
+                    ),
+                    None => return Ok(Response::builder().status(StatusCode::OK).body(body))
+                }
+                }
+            Err(e) => {
+                println!("{}", e.to_string());
+                return Ok(Response::builder().status(StatusCode::INTERNAL_SERVER_ERROR).body("unexpected error".to_owned()))
+            }
+        }
+    }
+    return Ok(Response::builder().status(StatusCode::UNAUTHORIZED).body("auth to get private_ids".to_owned()))
 }

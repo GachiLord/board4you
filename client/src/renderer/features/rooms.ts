@@ -14,8 +14,13 @@ const sliceReducer = createSlice({
         setRoom: (state, action: PayloadAction<{publicId: string, privateId: string}>) => {
             state[action.payload.publicId] = action.payload.privateId
         },
+        emptyRooms: (state) => {
+            Object.keys(state).forEach( key => {
+                delete state[key]
+            } )
+        }
     }
 })
 
-export const {setRoom} = sliceReducer.actions
+export const {setRoom, emptyRooms} = sliceReducer.actions
 export default sliceReducer.reducer

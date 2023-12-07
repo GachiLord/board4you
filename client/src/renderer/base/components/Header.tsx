@@ -1,13 +1,15 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Container, Nav, Navbar } from "react-bootstrap";
+import { Button, Container, Nav, Navbar } from "react-bootstrap";
 import { LinkContainer } from 'react-router-bootstrap'
 import Logo from '../../../../build/icon.png'
 import { LocaleContext } from "../constants/LocaleContext";
 import { logOut, updateAuth } from "../../lib/auth";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/store";
+import { useNavigate } from "react-router";
 
 export default function Header(){
+    const navigate = useNavigate()
     const loc = useContext(LocaleContext)
     const userData = useSelector((state: RootState) => state.user)
     const [isPending, setIsPending] = useState(true)
@@ -27,9 +29,7 @@ export default function Header(){
             <LinkContainer to={`profile/${userData.user.nickName}`}>
                 <Nav.Link>{"Profile"}</Nav.Link>
             </LinkContainer>
-            <LinkContainer to="/signin" onClick={ () => logOut() }>
-                <Nav.Link>{"Sign out"}</Nav.Link>
-            </LinkContainer>
+            <Button variant="secondary" size="sm" onClick={ () => {logOut(); navigate('/')} }>Sign out</Button>
         </>)
         else authBar = (<>
             <LinkContainer to="signin">

@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use serde_json::json;
 use warp::{Filter, reply::{WithStatus, Json, with_status, json}};
 use crate::{libs::{state::{DbClient, JwtKey}, auth::JwtExpired}, with_db_client, entities::user::{User, self}};
-use warp::http::{StatusCode, Response};
+use warp::http::{StatusCode, Response, header::SET_COOKIE};
 
 use super::common::{as_string, CONTENT_LENGTH_LIMIT, ReplyWithPayload, Reply, UserDataFromJwt, with_user_data};
 
@@ -68,8 +68,8 @@ async fn read_user_private(retrived_user_data: UserDataFromJwt) -> Result<impl w
         let res = match retrived_user_data.new_jwt_cookie_values {
             Some((c1, c2)) => {
                 Response::builder()
-                        .header("Set-Cookie", c1)
-                        .header("Set-Cookie", c2)
+                        .header(SET_COOKIE, c1)
+                        .header(SET_COOKIE, c2)
                         .status(StatusCode::OK)
                         .body(body)
             }

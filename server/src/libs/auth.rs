@@ -4,7 +4,7 @@ use jwt_simple::{claims::Claims, algorithms::HS256Key, reexports::coarsetime::Du
 use serde::{Deserialize, Serialize};
 use tokio::sync::{RwLock, RwLockWriteGuard};
 use warp::reply::Response;
-use warp::http::header::{HeaderMap, HeaderValue};
+use warp::http::header::{HeaderMap, HeaderValue, SET_COOKIE};
 use warp::Reply;
 
 // types
@@ -24,8 +24,8 @@ pub struct UserData {
 pub fn set_jwt_token_response(reply: impl Reply, access_token: String, refresh_token: String) -> Response {
     // set cookies
     let mut cookies = HeaderMap::new();
-    cookies.append("Set-Cookie", HeaderValue::from_str(&get_access_token_cookie(access_token, None)).unwrap());
-    cookies.append("Set-Cookie", HeaderValue::from_str(&get_refresh_token_cookie(refresh_token, None)).unwrap());
+    cookies.append(SET_COOKIE, HeaderValue::from_str(&get_access_token_cookie(access_token, None)).unwrap());
+    cookies.append(SET_COOKIE, HeaderValue::from_str(&get_refresh_token_cookie(refresh_token, None)).unwrap());
     let mut response = reply.into_response();
     let headers = response.headers_mut();
     headers.extend(cookies);
