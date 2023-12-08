@@ -44,4 +44,4 @@ services:
 
 secrets:
   db_password:
-    file: ./db/credentials/password.txt
+    file: ./secrets/db_password.txt

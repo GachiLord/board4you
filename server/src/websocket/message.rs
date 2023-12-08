@@ -78,8 +78,7 @@ pub async fn user_message(user_id: Arc<usize>, msg: Message, db_client: &Arc<Cli
                             rooms.insert(public_id, room);
                             
                         }
-                        Err(e) => {
-                            eprintln!("{e}");
+                        Err(_) => {
                             let _ = client.send(Message::text(
                                 json!({ "Info": {"status": "bad", "action":"Join", "payload": "no such room"} }).to_string()
                             ));
