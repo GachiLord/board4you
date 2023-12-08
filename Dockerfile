@@ -43,7 +43,7 @@ RUN apk update \
 
 COPY --from=server-builder /board4you-build/target/x86_64-unknown-linux-musl/release/server ${APP}/server
 COPY --from=client-builder /public ${APP}/public
-COPY ./db/init/init.sql ${APP}
+COPY ./db/init.sql ${APP}
 
 RUN chown -R $APP_USER:$APP_USER ${APP}
 
