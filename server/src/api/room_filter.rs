@@ -12,7 +12,7 @@ use warp::{
 use weak_table::WeakHashSet;
 use crate::{
     libs::state::{Rooms, JwtKey, BoardSize, Room, Board, DbClient}, 
-    with_rooms, with_db_client
+    with_rooms, with_db_client, entities::board::save
 };
 use serde_json::json;
 use super::common::{as_string, with_user_data, CONTENT_LENGTH_LIMIT, UserDataFromJwt, ReplyWithPayload, Reply};
@@ -23,6 +23,7 @@ pub fn room_filter(rooms: Rooms, db_client: DbClient, jwt_key: JwtKey) -> impl F
     let create = room_base
         .and(warp::post())
         .and(as_string(1024 * 1024 * 16))
+        .and(with_db_client(db_client.clone()))
         .and(with_rooms(rooms.clone()))
         .and(with_user_data(&db_client, jwt_key.clone()))
         .and_then(create_room);
@@ -53,7 +54,7 @@ struct RoomCredentials {
     private_id: String,
 }
 
-async fn create_room(room_initials: String, rooms: Rooms, user_data: UserDataFromJwt) -> Result<impl warp::Reply, warp::Rejection>
+async fn create_room(room_initials: String, db_client: DbClient, rooms: Rooms, user_data: UserDataFromJwt) -> Result<impl warp::Reply, warp::Rejection>
 {
     // create room from room_initials
     let room: RoomInitials = match serde_json::from_str(&room_initials) {
@@ -89,7 +90,11 @@ async fn create_room(room_initials: String, rooms: Rooms, user_data: UserDataFro
         },
         owner_id
     };
-    
+    // save board to db if user is authed
+    if let Some(_) = owner_id{
+        let _ = save(&db_client, &room).await;
+    }
+    // update rooms
     rooms.write().await.insert(public_id.to_owned(), room);
 
     // res
