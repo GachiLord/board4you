@@ -27,3 +27,11 @@ ALTER TABLE boards
     ADD COLUMN IF NOT EXISTS public_id varchar(36) NOT NULL,
     ADD COLUMN IF NOT EXISTS private_id varchar(44) NOT NULL,
     ADD COLUMN IF NOT EXISTS board_state json NOT NULL;
+
+-- jwt
+
+CREATE TABLE IF NOT EXISTS expired_jwts (
+	id SERIAL PRIMARY KEY,
+	jwt_data VARCHAR (500) NOT NULL,
+	expire_date DATE NOT NULL DEFAULT CURRENT_DATE
+);

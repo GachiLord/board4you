@@ -5,15 +5,14 @@ use warp::hyper::body::Bytes;
 use serde::{Serialize, Deserialize};
 
 use crate::libs::auth::{
-    JwtExpired, 
     UserData, 
     verify_access_token, 
     get_jwt_tokens_from_refresh, 
     get_access_token_cookie, 
     get_refresh_token_cookie
 };
-use crate::libs::state::JwtKey;
-use crate::{with_expired_jwt_tokens, with_jwt_key};
+use crate::libs::state::{JwtKey, DbClient};
+use crate::{with_jwt_key, with_db_client};
 
 // structs
 
@@ -48,15 +47,15 @@ pub fn with_jwt_cookies() -> impl Filter<Extract = (Option<String>,Option<String
     .and(warp::cookie::optional("refresh_token"))
 }
 
-pub fn with_user_data(jwt_key: JwtKey, expired_jwt_tokens: JwtExpired<'_>) -> impl Filter<Extract = (UserDataFromJwt,), Error = Infallible> + Clone + '_
+pub fn with_user_data(db_client: &DbClient, jwt_key: JwtKey) -> impl Filter<Extract = (UserDataFromJwt,), Error = Infallible> + Clone
 {
-    with_jwt_key(jwt_key)
-    .and(with_expired_jwt_tokens(expired_jwt_tokens))
+    with_db_client(db_client.clone())
+    .and(with_jwt_key(jwt_key))
     .and(with_jwt_cookies())
     .and_then(retrive_user_data)
 }
 
-pub async fn retrive_user_data(jwt_key: JwtKey, expired_jwt_tokens: JwtExpired<'_>, access_token: Option<String>, refresh_token: Option<String>) -> Result<UserDataFromJwt, Infallible>{
+pub async fn retrive_user_data(db_client: DbClient, jwt_key: JwtKey, access_token: Option<String>, refresh_token: Option<String>) -> Result<UserDataFromJwt, Infallible>{
     let some_access_token = access_token.is_some();
     let some_refresh_token = refresh_token.is_some();
     
@@ -70,7 +69,7 @@ pub async fn retrive_user_data(jwt_key: JwtKey, expired_jwt_tokens: JwtExpired<'
     }
     if some_refresh_token{
         let refresh_token: &'static str = Box::leak(refresh_token.unwrap().into_boxed_str());
-        if let Ok((access_token, refresh_token, user_data)) = get_jwt_tokens_from_refresh(jwt_key, refresh_token, expired_jwt_tokens).await {
+        if let Ok((access_token, refresh_token, user_data)) = get_jwt_tokens_from_refresh(&db_client, jwt_key, &refresh_token).await {
             return Ok(UserDataFromJwt { 
                 user_data: Some(user_data),
                 new_jwt_cookie_values: Some(( get_access_token_cookie(access_token, None), get_refresh_token_cookie(refresh_token, None) ))

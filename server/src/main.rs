@@ -4,7 +4,6 @@ use std::{env, fs};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::path::Path;
 use api::handle_rejection;
-use libs::auth::JwtExpired;
 use libs::state::{WSUsers, Rooms};
 use lifecycle::remove_unused_rooms;
 use tokio::signal::unix::signal;
@@ -30,7 +29,7 @@ async fn main() -> Result<(), Box<dyn Error>>{
     let db_user = &env::var("DB_USER").expect("$DB_USER is not provided");
     let db_host = &env::var("DB_HOST").expect("$DB_HOST is not provided");
     let db_port = &env::var("DB_PORT").expect("$DB_PORT is not provided");
-    let db_password = fs::read_to_string(&env::var("DB_PASSWORD_PATH").unwrap_or("/run/secrets/db_password".to_string())).unwrap_or("root".to_string());
+    let db_password = fs::read_to_string(&env::var("DB_PASSWORD_PATH").unwrap_or("/run/secrets/db_password".to_string())).unwrap();
     let init_sql = fs::read_to_string(&env::var("DB_INIT_PATH").expect("$DB_INIT_PATH is not provided"))?;
     let (client, connection) =
         tokio_postgres::connect(format!("host={db_host} port={db_port} user={db_user} password={db_password}").as_ref(), NoTls).await?;
@@ -70,11 +69,12 @@ async fn main() -> Result<(), Box<dyn Error>>{
     let default_route = home_page.or(edit_page).or(signin_page).or(signup_page);
     let static_site = warp::fs::dir(public_path).or(default_route);
     // jwt private key
-    let jwt_key = Arc::new(HS256Key::generate());
-    // expired jwt_refresh_tokens
-    let expired_jwt_tokens = JwtExpired::default();
+    let jwt_secret_value = fs::read_to_string(&env::var("JWT_SECRET_PATH")
+        .unwrap_or("/run/secrets/jwt_secret".to_string()))
+        .expect("jwt secret file is not found");
+    let jwt_key = Arc::new(HS256Key::from_bytes(jwt_secret_value.as_bytes()));
     // apis
-    let apis = api::api(client.clone(), jwt_key, expired_jwt_tokens, rooms.clone());
+    let apis = api::api(client.clone(), jwt_key, rooms.clone());
     // bundle all routes
     let routes = apis.or(board).or(static_site).recover(handle_rejection);
     // create cleanup task to remove unused rooms
@@ -111,8 +111,4 @@ pub fn with_db_client(client: Arc<Client>) -> impl Filter<Extract = (Arc<Client>
 
 pub fn with_jwt_key(key: Arc<HS256Key>) -> impl Filter<Extract = (Arc<HS256Key>,), Error = Infallible> + Clone {
     warp::any().map(move || key.clone())
-}
-
-pub fn with_expired_jwt_tokens(expired_jwt_tokens: JwtExpired) -> impl Filter<Extract = (JwtExpired,), Error = Infallible> + Clone {
-    warp::any().map(move || expired_jwt_tokens.clone())
 }

@@ -12,6 +12,7 @@ services:
       - "80:3000"
     secrets:
       - db_password
+      - jwt_secret
     depends_on:
       db:
         condition: service_healthy
@@ -45,3 +46,5 @@ services:
 secrets:
   db_password:
     file: ./secrets/db_password.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt

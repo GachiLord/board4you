@@ -2,14 +2,13 @@ use std::sync::Arc;
 use jwt_simple::prelude::*;
 use jwt_simple::{claims::Claims, algorithms::HS256Key, reexports::coarsetime::Duration};
 use serde::{Deserialize, Serialize};
-use tokio::sync::{RwLock, RwLockWriteGuard};
 use warp::reply::Response;
 use warp::http::header::{HeaderMap, HeaderValue, SET_COOKIE};
 use warp::Reply;
+use crate::entities::jwt::{create, exists};
+use super::state::DbClient;
 
-// types
-pub type JwtExpired<'a> = Arc<RwLock<HashSet<&'a str>>>;
-
+// struct
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UserData {
     pub id: i32,
@@ -34,7 +33,7 @@ pub fn set_jwt_token_response(reply: impl Reply, access_token: String, refresh_t
 }
 
 pub fn get_access_token_cookie(value: String, max_age: Option<i32>) -> String {
-    format!("access_token={value}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age={}", max_age.unwrap_or(60 * 60))
+    format!("access_token={value}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age={}", max_age.unwrap_or(15 * 60))
 }
 
 pub fn get_refresh_token_cookie(value: String, max_age: Option<i32>) -> String {
@@ -46,13 +45,12 @@ pub fn get_jwt_tokens(jwt_key: Arc<HS256Key>, data: UserData) -> (String, String
     get_tokens(&jwt_key, access_claims, refresh_claims)
 }
 
-pub async fn get_jwt_tokens_from_refresh<'a>(jwt_key: Arc<HS256Key>, refresh_token: &'a str, expired_jwt_tokens: JwtExpired<'a>) 
+pub async fn get_jwt_tokens_from_refresh(client: &DbClient, jwt_key: Arc<HS256Key>, refresh_token: &str) 
 -> Result<(String, String, UserData), ()> 
 {   
-    let mut expired_jwt_tokens = expired_jwt_tokens.write().await;
-    if let Ok(user_data) = verify_refresh_token(&jwt_key, refresh_token, &expired_jwt_tokens).await {
+    if let Ok(user_data) = verify_refresh_token(client, &jwt_key, &refresh_token).await {
         // expire this token
-        expired_jwt_tokens.insert(refresh_token);
+        let _ = create(client, refresh_token).await;
         // generate new ones
         let (a_t, r_t) = get_jwt_tokens(jwt_key, user_data.clone());
         return Ok( (a_t, r_t, user_data) )
@@ -63,16 +61,22 @@ pub async fn get_jwt_tokens_from_refresh<'a>(jwt_key: Arc<HS256Key>, refresh_tok
 // helpers
 
 pub fn verify_access_token(jwt_key: Arc<HS256Key>, jwt_token: &str) -> Result<UserData, ()> {
-    match jwt_key.verify_token(jwt_token, None) {
+    let mut options = VerificationOptions::default();
+    options.max_validity = Some(Duration::from_mins(15));
+    
+    match jwt_key.verify_token::<UserData>(jwt_token, Some(options)) {
         Ok(claims) => Ok(claims.custom),
         Err(_) => Err(())
     }
 }
 
-pub async fn verify_refresh_token(jwt_key: &Arc<HS256Key>, jwt_token: &str, expired_jwt_tokens: &RwLockWriteGuard<'_, HashSet<&str>>) -> Result<UserData, ()> {
-    match jwt_key.verify_token(jwt_token, None) {
+pub async fn verify_refresh_token(db_client: &DbClient, jwt_key: &Arc<HS256Key>, jwt_token: &str) -> Result<UserData, ()> {
+    let mut options = VerificationOptions::default();
+    options.max_validity = Some(Duration::from_mins(60));
+
+    match jwt_key.verify_token::<UserData>(jwt_token, None) {
         Ok(claims) => {
-            if !expired_jwt_tokens.contains(jwt_token){
+            if exists(db_client, jwt_token).await{
                 return Ok(claims.custom)
             }
             return Err(())
@@ -85,7 +89,7 @@ pub async fn verify_refresh_token(jwt_key: &Arc<HS256Key>, jwt_token: &str, expi
 
 fn get_claims(data: UserData) -> (JWTClaims<UserData>, JWTClaims<UserData>) {
     return ( 
-        Claims::with_custom_claims(data.clone(), Duration::from_mins(60)),
+        Claims::with_custom_claims(data.clone(), Duration::from_mins(15)),
         Claims::with_custom_claims(data, Duration::from_days(30))
     )
 }
