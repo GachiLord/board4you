@@ -11,21 +11,20 @@ use warp::{
 };
 use weak_table::WeakHashSet;
 use crate::{
-    libs::{state::{Rooms, JwtKey, BoardSize, Room, Board, DbClient}, 
-    auth::JwtExpired}, 
+    libs::state::{Rooms, JwtKey, BoardSize, Room, Board, DbClient}, 
     with_rooms, with_db_client
 };
 use serde_json::json;
 use super::common::{as_string, with_user_data, CONTENT_LENGTH_LIMIT, UserDataFromJwt, ReplyWithPayload, Reply};
 
-pub fn room_filter(rooms: Rooms, db_client: DbClient, jwt_key: JwtKey, expired_jwt_tokens: JwtExpired) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone + '_{
+pub fn room_filter(rooms: Rooms, db_client: DbClient, jwt_key: JwtKey) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone{
     let room_base = warp::path("room");
     
     let create = room_base
         .and(warp::post())
         .and(as_string(1024 * 1024 * 16))
         .and(with_rooms(rooms.clone()))
-        .and(with_user_data(jwt_key.clone(), expired_jwt_tokens.clone()))
+        .and(with_user_data(&db_client, jwt_key.clone()))
         .and_then(create_room);
     let delete = room_base
         .and(warp::delete())
@@ -35,8 +34,8 @@ pub fn room_filter(rooms: Rooms, db_client: DbClient, jwt_key: JwtKey, expired_j
     let get_private_ids = room_base
         .and(warp::path("private"))
         .and(warp::get())
-        .and(with_db_client(db_client))
-        .and(with_user_data(jwt_key, expired_jwt_tokens))
+        .and(with_db_client(db_client.clone()))
+        .and(with_user_data(&db_client, jwt_key))
         .and_then(get_private_ids);
 
     create.or(delete).or(get_private_ids)

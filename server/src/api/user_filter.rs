@@ -1,12 +1,16 @@
 use serde::{Serialize, Deserialize};
 use serde_json::json;
 use warp::{Filter, reply::{WithStatus, Json, with_status, json}};
-use crate::{libs::{state::{DbClient, JwtKey}, auth::JwtExpired}, with_db_client, entities::user::{User, self}};
+use crate::{
+    libs::state::{DbClient, JwtKey}, 
+    with_db_client, 
+    entities::user::{User, self}
+};
 use warp::http::{StatusCode, Response, header::SET_COOKIE};
 
 use super::common::{as_string, CONTENT_LENGTH_LIMIT, ReplyWithPayload, Reply, UserDataFromJwt, with_user_data};
 
-pub fn user_filter(client: DbClient, jwt_key: JwtKey, expired_jwt_tokens: JwtExpired<'_>) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone + '_{
+pub fn user_filter(client: DbClient, jwt_key: JwtKey) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone{
     let base_route = warp::path("user");
     
     let create = base_route
@@ -17,12 +21,12 @@ pub fn user_filter(client: DbClient, jwt_key: JwtKey, expired_jwt_tokens: JwtExp
     let read = base_route
         .and(warp::get())
         .and(as_string(CONTENT_LENGTH_LIMIT))
-        .and(with_db_client(client))
+        .and(with_db_client(client.clone()))
         .and_then(read_user);
     let read_private = base_route
         .and(warp::path("private"))
         .and(warp::post())
-        .and(with_user_data(jwt_key, expired_jwt_tokens))
+        .and(with_user_data(&client, jwt_key))
         .and_then(read_user_private);
 
         read_private.or(read).or(create)
