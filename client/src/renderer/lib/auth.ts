@@ -23,14 +23,14 @@ export async function updateAuth(){
         return res
     }
     catch{
-        logOut()
+        logOut(false)
         const res: AuthState = { authed: false }
         return res
     }
 }
 
-export async function logOut(){
+export async function logOut(flushRoomInfo = true){
     store.dispatch(deleteUser())
     doRequest('auth/logout', undefined, 'POST')
-    store.dispatch(emptyRooms())
+    if (flushRoomInfo) store.dispatch(emptyRooms())
 }

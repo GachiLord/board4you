@@ -45,16 +45,16 @@ export default function Drawer(props: IDrawerProps){
     const dispatch = useDispatch()
     const stage = useRef<Konva.Stage | null>(null)
     const stageState = useSelector((state: RootState) => state.stage)
-    const routerLocation = useLocation()
     // navigation
     const { roomId } = useParams()
     const navigate = useNavigate()
+    const routerLocation = useLocation()
     // responsiveness stuff
     const { width, height } = useResize()
     const minScale = Math.min(height / stageState.baseHeight, width / stageState.width)
     const scale = Math.max(minScale, 0.5)
     const deviceIsMobile = isMobile()
-    const orientationIsPortrait = screen.orientation.type === 'portrait-primary' || screen.orientation.type === 'portrait-secondary'
+    const orientationIsPortrait = deviceIsMobile && (screen.orientation.type === 'portrait-primary' || screen.orientation.type === 'portrait-secondary')
     // func
     const cleanUp = () => { 
         setError(false)
