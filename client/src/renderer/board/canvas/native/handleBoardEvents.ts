@@ -30,11 +30,10 @@ export default function handleBoardEvents({setLoading, navigate, editManager, st
             store.dispatch(setRoom({ publicId: roomInfo.public_id, privateId: roomInfo.private_id }))
             // go to new board page 
             setLoading(false)
-            navigate(`/edit/${roomInfo.public_id}`)
+            navigate(`/board/${roomInfo.public_id}`)
         } )
     })
     const undoSub = boardEvents.addListener('undo', () => {
-        console.log('undo')
         Selection.destroy(canvas)
         editManager.undo()
 

@@ -61,7 +61,7 @@ export default function Header(){
                         <LinkContainer to="/">
                             <Nav.Link>{loc.home}</Nav.Link>
                         </LinkContainer>
-                        <LinkContainer to="/edit">
+                        <LinkContainer to="/board">
                             <Nav.Link>{loc.createBoard}</Nav.Link>
                         </LinkContainer>
                         { authBar }

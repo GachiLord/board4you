@@ -29,7 +29,10 @@ async fn main() -> Result<(), Box<dyn Error>>{
     let db_user = &env::var("DB_USER").expect("$DB_USER is not provided");
     let db_host = &env::var("DB_HOST").expect("$DB_HOST is not provided");
     let db_port = &env::var("DB_PORT").expect("$DB_PORT is not provided");
-    let db_password = fs::read_to_string(&env::var("DB_PASSWORD_PATH").unwrap_or("/run/secrets/db_password".to_string())).unwrap();
+    let db_password = fs::read_to_string(
+        &env::var("DB_PASSWORD_PATH")
+        .unwrap_or("/run/secrets/db_password".to_string()))
+        .expect("db_password is not found");
     let init_sql = fs::read_to_string(&env::var("DB_INIT_PATH").expect("$DB_INIT_PATH is not provided"))?;
     let (client, connection) =
         tokio_postgres::connect(format!("host={db_host} port={db_port} user={db_user} password={db_password}").as_ref(), NoTls).await?;
@@ -58,12 +61,11 @@ async fn main() -> Result<(), Box<dyn Error>>{
         });
     // static paths
     let public_path = (&env::var("PUBLIC_PATH").expect("$PUBLIC_PATH is not provided")).to_owned();
-    // let index_path = Path::new(&public_path).join("web.html").to_str().unwrap().to_owned();
     let index_path = Path::new(&public_path).join("web.html").to_str().unwrap().to_owned();
     let index_path: &'static str = Box::leak(index_path.into_boxed_str());
     // routing static files
     let home_page = warp::path::end().and(warp::fs::file(index_path));
-    let edit_page = warp::path("edit").and(warp::fs::file(index_path));
+    let edit_page = warp::path("board").and(warp::fs::file(index_path));
     let signin_page = warp::path("signin").and(warp::fs::file(index_path));
     let signup_page = warp::path("signup").and(warp::fs::file(index_path));
     let default_route = home_page.or(edit_page).or(signin_page).or(signup_page);
@@ -71,7 +73,7 @@ async fn main() -> Result<(), Box<dyn Error>>{
     // jwt private key
     let jwt_secret_value = fs::read_to_string(&env::var("JWT_SECRET_PATH")
         .unwrap_or("/run/secrets/jwt_secret".to_string()))
-        .expect("jwt secret file is not found");
+        .expect("jwt_secret is not found");
     let jwt_key = Arc::new(HS256Key::from_bytes(jwt_secret_value.as_bytes()));
     // apis
     let apis = api::api(client.clone(), jwt_key, rooms.clone());

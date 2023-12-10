@@ -32,7 +32,7 @@ root.render(
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route index element={<Home />} />
-                    <Route path="edit/:roomId?" element={<Editor />} />
+                    <Route path="board/:roomId?" element={<Editor />} />
                     <Route path="signin" element={<SignIn />} />
                     <Route path="signup" element={<SignUp />} />
                     <Route path="*" element={<>404</>} />
