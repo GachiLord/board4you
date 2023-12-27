@@ -1,45 +1,53 @@
-use std::sync::Arc;
+use crate::libs::state::{Board, Room};
 use std::error::Error;
-use crate::libs::state::{Room, Board};
+use std::sync::Arc;
 use tokio_postgres::Client;
 
-
-pub enum SaveAction{
+pub enum SaveAction {
     Created,
-    Updated
+    Updated,
 }
-pub async fn save(client: &Arc<Client>, room: &Room) -> Result<SaveAction,  Box<dyn Error>>{
+pub async fn save(client: &Arc<Client>, room: &Room) -> Result<SaveAction, Box<dyn Error>> {
     let board_state = serde_json::to_value(&room.board).expect("failed to serealize room.board");
-    match client.query("SELECT * FROM boards WHERE public_id = $1", &[&room.public_id]).await {
+    match client
+        .query(
+            "SELECT * FROM boards WHERE public_id = $1",
+            &[&room.public_id],
+        )
+        .await
+    {
         Ok(res) => {
-            if res.len() == 0{
+            if res.len() == 0 {
                 client.execute(
-                    "INSERT INTO boards(public_id, private_id, board_state, owner_id) VALUES ($1, $2, $3, $4)",
-                    &[&room.public_id, &room.private_id, &board_state, &room.owner_id]
+                    "INSERT INTO boards(public_id, private_id, board_state, owner_id, title) VALUES ($1, $2, $3, $4, $5)",
+                    &[&room.public_id, &room.private_id, &board_state, &room.owner_id, &room.board.title]
                 ).await?;
-            }
-            else {
-                client.execute(
-                    "UPDATE boards SET board_state = ($1) WHERE public_id = ($2)",
-                    &[&board_state, &room.public_id]
-                ).await?;
-                return Ok(SaveAction::Updated)
+            } else {
+                client
+                    .execute(
+                        "UPDATE boards SET board_state = ($1), title = ($2) WHERE public_id = ($3)",
+                        &[&board_state, &room.board.title, &room.public_id],
+                    )
+                    .await?;
+                return Ok(SaveAction::Updated);
             }
         }
-        Err(e) => return Err(Box::new(e))
+        Err(e) => return Err(Box::new(e)),
     }
 
     Ok(SaveAction::Created)
-    
 }
 
-pub async fn get(client: &Client, public_id: &str) -> Result<(String, Board), tokio_postgres::Error> {
-    let sql_res = client.query_one(
-        "SELECT * FROM boards WHERE public_id = $1",
-        &[&public_id]
-    ).await?;
+pub async fn get(
+    client: &Client,
+    public_id: &str,
+) -> Result<(String, Board), tokio_postgres::Error> {
+    let sql_res = client
+        .query_one("SELECT * FROM boards WHERE public_id = $1", &[&public_id])
+        .await?;
 
-    let board: Board = serde_json::from_value(sql_res.get("board_state")).expect("failed to parse board_state");
+    let board: Board =
+        serde_json::from_value(sql_res.get("board_state")).expect("failed to parse board_state");
     let private_id = sql_res.get("private_id");
 
     Ok((private_id, board))
