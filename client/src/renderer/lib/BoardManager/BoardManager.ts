@@ -121,11 +121,12 @@ export default class BoardManager{
         this.send('Quit', { public_id: roomId })
     }
 
-    static async createRoom(history: IHistoryState, size: ISize): Promise<RoomInfo>{
+    static async createRoom(history: IHistoryState, size: ISize, title: string): Promise<RoomInfo>{
         const roomInitials = {
             current: history.current.map( i => JSON.stringify(i) ),
             undone: history.undone.map( i => JSON.stringify(i) ),
-            size: size
+            size: size,
+            title: title
         }
         return await doRequest('room', roomInitials, 'POST')
     }

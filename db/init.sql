@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS boards (
 ALTER TABLE boards
     ADD COLUMN IF NOT EXISTS public_id varchar(36) NOT NULL,
     ADD COLUMN IF NOT EXISTS private_id varchar(44) NOT NULL,
-    ADD COLUMN IF NOT EXISTS board_state json NOT NULL;
+    ADD COLUMN IF NOT EXISTS board_state json NOT NULL,
+    ADD COLUMN IF NOT EXISTS title varchar(36) DEFAULT 'untitled';
 
 -- jwt
 
