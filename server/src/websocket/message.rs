@@ -111,6 +111,7 @@ pub async fn user_message(
             fn send_join_info(
                 public_id: String,
                 board_size: BoardSize,
+                title: String,
                 client: &UnboundedSender<Message>,
             ) {
                 let _ = client.send(Message::text(
@@ -119,12 +120,20 @@ pub async fn user_message(
                 let _ = client.send(Message::text(
                     serde_json::to_string(&BoardMessage::SizeData { data: (board_size) }).unwrap(),
                 ));
+                let _ = client.send(Message::text(
+                    serde_json::to_string(&BoardMessage::TitleData { title: (title) }).unwrap(),
+                ));
             }
 
             match rooms.get_mut(&public_id) {
                 Some(r) => {
                     r.add_user(user_id.to_owned());
-                    send_join_info(public_id.to_owned(), r.board.size, client);
+                    send_join_info(
+                        public_id.to_owned(),
+                        r.board.size,
+                        r.board.title.clone(),
+                        client,
+                    );
                 }
                 None => match get(&db_client, &public_id).await {
                     Ok((private_id, board)) => {
@@ -135,7 +144,12 @@ pub async fn user_message(
                             users: WeakHashSet::new(),
                             owner_id: None,
                         };
-                        send_join_info(public_id.to_owned(), room.board.size, client);
+                        send_join_info(
+                            public_id.to_owned(),
+                            room.board.size,
+                            room.board.title.clone(),
+                            client,
+                        );
                         rooms.insert(public_id, room);
                     }
                     Err(_) => {
@@ -184,6 +198,7 @@ pub async fn user_message(
                     return;
                 }
                 // changes
+                r.board.title = title.clone();
                 let title_msg = BoardMessage::TitleData { title };
                 // send changes
                 send_all_except_sender(
@@ -456,4 +471,3 @@ fn send_all_except_sender(
 fn send_to_user(user: &UnboundedSender<Message>, msg: impl ToString) {
     let _ = user.send(Message::text(msg.to_string()));
 }
-

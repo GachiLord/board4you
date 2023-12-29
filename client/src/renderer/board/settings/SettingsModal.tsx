@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import Form from 'react-bootstrap/Form';
+import { useSelector } from "react-redux";
+import { RootState } from "../../store/store";
 
 
 export interface settings {
@@ -15,9 +17,8 @@ interface props {
 }
 
 export default function SettingsModal({ onSave, onClose, show }: props) {
-  const [settings, setSettings] = useState({
-    title: 'untitled'
-  })
+  const board = useSelector((state: RootState) => state.board)
+  const [title, setTitle] = useState(board.title)
 
   return (
     <>
@@ -26,15 +27,12 @@ export default function SettingsModal({ onSave, onClose, show }: props) {
           <Modal.Title>Settings</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form>
+          <Form onSubmit={(e) => e.preventDefault()}>
             <Form.Group className="mb-3">
               <Form.Label>Title</Form.Label>
               <Form.Control
-                onChange={(e) => setSettings({
-                  ...settings,
-                  title: e.target.value
-                })}
-                value={settings.title}
+                onChange={(e) => setTitle(e.target.value)}
+                defaultValue={board.title}
                 type="text"
                 placeholder="Enter title"
               />
@@ -45,7 +43,9 @@ export default function SettingsModal({ onSave, onClose, show }: props) {
           <Button variant="secondary" onClick={onClose}>
             Close
           </Button>
-          <Button variant="primary" onClick={() => onSave(settings)}>
+          <Button variant="primary" onClick={() => onSave({
+            title: title
+          })}>
             Save Changes
           </Button>
         </Modal.Footer>
