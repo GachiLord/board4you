@@ -47,7 +47,7 @@ pub struct PullData {
 }
 
 impl Board {
-    pub fn pull(&mut self, user_current: Vec<String>, user_undone: Vec<String>) -> PullData {
+    pub fn pull(&self, user_current: Vec<String>, user_undone: Vec<String>) -> PullData {
         // convert Vectors to HashSets
         let current: HashSet<&str> = HashSet::from_iter(
             self.current
@@ -246,4 +246,3 @@ pub type Rooms = Arc<RwLock<HashMap<String, Room>>>;
 pub type WSUsers = Arc<RwLock<HashMap<Arc<usize>, mpsc::UnboundedSender<Message>>>>;
 pub type JwtKey = Arc<HS256Key>;
 pub type DbClient = Arc<Client>;
-
