@@ -104,7 +104,6 @@ pub async fn user_message(
     // clients and rooms
     let clients = users.read().await;
     let client = clients.get(&user_id).expect("WsUser does not exist");
-    let mut rooms = rooms.write().await;
     // handle all msg variants
     match msg {
         BoardMessage::Join { public_id } => {
@@ -124,6 +123,7 @@ pub async fn user_message(
                     serde_json::to_string(&BoardMessage::TitleData { title: (title) }).unwrap(),
                 ));
             }
+            let mut rooms = rooms.write().await;
 
             match rooms.get_mut(&public_id) {
                 Some(r) => {
@@ -161,7 +161,7 @@ pub async fn user_message(
             }
         }
 
-        BoardMessage::Quit { public_id } => match rooms.get_mut(&public_id) {
+        BoardMessage::Quit { public_id } => match rooms.write().await.get_mut(&public_id) {
             Some(r) => {
                 r.remove_user(user_id);
                 let _ = client.send(Message::text(
@@ -180,7 +180,7 @@ pub async fn user_message(
             private_id,
             public_id,
             title,
-        } => match rooms.get_mut(&public_id) {
+        } => match rooms.write().await.get_mut(&public_id) {
             None => {
                 let _ = client.send(Message::text(
                         json!({"Info": {"status": "bad", "action":"SetTitle", "payload": "no such room"} }).to_string(),
@@ -218,7 +218,7 @@ pub async fn user_message(
         } => {
             let clients = users.read().await;
 
-            match rooms.get_mut(&public_id) {
+            match rooms.write().await.get_mut(&public_id) {
                 Some(r) => {
                     // skip if private_key is not valid
                     if r.private_id != private_id {
@@ -266,7 +266,7 @@ pub async fn user_message(
             action_type,
             data,
         } => {
-            match rooms.get_mut(&public_id) {
+            match rooms.read().await.get(&public_id) {
                 Some(r) => {
                     // skip if private_key is not valid
                     if r.private_id != private_id {
@@ -301,7 +301,7 @@ pub async fn user_message(
             action_type,
             action_id,
         } => {
-            match rooms.get_mut(&public_id) {
+            match rooms.write().await.get_mut(&public_id) {
                 Some(r) => {
                     // skip if private_key is not valid
                     if r.private_id != private_id {
@@ -356,7 +356,7 @@ pub async fn user_message(
             public_id,
             action_type,
         } => {
-            match rooms.get_mut(&public_id) {
+            match rooms.write().await.get_mut(&public_id) {
                 Some(r) => {
                     // skip if private_key is not valid
                     if r.private_id != private_id {
@@ -395,7 +395,7 @@ pub async fn user_message(
             public_id,
             data,
         } => {
-            match rooms.get_mut(&public_id) {
+            match rooms.write().await.get_mut(&public_id) {
                 Some(r) => {
                     // skip if private_key is not valid
                     if r.private_id != private_id {
@@ -427,7 +427,7 @@ pub async fn user_message(
             public_id,
             current,
             undone,
-        } => match rooms.get_mut(&public_id) {
+        } => match rooms.read().await.get(&public_id) {
             Some(r) => {
                 let pull_data = BoardMessage::PullData(r.board.pull(current, undone));
                 let _ = client.send(Message::text(serde_json::to_string(&pull_data).unwrap()));
