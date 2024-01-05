@@ -11,10 +11,12 @@ import Home from '../renderer/pages/Home';
 import Header from '../renderer/base/components/Header';
 import SignIn from '../renderer/pages/SignIn';
 import SignUp from '../renderer/pages/SignUp';
+import Folder from '../renderer/pages/Folder';
 import {
-    QueryClient,
-    QueryClientProvider
+  QueryClient,
+  QueryClientProvider
 } from '@tanstack/react-query';
+import OwnFolders from '../renderer/pages/OwnFolders';
 
 // react query
 const queryClient = new QueryClient()
@@ -24,21 +26,23 @@ document.body.append(container)
 const root = createRoot(container)
 // render
 root.render(
-    <QueryClientProvider client={queryClient}>
-        <Provider store={store}>
-            <LocaleContext.Provider value={getLocalizationCfg(navigator.language)}>
-            <BrowserRouter>
-                <Header />
-                <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route index element={<Home />} />
-                    <Route path="board/:roomId?" element={<Editor />} />
-                    <Route path="signin" element={<SignIn />} />
-                    <Route path="signup" element={<SignUp />} />
-                    <Route path="*" element={<>404</>} />
-                </Routes>
-            </BrowserRouter>
-            </LocaleContext.Provider>
-        </Provider>
-    </QueryClientProvider>
+  <QueryClientProvider client={queryClient}>
+    <Provider store={store}>
+      <LocaleContext.Provider value={getLocalizationCfg(navigator.language)}>
+        <BrowserRouter>
+          <Header />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route index element={<Home />} />
+            <Route path="board/:roomId?" element={<Editor />} />
+            <Route path="folder/:folderId?" element={<Folder />} />
+            <Route path="folders/own" element={<OwnFolders />} />
+            <Route path="signin" element={<SignIn />} />
+            <Route path="signup" element={<SignUp />} />
+            <Route path="*" element={<>404</>} />
+          </Routes>
+        </BrowserRouter>
+      </LocaleContext.Provider>
+    </Provider>
+  </QueryClientProvider>
 )

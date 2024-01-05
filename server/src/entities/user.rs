@@ -24,7 +24,7 @@ impl Display for ValidationError {
             ValidationError::TooShort => "too short",
             ValidationError::TooLong => "too long",
             ValidationError::AlreadyExist => "already exist",
-            ValidationError::Unexpected => "unexpeced error",
+            ValidationError::Unexpected => "unexpected error",
         };
 
         write!(f, "{output}")
@@ -33,11 +33,18 @@ impl Display for ValidationError {
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct User {
-    login: String,
-    password: String,
-    public_login: String,
-    first_name: String,
-    second_name: String,
+    pub login: String,
+    pub password: String,
+    pub public_login: String,
+    pub first_name: String,
+    pub second_name: String,
+}
+
+#[derive(Debug, Default)]
+pub struct UserInfo {
+    pub public_login: String,
+    pub first_name: String,
+    pub second_name: String,
 }
 
 // functions
@@ -93,6 +100,25 @@ pub async fn create(client: &Arc<Client>, user: &User) -> Result<(), ValidationE
     Ok(())
 }
 
+pub async fn read(client: &Arc<Client>, owner_id: i32) -> Option<UserInfo> {
+    match client
+        .query_one(
+            "SELECT (public_login, first_name, second_name) WHERE id = ($1)",
+            &[&owner_id],
+        )
+        .await
+    {
+        Ok(row) => {
+            return Some(UserInfo {
+                public_login: row.get("public_login"),
+                first_name: row.get("first_name"),
+                second_name: row.get("second_name"),
+            })
+        }
+        Err(_) => return None,
+    }
+}
+
 pub async fn verify_password(
     client: &Arc<Client>,
     login: &String,
@@ -127,4 +153,3 @@ pub async fn verify_password(
     }
     err
 }
-
