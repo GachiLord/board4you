@@ -19,6 +19,9 @@ interface props {
 export default function SettingsModal({ onSave, onClose, show }: props) {
   const board = useSelector((state: RootState) => state.board)
   const [title, setTitle] = useState(board.title)
+  const handleTitleChange = (title: string) => {
+    if (title.length <= 36) setTitle(title)
+  }
 
   return (
     <>
@@ -31,7 +34,7 @@ export default function SettingsModal({ onSave, onClose, show }: props) {
             <Form.Group className="mb-3">
               <Form.Label>Title</Form.Label>
               <Form.Control
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => handleTitleChange(e.target.value)}
                 defaultValue={board.title}
                 type="text"
                 placeholder="Enter title"
