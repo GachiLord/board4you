@@ -2,7 +2,7 @@ use super::common::{
     as_string, with_user_data, Reply, ReplyWithPayload, UserDataFromJwt, CONTENT_LENGTH_LIMIT,
 };
 use crate::{
-    entities::board::save,
+    entities::board::{get_by_owner, save},
     libs::state::{Board, BoardSize, DbClient, JwtKey, Room, Rooms},
     with_db_client, with_rooms,
 };
@@ -34,6 +34,12 @@ pub fn room_filter(
         .and(with_rooms(rooms.clone()))
         .and(with_user_data(&db_client, jwt_key.clone()))
         .and_then(create_room);
+    let read_own_list = room_base
+        .and(warp::get())
+        .and(warp::path("own"))
+        .and(with_db_client(db_client.clone()))
+        .and(with_user_data(&db_client, jwt_key.clone()))
+        .and_then(read_own_list);
     let delete = room_base
         .and(warp::delete())
         .and(as_string(CONTENT_LENGTH_LIMIT))
@@ -46,7 +52,7 @@ pub fn room_filter(
         .and(with_user_data(&db_client, jwt_key))
         .and_then(get_private_ids);
 
-    create.or(delete).or(get_private_ids)
+    create.or(delete).or(read_own_list).or(get_private_ids)
 }
 
 #[derive(Deserialize, Serialize)]
@@ -137,6 +143,34 @@ async fn create_room(
     // reply if cant
     let res = Response::builder().status(StatusCode::CREATED).body(body);
     Ok(res)
+}
+
+async fn read_own_list(
+    db_client: DbClient,
+    user_data: UserDataFromJwt,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    match user_data.user_data {
+        Some(user) => {
+            let list = get_by_owner(&db_client, user.id).await.unwrap_or(vec![]);
+
+            match user_data.new_jwt_cookie_values {
+                Some((c1, c2)) => Ok(Response::builder()
+                    .status(StatusCode::OK)
+                    .header(SET_COOKIE, c1)
+                    .header(SET_COOKIE, c2)
+                    .body(serde_json::to_string(&list).unwrap())
+                    .unwrap()),
+                None => Ok(Response::builder()
+                    .status(StatusCode::OK)
+                    .body(serde_json::to_string(&list).unwrap())
+                    .unwrap()),
+            }
+        }
+        None => Ok(Response::builder()
+            .status(StatusCode::UNAUTHORIZED)
+            .body("auth to view own boards".to_string())
+            .unwrap()),
+    }
 }
 
 #[derive(Deserialize, Serialize)]
@@ -236,4 +270,3 @@ async fn get_private_ids(
         .status(StatusCode::UNAUTHORIZED)
         .body("auth to get private_ids".to_owned()));
 }
-
