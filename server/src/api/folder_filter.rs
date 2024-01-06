@@ -69,6 +69,12 @@ async fn create_folder(
                 .unwrap())
         }
     };
+    if folder.title.len() > 36 {
+        return Ok(Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body("title is too long".to_string())
+            .unwrap());
+    }
     // create folder
     match user_data.user_data {
         Some(data) => match folder::create(&db_client, folder.title, data.id).await {
@@ -178,9 +184,15 @@ async fn update_folder_contents(
             return Ok(Response::builder()
                 .status(StatusCode::BAD_REQUEST)
                 .body("failed to parse body")
-                .unwrap())
+                .unwrap());
         }
     };
+    if folder_info.title.len() > 36 {
+        return Ok(Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body("title is too long")
+            .unwrap());
+    }
 
     match user_data.user_data {
         Some(user) => {

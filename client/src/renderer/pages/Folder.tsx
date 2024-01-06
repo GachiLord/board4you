@@ -67,6 +67,9 @@ export default function Folder() {
     setLoading(true)
     doRequest('folder', folderInfo, 'PATCH').finally(() => setLoading(false))
   }
+  const handleTitleChange = (title: string) => {
+    if (title.length <= 36) setTitle(title)
+  }
   // handle request load and error
   if (folderQuery.isPending || boardsQuery.isPending || isLoading) return <Loading title="Folder is loading" />
   if (folderQuery.isError || boardsQuery.isError) return (
@@ -78,7 +81,12 @@ export default function Folder() {
   return (
     <div className="container d-flex flex-column justify-content-center align-items-center mt-5">
       <Form.Group className="mb-3" controlId="formBasicEmail">
-        <Form.Control type="text" placeholder="Title" defaultValue={title} />
+        <Form.Control
+          type="text"
+          placeholder="Title"
+          onChange={(e) => { handleTitleChange(e.target.value) }}
+          value={title}
+        />
       </Form.Group>
       <h4>Folder contents</h4>
       <ListGroup className="m-3">

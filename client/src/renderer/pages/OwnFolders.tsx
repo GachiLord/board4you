@@ -58,11 +58,14 @@ export default function OwnFolders() {
       })
       .finally(() => setLoading(false))
   }
+  const onTitleChange = (title: string) => {
+    if (title.length <= 36) setTitle(title)
+  }
 
   return (
     <div className="container d-flex flex-column justify-content-center align-items-center mt-5">
       <Form.Group className="mb-3 d-flex" controlId="formBasicEmail">
-        <Form.Control type="text" placeholder="Title" defaultValue={title} onChange={(e) => setTitle(e.target.value)} />
+        <Form.Control type="text" placeholder="Title" value={title} onChange={(e) => onTitleChange(e.target.value)} />
         <Button className="ms-1" onClick={onCreate}>Create</Button>
       </Form.Group>
       <h4>Your folders</h4>

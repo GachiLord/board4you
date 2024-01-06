@@ -1,7 +1,7 @@
 use super::user::{self, UserInfo};
 use crate::entities::board::BoardInfo;
 use crate::libs::state::DbClient;
-use futures_util::future;
+use futures_util::try_join;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -149,13 +149,13 @@ pub async fn is_owned_by_public_id(db_client: &DbClient, public_id: String, owne
 }
 
 pub async fn update(db_client: &DbClient, folder: FolderInfo) -> Result<(), tokio_postgres::Error> {
-    let folder_id = db_client
+    let db_folder = db_client
         .query_one(
-            "SELECT id FROM folders WHERE public_id = ($1)",
+            "SELECT id, title FROM folders WHERE public_id = ($1)",
             &[&folder.public_id],
         )
-        .await?
-        .get::<&str, i32>("id");
+        .await?;
+    let folder_id = db_folder.get::<&str, i32>("id");
     // create id arrays
     let to_add: Vec<String> = folder
         .add_board_ids
@@ -174,7 +174,18 @@ pub async fn update(db_client: &DbClient, folder: FolderInfo) -> Result<(), toki
     let add_arr = add_arr.join(",");
     let remove_arr = to_remove.join(",");
     // update folder
-    future::try_join(
+    try_join!(
+        async {
+            if db_folder.get::<&str, String>("title") == folder.title {
+                return Ok(0);
+            }
+            db_client
+                .execute(
+                    "UPDATE folders SET title = ($1) WHERE id = ($2)",
+                    &[&folder.title, &folder_id],
+                )
+                .await
+        },
         async {
             if add_arr.len() < 2 {
                 return Ok(0);
@@ -203,8 +214,7 @@ pub async fn update(db_client: &DbClient, folder: FolderInfo) -> Result<(), toki
                 )
                 .await
         },
-    )
-    .await?;
+    )?;
 
     Ok(())
 }
