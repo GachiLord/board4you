@@ -197,9 +197,16 @@ pub async fn user_message(
                     );
                     return;
                 }
+                if title.len() > 36 {
+                    let _ = client.send(Message::text(
+                            json!({"Info": {"status": "bad", "action": "SetTitle", "payload": "title is too long"}}).to_string()
+                            ));
+                }
                 // changes
                 r.board.title = title.clone();
-                let title_msg = BoardMessage::TitleData { title };
+                let title_msg = BoardMessage::TitleData {
+                    title: title.clone(),
+                };
                 // send changes
                 send_all_except_sender(
                     clients,
@@ -207,6 +214,13 @@ pub async fn user_message(
                     user_id,
                     serde_json::to_string(&title_msg).unwrap(),
                 );
+                // update title in db
+                let _ = db_client
+                    .execute(
+                        "UPDATE boards SET title = ($1) WHERE public_id = ($2)",
+                        &[&title, &public_id],
+                    )
+                    .await;
             }
         },
 
