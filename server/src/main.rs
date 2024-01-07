@@ -82,6 +82,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // routing static files
     let home_page = warp::path::end().and(warp::fs::file(index_path));
     let edit_page = warp::path("board").and(warp::fs::file(index_path));
+    let own_boards_page = warp::path("boards")
+        .and(warp::path("own"))
+        .and(warp::fs::file(index_path));
     let signin_page = warp::path("signin").and(warp::fs::file(index_path));
     let signup_page = warp::path("signup").and(warp::fs::file(index_path));
     let folder_page = warp::path("folder").and(warp::fs::file(index_path));
@@ -90,6 +93,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .and(warp::fs::file(index_path));
     let default_route = home_page
         .or(edit_page)
+        .or(own_boards_page)
         .or(signin_page)
         .or(signup_page)
         .or(folder_page)

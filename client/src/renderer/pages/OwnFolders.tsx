@@ -5,13 +5,9 @@ import Loading from '../base/components/Loading';
 import Alert from "../base/components/Alert";
 import { Button, Form, ListGroup } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import { Folder, FolderShortInfo } from "../board/folder/Folder";
 
 
-interface FolderShortInfo {
-  id: number,
-  public_id: string,
-  title: string
-}
 
 interface FolderInitials {
   title: string
@@ -79,25 +75,4 @@ export default function OwnFolders() {
   )
 }
 
-interface FolderProps {
-  folder: FolderShortInfo,
-  onRemove?: (folder: FolderShortInfo) => void
-}
 
-function Folder({ folder, onRemove }: FolderProps) {
-  return (
-    <ListGroup.Item key={folder.id} className="d-flex justify-content-between">
-      <div className="d-inline">
-        {folder.title === "" ? "Untitled" : folder.title}
-      </div>
-      <div className="d-inline">
-        <Link className="ms-5" key={folder.id} to={`/folder/${folder.public_id}`}>
-          <Button size="sm" variant="primary">Open</Button>
-        </Link>
-        {
-          onRemove && <Button size="sm" className="ms-1" variant="secondary" onClick={() => onRemove(folder)}>Remove</Button>
-        }
-      </div>
-    </ListGroup.Item >
-  )
-}

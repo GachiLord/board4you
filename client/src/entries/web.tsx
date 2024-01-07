@@ -17,6 +17,7 @@ import {
   QueryClientProvider
 } from '@tanstack/react-query';
 import OwnFolders from '../renderer/pages/OwnFolders';
+import OwnBoards from '../renderer/pages/OwnBoards';
 
 // react query
 const queryClient = new QueryClient()
@@ -35,6 +36,7 @@ root.render(
             <Route path="/" element={<Home />} />
             <Route index element={<Home />} />
             <Route path="board/:roomId?" element={<Editor />} />
+            <Route path="boards/own" element={<OwnBoards />} />
             <Route path="folder/:folderId?" element={<Folder />} />
             <Route path="folders/own" element={<OwnFolders />} />
             <Route path="signin" element={<SignIn />} />
