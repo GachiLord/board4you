@@ -119,6 +119,37 @@ pub async fn read(client: &Arc<Client>, owner_id: i32) -> Option<UserInfo> {
     }
 }
 
+pub async fn update(
+    client: &Arc<Client>,
+    user: User,
+    user_id: i32,
+) -> Result<u64, ValidationError> {
+    validate(client, &user).await?;
+
+    match client
+        .execute(
+            "UPDATE users SET login = ($1), public_login = ($2), first_name = ($3), second_name = ($4) WHERE id = $5",
+            &[
+                &user.login,
+                &user.public_login,
+                &user.first_name,
+                &user.second_name,
+                &user_id,
+            ],
+        )
+        .await
+    {
+        Ok(r) => return Ok(r),
+        Err(_) => Err(ValidationError::Unexpected),
+    }
+}
+
+pub async fn delete(client: &Arc<Client>, user_id: i32) -> Result<u64, tokio_postgres::Error> {
+    client
+        .execute("DELETE FROM users WHERE id = ($1)", &[&user_id])
+        .await
+}
+
 pub async fn verify_password(
     client: &Arc<Client>,
     login: &String,
