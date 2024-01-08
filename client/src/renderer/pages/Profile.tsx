@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { doRequest } from "../lib/twiks";
 import { useDispatch } from "react-redux";
@@ -12,6 +12,7 @@ import Alert from "../base/components/Alert";
 import SignUp from "./SignUp";
 import { User, addUser } from "../features/user";
 import { logOut } from "../lib/auth";
+import { LocaleContext } from "../base/constants/LocaleContext";
 
 
 interface UpdateData {
@@ -32,6 +33,7 @@ function convertToSnakeCase(user: any) {
 
 export default function Profile() {
   const { nickName } = useParams()
+  const loc = useContext(LocaleContext)
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const user = useSelector((state: RootState) => state.user)
@@ -117,7 +119,7 @@ export default function Profile() {
 
   return (
     <div className="d-flex flex-column justify-content-center align-items-center mt-5">
-      <h4>Editing profile</h4>
+      <h4>{loc.editingProfile}</h4>
       <Form.Group className="mb-3" controlId="formBasicPassword">
         <Form.Control
           type="password"
@@ -127,30 +129,30 @@ export default function Profile() {
           required
           onChange={(e) => setPassword(e.target.value)}
         />
-        <Form.Text>This action requires the password</Form.Text>
+        <Form.Text>{loc.actionRequiresPassword}</Form.Text>
       </Form.Group>
-      <h4>Change user data</h4>
+      <h4>{loc.changeUserData}</h4>
       <SignUp
         target="details"
         onSubmit={handleDataUpdate}
-        submitText="Save"
+        submitText={loc.save}
         preFill={{ ...user.user, password: "" }}
       />
-      <h4 className="mt-4">Change user password</h4>
+      <h4 className="mt-4">{loc.changeUserPassword}</h4>
       <SignUp
         target="password"
         onSubmit={handlePasswordUpadate}
-        submitText="Save"
+        submitText={loc.save}
         preFill={{ ...user.user, password: "" }}
       />
-      <h4 className="mt-4">Delete profile</h4>
+      <h4 className="mt-4">{loc.deleteProfile}</h4>
       <div className="d-flex justify-content-center p-3 flex-column">
-        <p>Your boards and folders won't be deleted</p>
+        <p>{loc.yourBoardsAndFoldersWontBeDeleted}</p>
         <Button
           variant="danger"
-          className="w-25"
+          className="w-50"
           onClick={handleDelete}
-        >Delete</Button>
+        >{loc.del}</Button>
       </div>
     </div>
   )

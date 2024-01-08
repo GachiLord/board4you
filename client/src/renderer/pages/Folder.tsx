@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { useParams } from "react-router";
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import Loading from "../base/components/Loading";
 import Alert from "../base/components/Alert";
 import { Board, BoardInfo } from "../board/folder/Board";
+import { LocaleContext } from "../base/constants/LocaleContext";
 
 
 interface Folder {
@@ -30,6 +31,7 @@ interface FolderInfo {
 
 export default function Folder() {
   const { folderId } = useParams()
+  const loc = useContext(LocaleContext)
   const [title, setTitle] = useState("")
   const [contents, setContents] = useState<BoardInfo[]>([])
   const [isLoading, setLoading] = useState(false)
@@ -68,8 +70,8 @@ export default function Folder() {
   // handle request load and error
   if (folderQuery.isPending || boardsQuery.isPending || isLoading) return <Loading title="Folder is loading" />
   if (folderQuery.isError || boardsQuery.isError) return (
-    <Alert title='No such folder'>
-      <Link to='/'><Button variant="primary">Home</Button></Link>
+    <Alert title={loc.noSuchFolder}>
+      <Link to='/'><Button variant="primary">{loc.home}</Button></Link>
     </Alert>
   )
   // render
@@ -79,19 +81,20 @@ export default function Folder() {
         <Form.Control
           type="text"
           placeholder="Title"
+          disabled={!folderQuery.data.is_owned}
           onChange={(e) => { handleTitleChange(e.target.value) }}
           value={title}
         />
       </Form.Group>
-      <h4>Folder contents</h4>
+      <h4>{loc.folderContents}</h4>
       <ListGroup className="m-3">
-        {contents.length === 0 && "No boards yet"}
+        {contents.length === 0 && loc.noBoardsYet}
         {contents.map(board => Board({
           board,
-          onRemove: (b => setContents(v => v.filter(i => i.id !== b.id)))
+          onRemove: (folderQuery.data.is_owned) && (b => setContents(v => v.filter(i => i.id !== b.id)))
         }))}
       </ListGroup>
-      {(boardsQuery.data.length !== 0 && folderQuery.data.is_owned) && <h4>Boards to add</h4>}
+      {(boardsQuery.data.length !== 0 && folderQuery.data.is_owned) && <h4>{loc.boardsToAdd}</h4>}
       <ListGroup className="m-3">
         {folderQuery.data.is_owned && (
           boardsQuery.data.filter(b => contents.findIndex(c => c.id === b.id) === -1).map(b => Board({
@@ -100,7 +103,7 @@ export default function Folder() {
           }))
         )}
       </ListGroup>
-      {folderQuery.data.is_owned && <Button className="m-3" variant="primary" onClick={handleSave}>Save</Button>}
+      {folderQuery.data.is_owned && <Button className="m-3" variant="primary" onClick={handleSave}>{loc.save}</Button>}
     </div>
   )
 }

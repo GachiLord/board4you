@@ -28,15 +28,15 @@ export default function Header() {
     if (userData.authed) authBar = (
       <>
         <LinkContainer to="boards/own">
-          <Nav.Link>My boards</Nav.Link>
+          <Nav.Link>{loc.myBoards}</Nav.Link>
         </LinkContainer >
         <LinkContainer to="folders/own">
-          <Nav.Link>My folders</Nav.Link>
+          <Nav.Link>{loc.myFolders}</Nav.Link>
         </LinkContainer>
         <LinkContainer to={`profile/${userData.user.nickName}`}>
-          <Nav.Link>Profile</Nav.Link>
+          <Nav.Link>{loc.profile}</Nav.Link>
         </LinkContainer>
-        <Button variant="secondary" size="sm" onClick={() => { logOut(); navigate('/') }}>Sign out</Button>
+        <Button variant="secondary" size="sm" onClick={() => { logOut(); navigate('/') }}>{loc.signOut}</Button>
       </>)
     else authBar = (<>
       <LinkContainer to="signin">

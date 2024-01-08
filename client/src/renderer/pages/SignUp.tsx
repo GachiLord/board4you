@@ -1,9 +1,10 @@
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { Container } from 'react-bootstrap';
 import { doRequest } from '../lib/twiks';
 import { useNavigate } from 'react-router';
+import { LocaleContext } from '../base/constants/LocaleContext';
 
 
 export interface User {
@@ -22,6 +23,8 @@ interface Props {
 }
 
 function SignUp({ target, onSubmit, submitText, preFill }: Props) {
+  // localization
+  const loc = useContext(LocaleContext)
   // auth info
   const [login, setLogin] = useState(preFill?.login ?? "")
   const [publicLogin, setPublicLogin] = useState(preFill?.nickName ?? "")
@@ -34,8 +37,9 @@ function SignUp({ target, onSubmit, submitText, preFill }: Props) {
   const [isPasswordInvalid, setIsPasswordIvalid] = useState(false)
   // login validation msg
   const getLoginValidMsg = (type: 'Login' | 'Nickname', reason: 'length' | 'exist') => {
-    if (reason === 'length') return `${type} must be between 8 and 36 characters long`
-    else return `${type} already exists`
+    const typeName = type === 'Login' ? loc.login : loc.nickName
+    if (reason === 'length') return `${typeName} ${loc.mustBeBetween8and36}`
+    else return `${typeName} ${loc.alreadyExist}`
   }
   const [loginMsg, setLoginMsg] = useState(getLoginValidMsg('Login', 'length'))
   const [publicLoginMsg, setPublicLoginMsg] = useState(getLoginValidMsg('Nickname', 'length'))
@@ -97,10 +101,10 @@ function SignUp({ target, onSubmit, submitText, preFill }: Props) {
         {(!target || target === 'details') && (
           <>
             <Form.Group className="mb-3 position-relative">
-              <Form.Label>Login</Form.Label>
+              <Form.Label>{loc.login}</Form.Label>
               <Form.Control
                 isInvalid={isLoginInvalid}
-                type="text" placeholder='It will be used to sign in'
+                type="text" placeholder={loc.itWillBeUsedToSignIn}
                 required
                 defaultValue={preFill?.login}
                 autoComplete='none'
@@ -113,11 +117,11 @@ function SignUp({ target, onSubmit, submitText, preFill }: Props) {
             </Form.Group>
 
             <Form.Group className="mb-3 position-relative">
-              <Form.Label>Nickname</Form.Label>
+              <Form.Label>{loc.nickName}</Form.Label>
               <Form.Control
                 isInvalid={isPublicLoginInvalid}
                 type="text"
-                placeholder='It will be shown in your profile'
+                placeholder={loc.itWillBeShownInProfile}
                 required
                 defaultValue={preFill?.nickName}
                 onChange={(e) => setPublicLogin(e.target.value)}
@@ -129,19 +133,19 @@ function SignUp({ target, onSubmit, submitText, preFill }: Props) {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>First name</Form.Label>
+              <Form.Label>{loc.firstName}</Form.Label>
               <Form.Control type="text" defaultValue={preFill?.firstName} placeholder='Optional' onChange={(e) => setFirstName(e.target.value)} />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Second name</Form.Label>
+              <Form.Label>{loc.secondName}</Form.Label>
               <Form.Control type="text" defaultValue={preFill?.secondName} placeholder='Optional' onChange={(e) => setSecondName(e.target.value)} />
             </Form.Group>
           </>
         )}
         {(!target || target === 'password') && (
           <Form.Group className="mb-3 position-relative" controlId="formBasicPassword">
-            <Form.Label>Password</Form.Label>
+            <Form.Label>{loc.password}</Form.Label>
             <Form.Control
               isInvalid={isPasswordInvalid}
               type="password"
@@ -152,13 +156,13 @@ function SignUp({ target, onSubmit, submitText, preFill }: Props) {
               onBlur={() => validate('password')}
             />
             <Form.Control.Feedback type="invalid" tooltip>
-              Password must be between 8 and 36 characters long
+              {loc.password} {loc.mustBeBetween8and36}
             </Form.Control.Feedback>
           </Form.Group>
 
         )}
         <Button variant="primary" type="submit">
-          {submitText ?? "Submit"}
+          {submitText ?? loc.submit}
         </Button>
       </Form>
     </Container >
