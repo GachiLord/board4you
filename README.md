@@ -13,6 +13,7 @@ Board4you is a whiteboard app built with Electron, warp, React, Redux Toolkit, r
 ## Requerments
 - npm or pnpm(bun can't build desktop app)
 - Wine - to build Windows app on Linux
+- rust - to run app in dev mode
 - Docker compose - to run app in a container
 
 ## Development
@@ -43,7 +44,7 @@ docker compose down
 
 Build and run desktop app
 ```bash
-# run dev(use 2 terminals)
+# run dev
 pnpm run devDesktop
 # build for prod
 pnpm run devMain
@@ -60,7 +61,7 @@ pnpm run buildApp
 - bug - Bug fix or experiment
 - junk - Throwaway branch created to experiment
 - refactor - Refactoring or major fixes
-- chore - Documentation, commets, tests etc
+- chore - Documentation, comments, tests etc
 
 Branch name should consist of tag and description.
 
