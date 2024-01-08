@@ -75,7 +75,13 @@ export async function doRequest(path: string, body?: object, method: 'POST' | 'G
     json = await req.json()
   }
   catch {
-    json = {}
+    req.text()
+      .then(t => {
+        json = t
+      })
+      .catch(() => {
+        json = {}
+      })
   }
 
   return new Promise((res, rej) => {

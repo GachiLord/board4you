@@ -11,8 +11,11 @@ pub async fn exists(client: &DbClient, token: &str) -> bool {
         .await;
 
     match key_count {
-        Ok(row) => return row.get::<&str, i64>("count") == 0,
-        Err(_) => false,
+        Ok(row) => {
+            let count = row.get::<&str, i64>("count");
+            return count != 0;
+        }
+        Err(_) => return false,
     }
 }
 

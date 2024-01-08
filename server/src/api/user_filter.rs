@@ -1,10 +1,16 @@
 use crate::{
-    entities::user::{self, verify_password, User},
+    entities::{
+        jwt,
+        user::{self, verify_password, User},
+    },
     libs::{
-        auth::get_access_token_cookie,
+        auth::{
+            expire_refresh_token, get_jwt_cookies, get_jwt_with_new_data, verify_refresh_token,
+            UserData,
+        },
         state::{DbClient, JwtKey},
     },
-    with_db_client,
+    with_db_client, with_jwt_key,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -15,7 +21,8 @@ use warp::{
 };
 
 use super::common::{
-    as_string, with_user_data, Reply, ReplyWithPayload, UserDataFromJwt, CONTENT_LENGTH_LIMIT,
+    as_string, with_jwt_cookies, with_user_data, Reply, ReplyWithPayload, UserDataFromJwt,
+    CONTENT_LENGTH_LIMIT,
 };
 
 pub fn user_filter(
@@ -31,7 +38,7 @@ pub fn user_filter(
         .and_then(create_user);
     let read = base_route
         .and(warp::get())
-        .and(as_string(CONTENT_LENGTH_LIMIT))
+        .and(warp::path!(String))
         .and(with_db_client(client.clone()))
         .and_then(read_user);
     let read_private = base_route
@@ -42,14 +49,16 @@ pub fn user_filter(
     let update = base_route
         .and(warp::put())
         .and(as_string(CONTENT_LENGTH_LIMIT))
-        .and(with_user_data(&client, jwt_key.clone()))
+        .and(with_jwt_key(jwt_key.clone()))
+        .and(with_jwt_cookies())
         .and(with_db_client(client.clone()))
         .and_then(update_user);
     let delete = base_route
         .and(warp::delete())
         .and(as_string(CONTENT_LENGTH_LIMIT))
-        .and(with_user_data(&client, jwt_key))
-        .and(with_db_client(client.clone()))
+        .and(with_jwt_key(jwt_key))
+        .and(with_jwt_cookies())
+        .and(with_db_client(client))
         .and_then(delete_user);
 
     read_private.or(read).or(create).or(update).or(delete)
@@ -114,20 +123,14 @@ async fn read_user_private(
         .body("auth to get this info".to_string()));
 }
 
-async fn read_user(user: String, client: DbClient) -> Result<impl warp::Reply, warp::Rejection> {
-    let user_info: UserInfo = match serde_json::from_str(&user) {
-        Ok(u) => u,
-        Err(e) => {
-            return Ok(Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body(e.to_string()))
-        }
-    };
-
+async fn read_user(
+    public_login: String,
+    client: DbClient,
+) -> Result<impl warp::Reply, warp::Rejection> {
     let user = client
         .query_one(
-            "SELECT (public_login, first_name, second_name) FROM users WHERE public_login=($1)",
-            &[&user_info.public_login],
+            "SELECT public_login, first_name, second_name FROM users WHERE public_login=($1)",
+            &[&public_login],
         )
         .await;
 
@@ -153,12 +156,15 @@ async fn read_user(user: String, client: DbClient) -> Result<impl warp::Reply, w
 #[derive(Deserialize)]
 struct UpdateData {
     user: User,
+    login: String,
     password: String,
 }
 
 async fn update_user(
     update_data: String,
-    user_data: UserDataFromJwt,
+    jwt_key: JwtKey,
+    _access_token: Option<String>,
+    refresh_token: Option<String>,
     db_client: DbClient,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let update_data: UpdateData = match serde_json::from_str(&update_data) {
@@ -171,7 +177,7 @@ async fn update_user(
         }
     };
     if let Err(_) =
-        user::verify_password(&db_client, &update_data.user.login, &update_data.password).await
+        user::verify_password(&db_client, &update_data.login, &update_data.password).await
     {
         return Ok(Response::builder()
             .status(StatusCode::BAD_REQUEST)
@@ -179,28 +185,37 @@ async fn update_user(
             .unwrap());
     }
 
-    match user_data.user_data {
-        Some(user) => match user::update(&db_client, update_data.user, user.id).await {
-            Ok(_) => match user_data.new_jwt_cookie_values {
-                Some((c1, c2)) => {
+    match refresh_token {
+        Some(token) => match expire_refresh_token(&db_client, &jwt_key, &token).await {
+            Ok(user) => {
+                // update user
+                if let Err(e) = user::update(&db_client, &update_data.user, user.id).await {
                     return Ok(Response::builder()
-                        .status(StatusCode::OK)
-                        .header(SET_COOKIE, c1)
-                        .header(SET_COOKIE, c2)
-                        .body("updated".to_string())
-                        .unwrap())
+                        .status(StatusCode::BAD_REQUEST)
+                        .body(e.to_string())
+                        .unwrap());
                 }
-                None => {
-                    return Ok(Response::builder()
-                        .status(StatusCode::OK)
-                        .body("updated".to_string())
-                        .unwrap())
-                }
-            },
-            Err(e) => {
+                // update cookies
+                let user = UserData {
+                    id: user.id,
+                    login: update_data.user.login,
+                    public_login: update_data.user.public_login,
+                    first_name: update_data.user.first_name,
+                    second_name: update_data.user.second_name,
+                };
+                let (a_t, r_t) = get_jwt_with_new_data(jwt_key, user);
+                let (c1, c2) = get_jwt_cookies(a_t, r_t, None);
                 return Ok(Response::builder()
-                    .status(StatusCode::BAD_REQUEST)
-                    .body(e.to_string())
+                    .status(StatusCode::OK)
+                    .header(SET_COOKIE, c1)
+                    .header(SET_COOKIE, c2)
+                    .body("updated".to_string())
+                    .unwrap());
+            }
+            Err(_) => {
+                return Ok(Response::builder()
+                    .status(StatusCode::UNAUTHORIZED)
+                    .body("auth to update user info".to_string())
                     .unwrap());
             }
         },
@@ -208,7 +223,7 @@ async fn update_user(
             return Ok(Response::builder()
                 .status(StatusCode::UNAUTHORIZED)
                 .body("auth to update user info".to_string())
-                .unwrap())
+                .unwrap());
         }
     }
 }
@@ -219,7 +234,9 @@ struct DeleteData {
 }
 pub async fn delete_user(
     delete_data: String,
-    user_data: UserDataFromJwt,
+    jwt_key: JwtKey,
+    _access_token: Option<String>,
+    refresh_token: Option<String>,
     db_client: DbClient,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let delete_data: DeleteData = match serde_json::from_str(&delete_data) {
@@ -231,39 +248,47 @@ pub async fn delete_user(
                 .unwrap())
         }
     };
+    if refresh_token.is_none() {
+        return Ok(Response::builder()
+            .status(StatusCode::UNAUTHORIZED)
+            .body("auth to delete user")
+            .unwrap());
+    }
+    let refresh_token = refresh_token.unwrap();
 
-    match user_data.user_data {
-        Some(user) => match user::delete(&db_client, user.id).await {
+    match verify_refresh_token(&db_client, &jwt_key, &refresh_token).await {
+        Ok(user) => match verify_password(&db_client, &user.login, &delete_data.password).await {
             Ok(_) => {
-                if let Err(_) =
-                    verify_password(&db_client, &user.login, &delete_data.password).await
-                {
-                    return Ok(Response::builder()
-                        .status(StatusCode::BAD_REQUEST)
-                        .body("wrong password")
-                        .unwrap());
+                // expire token
+                let _ = jwt::create(&db_client, &refresh_token).await;
+                // set cookies
+                let (c_1, c_2) =
+                    get_jwt_cookies("deleted".to_string(), "deleted".to_string(), None);
+                match user::delete(&db_client, user.id).await {
+                    Ok(_) => {
+                        return Ok(Response::builder()
+                            .status(StatusCode::OK)
+                            .header(SET_COOKIE, c_1)
+                            .header(SET_COOKIE, c_2)
+                            .body("deleted")
+                            .unwrap())
+                    }
+                    Err(_) => {
+                        return Ok(Response::builder()
+                            .status(StatusCode::INTERNAL_SERVER_ERROR)
+                            .body("failded to delete user")
+                            .unwrap())
+                    }
                 }
-                return Ok(Response::builder()
-                    .status(StatusCode::OK)
-                    .header(
-                        SET_COOKIE,
-                        get_access_token_cookie("deleted".to_string(), Some(-1)),
-                    )
-                    .header(
-                        SET_COOKIE,
-                        get_access_token_cookie("deleted".to_string(), Some(-1)),
-                    )
-                    .body("deleted")
-                    .unwrap());
             }
             Err(_) => {
                 return Ok(Response::builder()
-                    .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body("failded to delete user")
+                    .status(StatusCode::BAD_REQUEST)
+                    .body("wrong password")
                     .unwrap())
             }
         },
-        None => {
+        Err(_) => {
             return Ok(Response::builder()
                 .status(StatusCode::UNAUTHORIZED)
                 .body("auth to delete user")

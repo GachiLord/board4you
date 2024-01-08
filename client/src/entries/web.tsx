@@ -18,6 +18,7 @@ import {
 } from '@tanstack/react-query';
 import OwnFolders from '../renderer/pages/OwnFolders';
 import OwnBoards from '../renderer/pages/OwnBoards';
+import Profile from '../renderer/pages/Profile';
 
 // react query
 const queryClient = new QueryClient()
@@ -41,6 +42,7 @@ root.render(
             <Route path="folders/own" element={<OwnFolders />} />
             <Route path="signin" element={<SignIn />} />
             <Route path="signup" element={<SignUp />} />
+            <Route path="profile/:nickName" element={<Profile />} />
             <Route path="*" element={<>404</>} />
           </Routes>
         </BrowserRouter>

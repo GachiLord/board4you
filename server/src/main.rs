@@ -87,6 +87,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .and(warp::fs::file(index_path));
     let signin_page = warp::path("signin").and(warp::fs::file(index_path));
     let signup_page = warp::path("signup").and(warp::fs::file(index_path));
+    let profile_page = warp::path("profile").and(warp::fs::file(index_path));
     let folder_page = warp::path("folder").and(warp::fs::file(index_path));
     let own_folders_page = warp::path("folders")
         .and(warp::path("own"))
@@ -96,6 +97,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .or(own_boards_page)
         .or(signin_page)
         .or(signup_page)
+        .or(profile_page)
         .or(folder_page)
         .or(own_folders_page);
     let static_site = warp::fs::dir(public_path).or(default_route);
