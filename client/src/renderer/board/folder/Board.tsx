@@ -1,42 +1,35 @@
-import React, { useState } from "react";
+import React from "react";
 import Button from 'react-bootstrap/Button';
-import Card from 'react-bootstrap/Card';
+import ListGroup from 'react-bootstrap/ListGroup';
 import { Link } from "react-router-dom";
 
 
-interface Board {
+export interface BoardInfo {
   id: number,
   public_id: string,
   title: string
 }
 
-interface Props {
-  board: Board
-  onDelete?: (public_id: string) => void,
-  onAdd?: (board: Board) => void
+interface BoardProps {
+  board: BoardInfo,
+  onAdd?: (board: BoardInfo) => void,
+  onRemove?: (board: BoardInfo) => void
 }
 
-export default function Board({ board, onDelete, onAdd }: Props) {
-  const { title, public_id } = board;
-  const [isDeleted, setDelete] = useState(false)
-  const handleDelete = () => {
-    setDelete(true)
-    onDelete(public_id)
-  }
-  const handleAdd = () => {
-    setDelete(true)
-    onAdd(board)
-  }
-
-  if (isDeleted) return (<></>)
+export function Board({ board, onAdd, onRemove }: BoardProps) {
   return (
-    <Card>
-      <Card.Header>{title}</Card.Header>
-      <Card.Body>
-        <Link to={`board/${public_id}`}><Button variant='primary'>Open</Button></Link>
-        {onAdd && <Button variant="success" onClick={handleAdd}>Add</Button>}
-        {onDelete && <Button variant='secondary' onClick={handleDelete}>Delete</Button>}
-      </Card.Body>
-    </Card>
-  )
+    <ListGroup.Item key={board.id} className="d-flex justify-content-between">
+      <div className="d-inline">
+        {board.title}
+      </div>
+      <div className="d-inline">
+        <Link className="ms-5" key={board.id} to={`/board/${board.public_id}`}>
+          <Button size="sm" variant="primary">Open</Button>
+        </Link>
+        {onAdd && <Button size="sm" className="ms-1" variant="success" onClick={() => onAdd(board)}>Add</Button>}
+        {onRemove && <Button size="sm" className="ms-1" variant="secondary" onClick={() => onRemove(board)}>Remove</Button>}
+      </div>
+    </ListGroup.Item>
+  );
 }
+

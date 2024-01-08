@@ -1,27 +1,31 @@
-import Button from 'react-bootstrap/Button';
-import Card from 'react-bootstrap/Card';
-import React, { useState } from 'react';
+import React from "react";
+import { Button, ListGroup } from "react-bootstrap";
 import { Link } from "react-router-dom";
 
 
-interface props {
+export interface FolderShortInfo {
   id: number,
   public_id: string,
-  title: string,
-  is_owned: boolean
+  title: string
 }
 
-export default function Folder({ public_id, title, is_owned }: props) {
-  const [isDeleted, setDeleted] = useState(false)
-
-  if (isDeleted) return (<></>)
+interface FolderProps {
+  folder: FolderShortInfo;
+  onRemove?: (folder: FolderShortInfo) => void;
+}
+export function Folder({ folder, onRemove }: FolderProps) {
   return (
-    <Card>
-      <Card.Header>{title}</Card.Header>
-      <Card.Body>
-        <Link to={`folder/${public_id}`}><Button variant='primary'>Open</Button></Link>
-        {is_owned && <Button variant='secondary' onClick={() => setDeleted(true)}>Delete</Button>}
-      </Card.Body>
-    </Card>
-  )
+    <ListGroup.Item key={folder.id} className="d-flex justify-content-between">
+      <div className="d-inline">
+        {folder.title === "" ? "Untitled" : folder.title}
+      </div>
+      <div className="d-inline">
+        <Link className="ms-5" key={folder.id} to={`/folder/${folder.public_id}`}>
+          <Button size="sm" variant="primary">Open</Button>
+        </Link>
+        {onRemove && <Button size="sm" className="ms-1" variant="secondary" onClick={() => onRemove(folder)}>Remove</Button>}
+      </div>
+    </ListGroup.Item>
+  );
 }
+

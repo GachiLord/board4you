@@ -48,7 +48,11 @@ pub struct UserInfo {
 }
 
 // functions
-pub async fn validate(client: &Arc<Client>, user: &User) -> Result<(), ValidationError> {
+pub async fn validate(
+    client: &Arc<Client>,
+    user: &User,
+    user_id: Option<i32>,
+) -> Result<(), ValidationError> {
     if user.login.len() < 8 || user.password.len() < 8 {
         return Err(ValidationError::TooShort);
     }
@@ -61,28 +65,39 @@ pub async fn validate(client: &Arc<Client>, user: &User) -> Result<(), Validatio
         return Err(ValidationError::TooLong);
     }
     // check if logins in use
-    let user_count = client
-        .query_one(
-            "SELECT COUNT(*) FROM users WHERE login = ($1) OR public_login = ($2)",
+    let users = client
+        .query(
+            "SELECT id FROM users WHERE login = ($1) OR public_login = ($2)",
             &[&user.login, &user.public_login],
         )
         .await;
 
-    match user_count {
-        Ok(row) => {
-            if row.get::<&str, i64>("count") > 0 {
+    match users {
+        Ok(rows) => {
+            if rows.len() > 1 {
                 return Err(ValidationError::AlreadyExist);
+            } else if rows.len() == 0 {
+                return Ok(());
+            }
+            // check if user can be updated
+            let row = &rows[0];
+            match user_id {
+                Some(id) => {
+                    if row.get::<&str, i32>("id") == id {
+                        return Ok(());
+                    }
+                    return Err(ValidationError::AlreadyExist);
+                }
+                None => return Err(ValidationError::AlreadyExist),
             }
         }
         Err(_) => return Err(ValidationError::Unexpected),
     }
-
-    Ok(())
 }
 
 pub async fn create(client: &Arc<Client>, user: &User) -> Result<(), ValidationError> {
     // check if fields are valid
-    validate(client, user).await?;
+    validate(client, user, None).await?;
     // create user
     // hash password
     let salt = SaltString::generate(&mut OsRng);
@@ -117,6 +132,45 @@ pub async fn read(client: &Arc<Client>, owner_id: i32) -> Option<UserInfo> {
         }
         Err(_) => return None,
     }
+}
+
+pub async fn update(
+    client: &Arc<Client>,
+    user: &User,
+    user_id: i32,
+) -> Result<u64, ValidationError> {
+    validate(client, &user, Some(user_id)).await?;
+    // hash password
+    let salt = SaltString::generate(&mut OsRng);
+    let argon2 = Argon2::default();
+    let password = argon2
+        .hash_password(user.password.as_bytes(), &salt)
+        .expect("failed to hash password")
+        .to_string();
+
+    match client
+        .execute(
+            "UPDATE users SET login = ($1), public_login = ($2), first_name = ($3), second_name = ($4), password = ($5) WHERE id = $6",
+            &[
+                &user.login,
+                &user.public_login,
+                &user.first_name,
+                &user.second_name,
+                &password,
+                &user_id,
+            ],
+        )
+        .await
+    {
+        Ok(r) => return Ok(r),
+        Err(_) => Err(ValidationError::Unexpected),
+    }
+}
+
+pub async fn delete(client: &Arc<Client>, user_id: i32) -> Result<u64, tokio_postgres::Error> {
+    client
+        .execute("DELETE FROM users WHERE id = ($1)", &[&user_id])
+        .await
 }
 
 pub async fn verify_password(
