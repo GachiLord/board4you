@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { doRequest } from "../lib/twiks";
 import Loading from '../base/components/Loading';
 import Alert from "../base/components/Alert";
 import { Button, Form, ListGroup } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { Folder, FolderShortInfo } from "../board/folder/Folder";
+import { LocaleContext } from "../base/constants/LocaleContext";
 
 
 
@@ -14,6 +15,7 @@ interface FolderInitials {
 }
 
 export default function OwnFolders() {
+  const loc = useContext(LocaleContext)
   const [isLoading, setLoading] = useState(false)
   const [title, setTitle] = useState("")
   const [userFolders, setFolders] = useState<FolderShortInfo[]>([])
@@ -29,7 +31,7 @@ export default function OwnFolders() {
   if (isPending || isLoading) return <Loading title='Loading your boards' />
   if (isError) return (
     <Alert title="Log in to view your folders">
-      <Link to='/'><Button>Home</Button></Link>
+      <Link to='/'><Button>{loc.home}</Button></Link>
     </Alert>
   )
   const onRemove = (folder: FolderShortInfo) => {
@@ -61,10 +63,10 @@ export default function OwnFolders() {
   return (
     <div className="container d-flex flex-column justify-content-center align-items-center mt-5">
       <Form.Group className="mb-3 d-flex" controlId="formBasicEmail">
-        <Form.Control type="text" placeholder="Title" value={title} onChange={(e) => onTitleChange(e.target.value)} />
-        <Button className="ms-1" onClick={onCreate}>Create</Button>
+        <Form.Control type="text" placeholder={loc.title} value={title} onChange={(e) => onTitleChange(e.target.value)} />
+        <Button className="ms-1" onClick={onCreate}>{loc.create}</Button>
       </Form.Group>
-      <h4>Your folders</h4>
+      <h4>{loc.yourFolders}</h4>
 
       <ListGroup className="m-3">
         {

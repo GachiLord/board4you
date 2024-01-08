@@ -7,7 +7,7 @@ export interface Board {
 }
 const initialState: Board = {
   mode: 'local',
-  title: 'untitled'
+  title: ''
 }
 
 const sliceReducer = createSlice({

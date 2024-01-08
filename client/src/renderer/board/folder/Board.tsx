@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useContext } from "react";
 import Button from 'react-bootstrap/Button';
 import ListGroup from 'react-bootstrap/ListGroup';
 import { Link } from "react-router-dom";
+import { LocaleContext } from "../../base/constants/LocaleContext";
 
 
 export interface BoardInfo {
@@ -17,17 +18,19 @@ interface BoardProps {
 }
 
 export function Board({ board, onAdd, onRemove }: BoardProps) {
+  const loc = useContext(LocaleContext)
+
   return (
     <ListGroup.Item key={board.id} className="d-flex justify-content-between">
       <div className="d-inline">
-        {board.title}
+        {board.title === '' ? loc.untitled : board.title}
       </div>
       <div className="d-inline">
         <Link className="ms-5" key={board.id} to={`/board/${board.public_id}`}>
-          <Button size="sm" variant="primary">Open</Button>
+          <Button size="sm" variant="primary">{loc.open}</Button>
         </Link>
-        {onAdd && <Button size="sm" className="ms-1" variant="success" onClick={() => onAdd(board)}>Add</Button>}
-        {onRemove && <Button size="sm" className="ms-1" variant="secondary" onClick={() => onRemove(board)}>Remove</Button>}
+        {onAdd && <Button size="sm" className="ms-1" variant="success" onClick={() => onAdd(board)}>{loc.add}</Button>}
+        {onRemove && <Button size="sm" className="ms-1" variant="secondary" onClick={() => onRemove(board)}>{loc.del}</Button>}
       </div>
     </ListGroup.Item>
   );
