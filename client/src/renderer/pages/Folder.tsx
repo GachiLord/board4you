@@ -90,6 +90,7 @@ export default function Folder() {
       <ListGroup className="m-3">
         {contents.length === 0 && loc.noBoardsYet}
         {contents.map(board => Board({
+          loc,
           board,
           onRemove: (folderQuery.data.is_owned) && (b => setContents(v => v.filter(i => i.id !== b.id)))
         }))}
@@ -98,6 +99,7 @@ export default function Folder() {
       <ListGroup className="m-3">
         {folderQuery.data.is_owned && (
           boardsQuery.data.filter(b => contents.findIndex(c => c.id === b.id) === -1).map(b => Board({
+            loc,
             board: b,
             onAdd: (board => setContents(v => v.concat([board])))
           }))

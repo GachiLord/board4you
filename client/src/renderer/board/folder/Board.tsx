@@ -1,8 +1,8 @@
-import React, { useContext } from "react";
+import React from "react";
 import Button from 'react-bootstrap/Button';
 import ListGroup from 'react-bootstrap/ListGroup';
 import { Link } from "react-router-dom";
-import { LocaleContext } from "../../base/constants/LocaleContext";
+import { localization } from "../../../common/localization";
 
 
 export interface BoardInfo {
@@ -12,14 +12,13 @@ export interface BoardInfo {
 }
 
 interface BoardProps {
+  loc: localization,
   board: BoardInfo,
   onAdd?: (board: BoardInfo) => void,
   onRemove?: (board: BoardInfo) => void
 }
 
-export function Board({ board, onAdd, onRemove }: BoardProps) {
-  const loc = useContext(LocaleContext)
-
+export function Board({ loc, board, onAdd, onRemove }: BoardProps) {
   return (
     <ListGroup.Item key={board.id} className="d-flex justify-content-between">
       <div className="d-inline">

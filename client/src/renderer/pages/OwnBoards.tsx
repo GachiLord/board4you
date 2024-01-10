@@ -10,6 +10,7 @@ import { LocaleContext } from "../base/constants/LocaleContext";
 
 
 export default function OwnBoards() {
+  const loc = useContext(LocaleContext)
   const [boards, setBoards] = useState<BoardInfo[]>([])
   const { isPending, isError } = useQuery({
     queryKey: ['room', 'own'],
@@ -19,11 +20,10 @@ export default function OwnBoards() {
       return boards
     }
   })
-  const loc = useContext(LocaleContext)
 
-  if (isPending) return <Loading title="Loading your boards" />
+  if (isPending) return <Loading title={loc.loading} />
   if (isError) return (
-    <Alert title="Log in to view your boards">
+    <Alert title={loc.signInToPerformThisAction}>
       <Link to="/"><Button>{loc.home}</Button></Link>
     </Alert>
   )
@@ -34,7 +34,7 @@ export default function OwnBoards() {
 
       <ListGroup className="m-3">
         {
-          boards.map(board => Board({ board }))
+          boards.map(board => Board({ board, loc }))
         }
       </ListGroup>
     </div>)

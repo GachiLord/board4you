@@ -1,7 +1,7 @@
-import React, { useContext } from "react";
+import React from "react";
 import { Button, ListGroup } from "react-bootstrap";
 import { Link } from "react-router-dom";
-import { LocaleContext } from "../../base/constants/LocaleContext";
+import { localization } from "../../../common/localization";
 
 
 export interface FolderShortInfo {
@@ -11,11 +11,11 @@ export interface FolderShortInfo {
 }
 
 interface FolderProps {
-  folder: FolderShortInfo;
-  onRemove?: (folder: FolderShortInfo) => void;
+  loc: localization,
+  folder: FolderShortInfo
+  onRemove?: (folder: FolderShortInfo) => void
 }
-export function Folder({ folder, onRemove }: FolderProps) {
-  const loc = useContext(LocaleContext)
+export function Folder({ loc, folder, onRemove }: FolderProps) {
   return (
     <ListGroup.Item key={folder.id} className="d-flex justify-content-between">
       <div className="d-inline">
