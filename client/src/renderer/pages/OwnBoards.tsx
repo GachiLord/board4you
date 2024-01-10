@@ -10,7 +10,6 @@ import { LocaleContext } from "../base/constants/LocaleContext";
 
 
 export default function OwnBoards() {
-  const loc = useContext(LocaleContext)
   const [boards, setBoards] = useState<BoardInfo[]>([])
   const { isPending, isError } = useQuery({
     queryKey: ['room', 'own'],
@@ -20,6 +19,7 @@ export default function OwnBoards() {
       return boards
     }
   })
+  const loc = useContext(LocaleContext)
 
   if (isPending) return <Loading title="Loading your boards" />
   if (isError) return (

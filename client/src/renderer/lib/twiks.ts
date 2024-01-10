@@ -40,20 +40,24 @@ export interface DrawVars {
   canvas: Konva.Layer,
   temporary: Konva.Layer,
   editManager: EditManager,
-  boardManager: BoardManager
+  boardManager: BoardManager,
+  isRightClick: boolean
 }
 
 export function whenDraw(event: KonvaEventObject<MouseEvent | TouchEvent>, boardManager: BoardManager, f: (drawVars: DrawVars) => void) {
   const stage = getStage(event)
   // do nothing if clicked on stage or draggable shape
   if (event.target.attrs.draggable && event.target !== stage) return
+  // if device is mouse, determine the clicked button
+  const isRightClick = (event.evt instanceof MouseEvent) ? event.evt.button === 2 : false
   f({
-    stage: stage,
+    stage,
     pos: stage.getRelativePointerPosition(),
     canvas: stage.children[0],
     temporary: stage.children[1],
     editManager: new EditManager(stage.children[0], boardManager),
-    boardManager: boardManager
+    boardManager,
+    isRightClick
   })
 }
 
