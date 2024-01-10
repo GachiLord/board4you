@@ -5,6 +5,7 @@ import Form from 'react-bootstrap/Form';
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/store";
 import { LocaleContext } from "../../base/constants/LocaleContext";
+import boardEvents from "../../base/constants/boardEvents";
 
 
 export interface settings {
@@ -24,6 +25,10 @@ export default function SettingsModal({ onSave, onClose, show }: props) {
   const handleTitleChange = (title: string) => {
     if (title.length <= 36) setTitle(title)
   }
+  const openSizePicker = () => {
+    boardEvents.emit('selectSize')
+    onClose()
+  }
 
   return (
     <>
@@ -42,6 +47,15 @@ export default function SettingsModal({ onSave, onClose, show }: props) {
                 placeholder={loc.title}
               />
             </Form.Group>
+            <Form.Group>
+              <Form.Label>{loc.size}</Form.Label>
+            </Form.Group>
+            <Button
+              onClick={openSizePicker}
+              variant="success"
+            >
+              {loc.selectSize}
+            </Button>
           </Form>
         </Modal.Body>
         <Modal.Footer>
