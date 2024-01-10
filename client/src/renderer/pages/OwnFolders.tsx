@@ -70,7 +70,7 @@ export default function OwnFolders() {
 
       <ListGroup className="m-3">
         {
-          userFolders.map(folder => Folder({ folder, onRemove }))
+          userFolders.map(folder => Folder({ loc, folder, onRemove }))
         }
       </ListGroup>
     </div>
