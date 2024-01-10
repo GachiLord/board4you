@@ -43,7 +43,7 @@ export default function Profile() {
   const { data, isPending, isError } = useQuery({
     queryKey: ['user', nickName],
     queryFn: async () => {
-      if (user.authed) return user.user
+      if (user.authed && user.user.nickName === nickName) return user.user
       const userInfo = await doRequest(`user/${nickName}`, undefined, 'GET')
       return {
         nickName: userInfo.public_login,
@@ -56,11 +56,11 @@ export default function Profile() {
   if (isPending || isLoading) return <Loading title="Loading user" />
   if (isError) return <Alert title="No such user"><Link to="/"><Button>Home</Button></Link></Alert>
   // render
-  if (!user.authed) return (
+  if (!user.authed || (user.authed && user.user.nickName !== nickName)) return (
     <div className="d-flex flex-column justify-content-center align-items-center mt-5">
-      <h4>NickName: {data.nickName}</h4>
-      <h4>First name: {data.firstName}</h4>
-      <h4>Second name: {data.secondName}</h4>
+      <h4>{loc.nickName}: {data.nickName}</h4>
+      <h4>{loc.firstName}: {data.firstName}</h4>
+      <h4>{loc.secondName}: {data.secondName}</h4>
     </div>
   )
   // handlers
