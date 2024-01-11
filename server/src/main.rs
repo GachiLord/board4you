@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // ws route
     let board = warp::path("board")
         .and(warp::ws())
-        .and(with_ws_users(users))
+        .and(with_ws_users(users.clone()))
         .and(with_rooms(rooms.clone()))
         .and(with_db_client(client.clone()))
         .map(move |ws: warp::ws::Ws, users, rooms, db_client| {
@@ -108,7 +108,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     .expect("jwt_secret is not found");
     let jwt_key = Arc::new(HS256Key::from_bytes(jwt_secret_value.as_bytes()));
     // apis
-    let apis = api::api(client.clone(), jwt_key, rooms.clone());
+    let apis = api::api(client.clone(), jwt_key, rooms.clone(), users);
     // bundle all routes
     let routes = apis.or(board).or(static_site).recover(handle_rejection);
     // create cleanup task to remove unused rooms

@@ -10,7 +10,7 @@ use tokio_postgres::Client;
 use warp::ws::Message;
 use weak_table::WeakHashSet;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
 pub struct Board {
     pub current: Vec<Map<String, Value>>,
     pub undone: Vec<Map<String, Value>>,
@@ -20,8 +20,8 @@ pub struct Board {
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 pub struct BoardSize {
-    height: usize,
-    width: usize,
+    height: u16,
+    width: u16,
 }
 
 pub struct Command {
@@ -197,21 +197,16 @@ impl Board {
     }
 }
 
-impl Default for Board {
+impl Default for BoardSize {
     fn default() -> Self {
-        Board {
-            current: (vec![]),
-            undone: (vec![]),
-            size: (BoardSize {
-                height: (1720),
-                width: (900),
-            }),
-            title: "".to_string(),
+        BoardSize {
+            height: (1720),
+            width: (900),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Room {
     pub public_id: String,
     pub private_id: String,
@@ -227,18 +222,6 @@ impl Room {
 
     pub fn remove_user(&mut self, id: Arc<usize>) {
         self.users.remove(&id);
-    }
-}
-
-impl Default for Room {
-    fn default() -> Self {
-        Room {
-            public_id: ("".to_string()),
-            private_id: ("".to_string()),
-            users: (WeakHashSet::default()),
-            board: Board::default(),
-            owner_id: None,
-        }
     }
 }
 

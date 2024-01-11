@@ -2,9 +2,10 @@ use super::common::{
     as_string, with_user_data, Reply, ReplyWithPayload, UserDataFromJwt, CONTENT_LENGTH_LIMIT,
 };
 use crate::{
-    entities::board::{get_by_owner, save},
-    libs::state::{Board, BoardSize, DbClient, JwtKey, Room, Rooms},
-    with_db_client, with_rooms,
+    entities::board::{self, get_by_owner, save},
+    libs::state::{Board, BoardSize, DbClient, JwtKey, Room, Rooms, WSUsers},
+    websocket::send_all_except_sender,
+    with_db_client, with_rooms, with_ws_users,
 };
 use data_encoding::BASE64URL;
 use jwt_simple::algorithms::HS256Key;
@@ -21,6 +22,7 @@ use warp::{
 use weak_table::WeakHashSet;
 
 pub fn room_filter(
+    ws_users: WSUsers,
     rooms: Rooms,
     db_client: DbClient,
     jwt_key: JwtKey,
@@ -42,8 +44,10 @@ pub fn room_filter(
         .and_then(read_own_list);
     let delete = room_base
         .and(warp::delete())
+        .and(with_db_client(db_client.clone()))
         .and(as_string(CONTENT_LENGTH_LIMIT))
         .and(with_rooms(rooms.clone()))
+        .and(with_ws_users(ws_users))
         .and_then(delete_room);
     let get_private_ids = room_base
         .and(warp::path("private"))
@@ -179,7 +183,12 @@ struct RoomInfo {
     pub private_id: String,
 }
 
-async fn delete_room(room_info: String, rooms: Rooms) -> Result<WithStatus<Json>, warp::Rejection> {
+async fn delete_room(
+    db_client: DbClient,
+    room_info: String,
+    rooms: Rooms,
+    ws_users: WSUsers,
+) -> Result<WithStatus<Json>, warp::Rejection> {
     let no_such_room = Ok(with_status(
         json(&ReplyWithPayload {
             message: "cannot delete room".to_string(),
@@ -195,7 +204,14 @@ async fn delete_room(room_info: String, rooms: Rooms) -> Result<WithStatus<Json>
     match rooms.write().await.get_mut(&room_info.public_id) {
         Some(room) => {
             if room.private_id == room_info.private_id {
+                // kick users from the room
+                let ws_users = ws_users.read().await;
+                let quit_msg = json!({ "Quit": { "payload": "deleted" } }).to_string();
+                send_all_except_sender(ws_users, &room, None, quit_msg);
+                // delete room from global state
                 rooms.write().await.remove(&room.public_id);
+                // delete room from db
+                let _ = board::delete(&db_client, room_info.private_id).await;
             } else {
                 return Ok(warp::reply::with_status(
                     json(&Reply {

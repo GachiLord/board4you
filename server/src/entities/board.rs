@@ -2,7 +2,7 @@ use crate::libs::state::{Board, Room};
 use serde::Serialize;
 use std::error::Error;
 use std::sync::Arc;
-use tokio_postgres::Client;
+use tokio_postgres::{Client, GenericClient};
 
 pub enum SaveAction {
     Created,
@@ -108,4 +108,10 @@ pub async fn get_by_owner(
             id: row.get("id"),
         })
         .collect())
+}
+
+pub async fn delete(client: &Client, private_id: String) -> Result<u64, tokio_postgres::Error> {
+    client
+        .execute("DELETE FROM boards WHERE private_id = ($1)", &[&private_id])
+        .await
 }

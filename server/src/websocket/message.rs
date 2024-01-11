@@ -84,6 +84,9 @@ enum BoardMessage {
     TitleData {
         title: String,
     },
+    QuitData {
+        payload: String,
+    },
 }
 
 pub async fn user_message(
@@ -211,7 +214,7 @@ pub async fn user_message(
                 send_all_except_sender(
                     clients,
                     r,
-                    user_id,
+                    Some(user_id),
                     serde_json::to_string(&title_msg).unwrap(),
                 );
                 // update title in db
@@ -263,7 +266,7 @@ pub async fn user_message(
                     let push_data = serde_json::to_string(&push_data).unwrap();
                     // send
                     if !silent {
-                        send_all_except_sender(clients, r, user_id, push_data);
+                        send_all_except_sender(clients, r, Some(user_id), push_data);
                     }
                 }
                 None => {
@@ -299,7 +302,7 @@ pub async fn user_message(
                     };
                     let response = serde_json::to_string(&response).unwrap();
                     // send
-                    send_all_except_sender(clients, r, user_id, response);
+                    send_all_except_sender(clients, r, Some(user_id), response);
                 }
                 None => {
                     let _ = client.send(Message::text(
@@ -347,7 +350,7 @@ pub async fn user_message(
                     // handle command result
                     match exec_command {
                         Ok(()) => {
-                            send_all_except_sender(clients, r, user_id, response);
+                            send_all_except_sender(clients, r, Some(user_id), response);
                         }
                         Err(e) => send_to_user(
                             client,
@@ -394,7 +397,7 @@ pub async fn user_message(
                     };
                     let response = serde_json::to_string(&response).unwrap();
                     // send
-                    send_all_except_sender(clients, r, user_id, response);
+                    send_all_except_sender(clients, r, Some(user_id), response);
                 }
                 None => {
                     let _ = client.send(Message::text(
@@ -427,7 +430,7 @@ pub async fn user_message(
                     let response = BoardMessage::SizeData { data: (data) };
                     let response = serde_json::to_string(&response).unwrap();
                     // send
-                    send_all_except_sender(clients, r, user_id, response);
+                    send_all_except_sender(clients, r, Some(user_id), response);
                 }
                 None => {
                     let _ = client.send(Message::text(
@@ -462,15 +465,17 @@ pub async fn user_message(
     }
 }
 
-fn send_all_except_sender(
+pub fn send_all_except_sender(
     clients: RwLockReadGuard<'_, HashMap<Arc<usize>, UnboundedSender<Message>>>,
     room: &Room,
-    sender_id: Arc<usize>,
+    sender_id: Option<Arc<usize>>,
     mut data: String,
 ) {
+    let sender_is_none = sender_id.is_none();
+    let sender_id = sender_id.unwrap_or(Arc::new(0));
     // send Push msg to all room users except the sender
     room.users.iter().for_each(|u| {
-        if u != sender_id {
+        if sender_is_none || u != sender_id {
             let user = clients.get(&u);
             match user {
                 Some(user) => {
@@ -482,6 +487,6 @@ fn send_all_except_sender(
     });
 }
 
-fn send_to_user(user: &UnboundedSender<Message>, msg: impl ToString) {
+pub fn send_to_user(user: &UnboundedSender<Message>, msg: impl ToString) {
     let _ = user.send(Message::text(msg.to_string()));
 }
