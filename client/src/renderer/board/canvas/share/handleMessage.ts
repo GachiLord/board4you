@@ -17,11 +17,12 @@ interface props {
   boardManager: BoardManager,
   editManager: EditManager,
   setLoading: (s: boolean) => void,
-  setError: (s: boolean) => void
+  setError: (s: boolean) => void,
+  setRoomExists: (s: boolean) => void
 }
 
 
-export default function(msg: string, { editManager, boardManager, setLoading, setError }: props) {
+export default function(msg: string, { editManager, boardManager, setLoading, setError, setRoomExists }: props) {
   const canvas = editManager.layer
   const parsed = JSON.parse(msg)
   const key = Object.keys(parsed)[0]
@@ -72,6 +73,12 @@ export default function(msg: string, { editManager, boardManager, setLoading, se
         console.error(parsed)
         setError(true)
       }
+      break
+    }
+    case 'QuitData': {
+      console.log(data.payload)
+      setRoomExists(false)
+      break
     }
   }
 }    
