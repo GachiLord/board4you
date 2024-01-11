@@ -7,6 +7,7 @@ import Loading from "../base/components/Loading";
 import Alert from "../base/components/Alert";
 import { Link } from "react-router-dom";
 import { LocaleContext } from "../base/constants/LocaleContext";
+import store from "../store/store";
 
 
 export default function OwnBoards() {
@@ -20,6 +21,7 @@ export default function OwnBoards() {
       return boards
     }
   })
+  // loading and error
 
   if (isPending) return <Loading title={loc.loading} />
   if (isError) return (
@@ -27,6 +29,15 @@ export default function OwnBoards() {
       <Link to="/"><Button>{loc.home}</Button></Link>
     </Alert>
   )
+  // handlers
+  const onRemove = (board: BoardInfo) => {
+    const rooms = store.getState().rooms
+    doRequest('room', { public_id: board.public_id, private_id: rooms[board.public_id] }, 'DELETE')
+      .catch((e) => console.log(e))
+      .finally(() => {
+        setBoards((boards) => boards.filter(b => b.public_id !== board.public_id))
+      })
+  }
 
   return (
     <div className="container d-flex flex-column justify-content-center align-items-center mt-5">
@@ -34,7 +45,7 @@ export default function OwnBoards() {
 
       <ListGroup className="m-3">
         {
-          boards.map(board => Board({ board, loc }))
+          boards.map(board => Board({ board, loc, onRemove }))
         }
       </ListGroup>
     </div>)

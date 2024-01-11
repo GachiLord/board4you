@@ -200,18 +200,15 @@ async fn delete_room(
         Ok(i) => i,
         Err(_) => return no_such_room,
     };
-
-    match rooms.write().await.get_mut(&room_info.public_id) {
+    // prepare room for delete
+    let mut rooms = rooms.write().await;
+    let ws_users = ws_users.read().await;
+    match rooms.get_mut(&room_info.public_id) {
         Some(room) => {
-            if room.private_id == room_info.private_id {
+            if &room.private_id == &room_info.private_id {
                 // kick users from the room
-                let ws_users = ws_users.read().await;
-                let quit_msg = json!({ "Quit": { "payload": "deleted" } }).to_string();
+                let quit_msg = json!({ "QuitData": { "payload": "deleted" } }).to_string();
                 send_all_except_sender(ws_users, &room, None, quit_msg);
-                // delete room from global state
-                rooms.write().await.remove(&room.public_id);
-                // delete room from db
-                let _ = board::delete(&db_client, room_info.private_id).await;
             } else {
                 return Ok(warp::reply::with_status(
                     json(&Reply {
@@ -221,9 +218,18 @@ async fn delete_room(
                 ));
             }
         }
-        None => return no_such_room,
+        None => {
+            // if there is no room in the global state, delete it now
+            if let Err(_) = board::delete(&db_client, &room_info.private_id).await {
+                return no_such_room;
+            }
+        }
     }
-
+    // delete room from global state
+    rooms.remove(&room_info.public_id);
+    // delete room from db
+    let _ = board::delete(&db_client, &room_info.private_id).await;
+    // send response
     return Ok(with_status(
         json(&Reply {
             message: "room has been deleted".to_string(),

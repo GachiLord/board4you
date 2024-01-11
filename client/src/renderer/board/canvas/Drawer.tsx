@@ -111,7 +111,7 @@ export default function Drawer(props: IDrawerProps) {
             title={localization.noSuchRoom}
             body={localization.roomDeletedOrDoesNotExist}
           >
-            <Link to="/edit"><Button variant="primary" onClick={cleanUp}>{localization.createNew}</Button></Link>
+            <Link to="/board"><Button variant="primary" onClick={cleanUp}>{localization.createNew}</Button></Link>
             <Link to="/"><Button variant="primary" onClick={cleanUp}>{localization.home}</Button></Link>
           </Alert>
         )
