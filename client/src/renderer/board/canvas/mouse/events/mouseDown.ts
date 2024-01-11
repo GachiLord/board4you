@@ -15,8 +15,6 @@ import BoardManager from "../../../../lib/BoardManager/BoardManager";
 
 
 export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManager: BoardManager, props: IDrawerProps) {
-  // start drawing
-  store.dispatch(setDrawable(true))
   //shape style vars
   const state = store.getState()
   const tool = props.tool
@@ -55,6 +53,8 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
       return
     }
     Selection.destroy(canvas)
+    // start drawing
+    store.dispatch(setDrawable(true))
     // create shape
     let shape: IShape | null = null
 
