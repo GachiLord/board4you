@@ -46,7 +46,7 @@ export default function Drawer(props: IDrawerProps) {
   const stage = useRef<Konva.Stage | null>(null)
   const stageState = useSelector((state: RootState) => state.stage)
   // navigation
-  const { roomId } = useParams()
+  const { roomId, inviteId } = useParams()
   const navigate = useNavigate()
   const routerLocation = useLocation()
   // responsiveness stuff
@@ -80,6 +80,7 @@ export default function Drawer(props: IDrawerProps) {
       boardManager,
       mode,
       roomId,
+      inviteId,
       setLoading,
       setRoomExists,
       setError,

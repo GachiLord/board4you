@@ -5,19 +5,22 @@ import { AiOutlineLine } from 'react-icons/ai'
 import { IoSquareOutline } from 'react-icons/io5'
 import { RxCircle } from 'react-icons/rx'
 import Persister from "../../lib/Persister";
-import store from "../../store/store";
+import store, { RootState } from "../../store/store";
 import ShareBar from "../ShareBar";
 import Settings from "../settings/Settings";
 import Hr from "../../base/components/Hr";
 import { useParams } from "react-router";
-import IsOwned from "../canvas/share/isAuthor";
 import { useDispatch } from "react-redux";
 import { set } from "../../features/tool";
+import { useSelector } from "react-redux";
 
 
 export default function ToolPanel() {
+  const rooms = useSelector((state: RootState) => state.rooms)
   const { roomId } = useParams()
-  const isAuthor = IsOwned(roomId)
+  const privateId = rooms[roomId]
+  const isAuthor = Boolean(privateId)
+  const isCoopEditor = privateId?.includes("_co_editor")
   const dispatch = useDispatch()
 
   useEffect(() => {
@@ -65,13 +68,10 @@ export default function ToolPanel() {
           </>
         )
       }
-      {isAuthor && (
-        <>
-          <Hr />
-          <ShareBar />
-          <Settings />
-        </>
-      )}
+      {isAuthor && <Hr />}
+      {(isAuthor && !isCoopEditor) && <ShareBar />}
+      {isAuthor && <Settings />}
+
     </div>
   )
 }

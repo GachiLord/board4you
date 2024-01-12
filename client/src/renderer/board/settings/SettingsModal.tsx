@@ -6,6 +6,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../store/store";
 import { LocaleContext } from "../../base/constants/LocaleContext";
 import boardEvents from "../../base/constants/boardEvents";
+import BoardManagerContext from "../../base/constants/BoardManagerContext";
 
 
 export interface settings {
@@ -20,6 +21,7 @@ interface props {
 
 export default function SettingsModal({ onSave, onClose, show }: props) {
   const loc = useContext(LocaleContext)
+  const boardManager = useContext(BoardManagerContext)
   const board = useSelector((state: RootState) => state.board)
   const [title, setTitle] = useState(board.title)
   const handleTitleChange = (title: string) => {
@@ -28,6 +30,9 @@ export default function SettingsModal({ onSave, onClose, show }: props) {
   const openSizePicker = () => {
     boardEvents.emit('selectSize')
     onClose()
+  }
+  const expireCoEditorPermissons = () => {
+    boardManager.send('UpdateCoEditor', boardManager.getCredentials())
   }
 
   return (
@@ -53,9 +58,24 @@ export default function SettingsModal({ onSave, onClose, show }: props) {
             <Button
               onClick={openSizePicker}
               variant="success"
+              className="mb-3"
             >
               {loc.selectSize}
             </Button>
+            {(board.mode === 'shared' && !boardManager.isCoEditor()) && (
+              <>
+                <Form.Group>
+                  <Form.Label>{"Take away the ability to edit"}</Form.Label>
+                </Form.Group>
+                <Button
+                  onClick={expireCoEditorPermissons}
+                  variant="secondary"
+                  className="mb-3"
+                >
+                  {"Perform"}
+                </Button>
+              </>
+            )}
           </Form>
         </Modal.Body>
         <Modal.Footer>

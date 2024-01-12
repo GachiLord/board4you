@@ -4,10 +4,12 @@ import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 export interface Board {
   mode: 'shared' | 'local',
   title: string
+  inviteId?: string
 }
+
 const initialState: Board = {
   mode: 'local',
-  title: ''
+  title: '',
 }
 
 const sliceReducer = createSlice({
@@ -19,9 +21,12 @@ const sliceReducer = createSlice({
     },
     setTitle: (state, action: PayloadAction<string>) => {
       state.title = action.payload
+    },
+    setInviteId: (state, action: PayloadAction<string>) => {
+      state.inviteId = action.payload
     }
   }
 })
 
-export const { setMode, setTitle } = sliceReducer.actions
+export const { setMode, setTitle, setInviteId } = sliceReducer.actions
 export default sliceReducer.reducer

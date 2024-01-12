@@ -1,3 +1,4 @@
+use data_encoding::BASE64URL;
 use jwt_simple::algorithms::HS256Key;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -16,6 +17,7 @@ pub struct Board {
     pub undone: Vec<Map<String, Value>>,
     pub size: BoardSize,
     pub title: String,
+    pub co_editor_private_id: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy)]
@@ -222,6 +224,12 @@ impl Room {
 
     pub fn remove_user(&mut self, id: Arc<usize>) {
         self.users.remove(&id);
+    }
+
+    pub fn update_editor_private_id(&mut self) -> String {
+        let editor_private_id = BASE64URL.encode(&HS256Key::generate().to_bytes()) + "_co_editor";
+        self.board.co_editor_private_id = editor_private_id.to_owned();
+        editor_private_id
     }
 }
 

@@ -2,7 +2,6 @@ import EditManager from "../../../lib/EditManager"
 import boardEvents from "../../../base/constants/boardEvents"
 import handlePush from "./handlePush"
 import handlePull from "./handlePull"
-import { PushSegmentData } from "../../../lib/BoardManager/typing"
 import handlePushStart from "./handlePushStart"
 import handlePushUpdate from "./handlePushUpdate"
 import handlePushEnd from "./handlePushEnd"
@@ -11,6 +10,9 @@ import { emptyCurrent, emptyHistory, emptyUndone } from "../../../features/histo
 import setCanvasSize from "../../../lib/setCanvasSize"
 import BoardManager from "../../../lib/BoardManager/BoardManager"
 import { setTitle } from "../../../features/board"
+import { PushSegmentData } from "../../../lib/BoardManager/typing"
+import { deleteRoom } from "../../../features/rooms"
+import { set } from "../../../features/tool"
 
 
 interface props {
@@ -78,6 +80,12 @@ export default function(msg: string, { editManager, boardManager, setLoading, se
     case 'QuitData': {
       console.log(data.payload)
       setRoomExists(false)
+      break
+    }
+    case 'UpdateCoEditorData': {
+      // remove invalid co editor private id      
+      store.dispatch(deleteRoom(boardManager.status.roomId))
+      store.dispatch(set('move'))
       break
     }
   }
