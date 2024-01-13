@@ -5,28 +5,20 @@ import { AiOutlineLine } from 'react-icons/ai'
 import { IoSquareOutline } from 'react-icons/io5'
 import { RxCircle } from 'react-icons/rx'
 import Persister from "../../lib/Persister";
-import store from "../../store/store";
+import store, { RootState } from "../../store/store";
 import ShareBar from "../ShareBar";
 import Settings from "../settings/Settings";
 import Hr from "../../base/components/Hr";
-import { useParams } from "react-router";
-import IsOwned from "../canvas/share/isAuthor";
-import { useDispatch } from "react-redux";
-import { set } from "../../features/tool";
+import { useSelector } from "react-redux";
+import { itemIn } from "../../lib/twiks";
 
 
 export default function ToolPanel() {
-  const { roomId } = useParams()
-  const isAuthor = IsOwned(roomId)
-  const dispatch = useDispatch()
+  const mode = useSelector((state: RootState) => state.board.mode)
 
   useEffect(() => {
     new Persister(store, 'toolSettings')
   }, [])
-
-  useEffect(() => {
-    if (!isAuthor) dispatch(set('move'))
-  })
 
   return (
     <div className="d-flex align-items-center flex-column" style={{ "overflow": "auto" }}>
@@ -34,7 +26,7 @@ export default function ToolPanel() {
         <BsArrowsMove />
       </ToolButton>
       {
-        isAuthor && (
+        (itemIn(mode, 'local', 'coop', 'author')) && (
           <>
             <ToolButton name="select">
               <BsCursor />
@@ -65,13 +57,10 @@ export default function ToolPanel() {
           </>
         )
       }
-      {isAuthor && (
-        <>
-          <Hr />
-          <ShareBar />
-          <Settings />
-        </>
-      )}
+      {(itemIn(mode, 'local', 'coop', 'author')) && <Hr />}
+      {(itemIn(mode, 'local', 'author')) && <ShareBar />}
+      {(itemIn(mode, 'local', 'coop', 'author')) && <Settings />}
+
     </div>
   )
 }

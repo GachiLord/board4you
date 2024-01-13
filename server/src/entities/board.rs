@@ -110,8 +110,15 @@ pub async fn get_by_owner(
         .collect())
 }
 
-pub async fn delete(client: &Client, private_id: &str) -> Result<u64, tokio_postgres::Error> {
+pub async fn delete(
+    client: &Client,
+    public_id: &str,
+    private_id: &str,
+) -> Result<u64, tokio_postgres::Error> {
     client
-        .execute("DELETE FROM boards WHERE private_id = ($1)", &[&private_id])
+        .execute(
+            "DELETE FROM boards WHERE public_id = ($1) AND private_id = ($2)",
+            &[&public_id, &private_id],
+        )
         .await
 }

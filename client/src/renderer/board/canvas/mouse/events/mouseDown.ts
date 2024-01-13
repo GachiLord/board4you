@@ -22,13 +22,13 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
   const lineSize = props.lineSize
   const lineType = props.lineType
   const isDraggable = state.stage.isDraggable
-  const isShared = state.board.mode === 'shared'
+  const canDraw = itemIn(state.board.mode, 'author', 'coop')
   const private_id = state.rooms[boardManager.status.roomId ? boardManager.status.roomId : "none"]
 
 
   whenDraw(e, boardManager, ({ stage, pos, canvas, temporary, isRightClick }) => {
     const share = (edit: IShape) => {
-      if (isShared && private_id && boardManager.status.roomId)
+      if (canDraw)
         boardManager.send('PushSegment', {
           public_id: boardManager.status.roomId,
           private_id: private_id,
@@ -40,7 +40,7 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
     const undone = store.getState().history.undone.at(-1)
     // empty undone if it exists and tool is not select
     if (undone && tool !== 'select' && tool !== 'move' && !isRightClick) {
-      if (isShared && private_id && boardManager.status.roomId) boardManager.send('Empty', {
+      if (canDraw) boardManager.send('Empty', {
         public_id: boardManager.status.roomId,
         private_id: private_id,
         action_type: 'undone'

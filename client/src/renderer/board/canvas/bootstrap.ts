@@ -2,18 +2,25 @@ import Konva from "konva"
 import EditManager from "../../lib/EditManager"
 import BoardManager from "../../lib/BoardManager/BoardManager"
 import store from "../../store/store"
-import { setMode } from "../../features/board"
+import { setInviteId, setMode, setRoomId, setShareInfo } from "../../features/board"
 import joinRoom from "./share/joinRoom"
 import handleMessage from "./share/handleMessage"
 import handleBoardEvents from "./native/handleBoardEvents"
 import handleWebEvents from "./native/handleWebEvents"
 import HandleNativeEvents from "./native/handleNativeEvents"
+import { deleteRoom, setRoom } from "../../features/rooms"
+import { doRequest } from "../../lib/twiks"
+import getPrivateId from "./share/getPrivateId"
+import { set } from "../../features/tool"
+import { Mode } from "original-fs"
+import handleModeChange from "./share/handleModeChange"
 
 interface Editor {
   stage: Konva.Stage,
   boardManager: BoardManager
-  mode: 'shared' | 'local'
+  mode: Mode
   roomId: string
+  inviteId: string
   setLoading: (s: boolean) => void
   setRoomExists: (s: boolean) => void
   setError: (s: boolean) => void
@@ -21,16 +28,32 @@ interface Editor {
   cleanUp: () => void
 }
 
-export default function bootstrap({ stage, boardManager, mode, roomId, setLoading, setRoomExists, setError, navigate, cleanUp }: Editor) {
+export default function bootstrap({
+  stage,
+  boardManager,
+  mode,
+  roomId,
+  inviteId,
+  setLoading,
+  setRoomExists,
+  setError,
+  navigate,
+  cleanUp
+}: Editor) {
   // create canvas and editManager
   const canvas: Konva.Layer = stage.children[0]
   const editManager = new EditManager(canvas, boardManager)
-  // update mode to run useEffect`s callback again
-  if (roomId) store.dispatch(setMode('shared'))
+  // share info
+  const privateId = getPrivateId(roomId)
+  const coEditor = privateId ? privateId.includes('_co_editor') : false
   // join room if mode is shared
-  if (mode === 'shared') {
+  if (roomId) {
     setLoading(true)
     boardManager.connect()
+    // check mode 
+    if (privateId && !coEditor) store.dispatch(setMode('author'))
+    else if (coEditor || inviteId) store.dispatch(setMode('coop'))
+    else store.dispatch(setMode('viewer'))
   }
   // set listener for msgs
   boardManager.handlers.onMessage = (msg: string) => handleMessage(msg, {
@@ -41,10 +64,12 @@ export default function bootstrap({ stage, boardManager, mode, roomId, setLoadin
     setRoomExists
   })
   boardManager.handlers.onOpen = () => joinRoom({
+    navigate,
     setLoading,
     setRoomExists,
     boardManager,
-    roomId
+    roomId,
+    inviteId
   })
   boardManager.handlers.onClose = () => setLoading(true)
   boardManager.handlers.retry = () => setLoading(true)

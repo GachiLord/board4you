@@ -55,6 +55,10 @@ enum BoardMessage {
         current: Vec<String>,
         undone: Vec<String>,
     },
+    UpdateCoEditor {
+        public_id: String,
+        private_id: String,
+    },
     // info msgs
     Info {
         status: String,
@@ -85,6 +89,9 @@ enum BoardMessage {
         title: String,
     },
     QuitData {
+        payload: String,
+    },
+    UpdateCoEditorData {
         payload: String,
     },
 }
@@ -191,7 +198,7 @@ pub async fn user_message(
             }
             Some(r) => {
                 // skip if private_key is not valid
-                if r.private_id != private_id {
+                if r.private_id != private_id && r.board.co_editor_private_id != private_id {
                     send_to_user(
                         client,
                         json!({
@@ -238,7 +245,7 @@ pub async fn user_message(
             match rooms.write().await.get_mut(&public_id) {
                 Some(r) => {
                     // skip if private_key is not valid
-                    if r.private_id != private_id {
+                    if r.private_id != private_id && r.board.co_editor_private_id != private_id {
                         send_to_user(
                             client,
                             json!({
@@ -286,7 +293,7 @@ pub async fn user_message(
             match rooms.read().await.get(&public_id) {
                 Some(r) => {
                     // skip if private_key is not valid
-                    if r.private_id != private_id {
+                    if r.private_id != private_id && r.board.co_editor_private_id != private_id {
                         send_to_user(
                             client,
                             json!({
@@ -321,7 +328,7 @@ pub async fn user_message(
             match rooms.write().await.get_mut(&public_id) {
                 Some(r) => {
                     // skip if private_key is not valid
-                    if r.private_id != private_id {
+                    if r.private_id != private_id && r.board.co_editor_private_id != private_id {
                         send_to_user(
                             client,
                             json!({
@@ -376,7 +383,7 @@ pub async fn user_message(
             match rooms.write().await.get_mut(&public_id) {
                 Some(r) => {
                     // skip if private_key is not valid
-                    if r.private_id != private_id {
+                    if r.private_id != private_id && r.board.co_editor_private_id != private_id {
                         send_to_user(
                             client,
                             json!({
@@ -415,7 +422,7 @@ pub async fn user_message(
             match rooms.write().await.get_mut(&public_id) {
                 Some(r) => {
                     // skip if private_key is not valid
-                    if r.private_id != private_id {
+                    if r.private_id != private_id && r.board.co_editor_private_id != private_id {
                         send_to_user(
                             client,
                             json!({
@@ -437,6 +444,34 @@ pub async fn user_message(
                         json!({"Info": {"status": "bad", "action": "SetSize", "payload": "no such room"}}).to_string()
                     ));
                 }
+            }
+        }
+
+        BoardMessage::UpdateCoEditor {
+            public_id,
+            private_id,
+        } => {
+            match rooms.write().await.get_mut(&public_id) {
+                Some(room) => {
+                    if room.private_id == private_id {
+                        // update co-editor token
+                        room.update_editor_private_id();
+                        let update_msg = BoardMessage::UpdateCoEditorData {
+                            payload: "updated".to_string(),
+                        };
+                        // send update msg
+                        send_all_except_sender(
+                            clients,
+                            room,
+                            Some(user_id),
+                            serde_json::to_string(&update_msg).unwrap(),
+                        )
+                    }
+                }
+                None => send_to_user(
+                    client,
+                    json!({"Info": {"status": "bad", "action": "DeleteCoEditor", "payload": "no such room"}}),
+                ),
             }
         }
 
@@ -469,7 +504,7 @@ pub fn send_all_except_sender(
     clients: RwLockReadGuard<'_, HashMap<Arc<usize>, UnboundedSender<Message>>>,
     room: &Room,
     sender_id: Option<Arc<usize>>,
-    mut data: String,
+    data: String,
 ) {
     let sender_is_none = sender_id.is_none();
     let sender_id = sender_id.unwrap_or(Arc::new(0));
@@ -479,7 +514,7 @@ pub fn send_all_except_sender(
             let user = clients.get(&u);
             match user {
                 Some(user) => {
-                    let _ = user.send(Message::text(mem::take(&mut data)));
+                    let _ = user.send(Message::text(data.clone()));
                 }
                 None => (),
             };

@@ -6,6 +6,7 @@ import store, { RootState } from '../../store/store'
 import { setTitle } from '../../features/board'
 import { useSelector } from 'react-redux'
 import BoardManagerContext from '../../base/constants/BoardManagerContext'
+import { itemIn } from '../../lib/twiks'
 
 
 export default function Settings() {
@@ -29,7 +30,7 @@ export default function Settings() {
     // save state
     store.dispatch(setTitle(s.title))
     // send changes
-    if (mode === 'shared') {
+    if (itemIn(mode, 'author', 'coop')) {
       boardManager.send('SetTitle', {
         ...boardManager.getCredentials(),
         title: s.title

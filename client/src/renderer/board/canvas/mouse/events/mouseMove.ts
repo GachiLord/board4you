@@ -15,11 +15,11 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
   const state = store.getState()
   const drawingShapeId = store.getState().stage.drawingShapeId
   const isDrawable = state.stage.isDrawable
-  const isShared = state.board.mode === 'shared'
+  const canDraw = itemIn(state.board.mode, 'author', 'coop')
   const private_id = state.rooms[boardManager.status.roomId]
 
   const share = (data: ShareData) => {
-    if (isShared)
+    if (canDraw)
       boardManager.send('PushSegment', {
         public_id: boardManager.status.roomId,
         private_id: private_id,

@@ -65,7 +65,7 @@ export function getStage(event: KonvaEventObject<MouseEvent | TouchEvent>) {
   return event.target.getStage()
 }
 
-export function itemIn(item: unknown, ...items: unknown[]) {
+export function itemIn<T>(item: T, ...items: T[]) {
   return items.includes(item)
 }
 

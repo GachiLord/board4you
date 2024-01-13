@@ -6,6 +6,10 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../store/store";
 import { LocaleContext } from "../../base/constants/LocaleContext";
 import boardEvents from "../../base/constants/boardEvents";
+import BoardManagerContext from "../../base/constants/BoardManagerContext";
+import { doRequest } from "../../lib/twiks";
+import { useDispatch } from "react-redux";
+import { setInviteId } from "../../features/board";
 
 
 export interface settings {
@@ -20,14 +24,25 @@ interface props {
 
 export default function SettingsModal({ onSave, onClose, show }: props) {
   const loc = useContext(LocaleContext)
+  const boardManager = useContext(BoardManagerContext)
   const board = useSelector((state: RootState) => state.board)
   const [title, setTitle] = useState(board.title)
+  const dispatch = useDispatch()
   const handleTitleChange = (title: string) => {
     if (title.length <= 36) setTitle(title)
   }
   const openSizePicker = () => {
     boardEvents.emit('selectSize')
     onClose()
+  }
+  const expireCoEditorPermissons = () => {
+    doRequest('room/co-editor', boardManager.getCredentials(), 'PUT')
+      .then((r) => {
+        dispatch(setInviteId(r.co_editor_private_id))
+      })
+      .finally(() => {
+        onClose()
+      })
   }
 
   return (
@@ -53,9 +68,24 @@ export default function SettingsModal({ onSave, onClose, show }: props) {
             <Button
               onClick={openSizePicker}
               variant="success"
+              className="mb-3"
             >
               {loc.selectSize}
             </Button>
+            {(board.mode === 'author') && (
+              <>
+                <Form.Group>
+                  <Form.Label>{loc.takeAwayTheAbilityToEdit}</Form.Label>
+                </Form.Group>
+                <Button
+                  onClick={expireCoEditorPermissons}
+                  variant="secondary"
+                  className="mb-3"
+                >
+                  {loc.perform}
+                </Button>
+              </>
+            )}
           </Form>
         </Modal.Body>
         <Modal.Footer>

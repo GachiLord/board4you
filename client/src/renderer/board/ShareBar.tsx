@@ -1,5 +1,5 @@
-import React, { CSSProperties, useState } from "react"
-import {GoShareAndroid} from 'react-icons/go'
+import React, { CSSProperties, useContext, useState } from "react"
+import { GoShareAndroid } from 'react-icons/go'
 import ToolButton from "./toolPanel/ToolButton"
 import { useDispatch } from "react-redux"
 import { setMode } from "../features/board"
@@ -7,54 +7,73 @@ import { RootState } from "../store/store"
 import { useSelector } from "react-redux"
 import boardEvents from "../base/constants/boardEvents"
 import isMobile from "../lib/isMobile"
+import { LocaleContext } from "../base/constants/LocaleContext"
+import { useParams } from "react-router"
+import { itemIn } from "../lib/twiks"
 
 
-export default function ShareBar(){
-    const isDeviceMobile = isMobile()
-    const [isOpen, setOpen] = useState(false)
-    const mode = useSelector( (state: RootState) => state.board.mode )
-    const dispatch = useDispatch()
-    const closeArea: CSSProperties = {
-        position: 'fixed',
-        top: '0px',
-        right: '0px',
-        bottom: '0px',
-        left: '0px',
+export default function ShareBar() {
+  // state
+  const loc = useContext(LocaleContext)
+  const isDeviceMobile = isMobile()
+  const [isOpen, setOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const board = useSelector((state: RootState) => state.board)
+  const dispatch = useDispatch()
+  const { roomId } = useParams()
+  // css
+  const closeArea: CSSProperties = {
+    position: 'fixed',
+    top: '0px',
+    right: '0px',
+    bottom: '0px',
+    left: '0px',
+  }
+  const share: CSSProperties = {
+    bottom: isDeviceMobile && '160px',
+    minWidth: '100px',
+    zIndex: 4
+  }
+  // handlers
+  const onShare = () => {
+    if (board.mode === 'local') {
+      boardEvents.emit('roomCreated')
+      dispatch(setMode('author'))
+      setOpen(false)
     }
-    const share: CSSProperties = {
-        bottom: isDeviceMobile && '160px',
-        minWidth: '100px',
-        zIndex: 4
+    else {
+      navigator.clipboard.writeText(`${location.host}/board/${roomId}/${board.shareInfo?.inviteId}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 3000)
     }
-    const onShare = () => {
-        boardEvents.emit('roomCreated')
-        dispatch(setMode('shared'))
-        setOpen(false)
-    }
+  }
 
-    return (
-        <div>
-            <ToolButton 
-                name={ isOpen ? "none-active": "none" }
-                activatedClass="text-success"
+  return (
+    <div>
+      <ToolButton
+        name={isOpen ? "none-active" : "none"}
+        activatedClass="text-success"
+      >
+        <GoShareAndroid onClick={() => { setOpen(prev => !prev) }} />
+      </ToolButton>
+      {isOpen && (
+        <div className="zindex-fixed position-absolute">
+          <div style={closeArea} onClick={() => { setOpen(false) }}></div>
+          <div style={share} className="card p-2 position-absolute">
+            <button
+              disabled={!itemIn(board.mode, 'author', 'local') || copied}
+              type="button"
+              className="btn btn-outline-primary"
+              onClick={onShare}
             >
-                <GoShareAndroid onClick={ () => { setOpen(prev => !prev) } }/>
-            </ToolButton>
-            { isOpen && (
-                <div className="zindex-fixed position-absolute">
-                    <div style={closeArea} onClick={() => { setOpen(false) }}></div>
-                    <div style={share} className="card p-2 position-absolute">
-                        <button 
-                            type="button" 
-                            disabled={mode === 'shared'} 
-                            className="btn btn-outline-primary" 
-                            onClick={onShare}
-                        >
-                        share</button>
-                    </div>
-                </div>
-                )
-            }
+              {board.mode === 'local' && loc.share}
+              {(board.mode === 'author' && !copied) && loc.inviteEditor}
+              {(board.mode === 'author' && copied) && loc.copied}
+            </button>
+          </div>
         </div>
-    )
+      )
+      }
+    </div>
+  )
 }
