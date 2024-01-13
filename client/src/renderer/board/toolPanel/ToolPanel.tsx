@@ -9,27 +9,16 @@ import store, { RootState } from "../../store/store";
 import ShareBar from "../ShareBar";
 import Settings from "../settings/Settings";
 import Hr from "../../base/components/Hr";
-import { useParams } from "react-router";
-import { useDispatch } from "react-redux";
-import { set } from "../../features/tool";
 import { useSelector } from "react-redux";
+import { itemIn } from "../../lib/twiks";
 
 
 export default function ToolPanel() {
-  const rooms = useSelector((state: RootState) => state.rooms)
-  const { roomId } = useParams()
-  const privateId = rooms[roomId]
-  const isAuthor = Boolean(privateId)
-  const isCoopEditor = privateId?.includes("_co_editor")
-  const dispatch = useDispatch()
+  const mode = useSelector((state: RootState) => state.board.mode)
 
   useEffect(() => {
     new Persister(store, 'toolSettings')
   }, [])
-
-  useEffect(() => {
-    if (!isAuthor) dispatch(set('move'))
-  })
 
   return (
     <div className="d-flex align-items-center flex-column" style={{ "overflow": "auto" }}>
@@ -37,7 +26,7 @@ export default function ToolPanel() {
         <BsArrowsMove />
       </ToolButton>
       {
-        isAuthor && (
+        (itemIn(mode, 'local', 'coop', 'author')) && (
           <>
             <ToolButton name="select">
               <BsCursor />
@@ -68,9 +57,9 @@ export default function ToolPanel() {
           </>
         )
       }
-      {isAuthor && <Hr />}
-      {(isAuthor && !isCoopEditor) && <ShareBar />}
-      {isAuthor && <Settings />}
+      {(itemIn(mode, 'local', 'coop', 'author')) && <Hr />}
+      {(itemIn(mode, 'local', 'author')) && <ShareBar />}
+      {(itemIn(mode, 'local', 'coop', 'author')) && <Settings />}
 
     </div>
   )

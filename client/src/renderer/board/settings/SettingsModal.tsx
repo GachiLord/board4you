@@ -7,6 +7,9 @@ import { RootState } from "../../store/store";
 import { LocaleContext } from "../../base/constants/LocaleContext";
 import boardEvents from "../../base/constants/boardEvents";
 import BoardManagerContext from "../../base/constants/BoardManagerContext";
+import { doRequest } from "../../lib/twiks";
+import { useDispatch } from "react-redux";
+import { setInviteId } from "../../features/board";
 
 
 export interface settings {
@@ -24,6 +27,7 @@ export default function SettingsModal({ onSave, onClose, show }: props) {
   const boardManager = useContext(BoardManagerContext)
   const board = useSelector((state: RootState) => state.board)
   const [title, setTitle] = useState(board.title)
+  const dispatch = useDispatch()
   const handleTitleChange = (title: string) => {
     if (title.length <= 36) setTitle(title)
   }
@@ -32,7 +36,13 @@ export default function SettingsModal({ onSave, onClose, show }: props) {
     onClose()
   }
   const expireCoEditorPermissons = () => {
-    boardManager.send('UpdateCoEditor', boardManager.getCredentials())
+    doRequest('room/co-editor', boardManager.getCredentials(), 'PUT')
+      .then((r) => {
+        dispatch(setInviteId(r.co_editor_private_id))
+      })
+      .finally(() => {
+        onClose()
+      })
   }
 
   return (
@@ -62,17 +72,17 @@ export default function SettingsModal({ onSave, onClose, show }: props) {
             >
               {loc.selectSize}
             </Button>
-            {(board.mode === 'shared' && !boardManager.isCoEditor()) && (
+            {(board.mode === 'author') && (
               <>
                 <Form.Group>
-                  <Form.Label>{"Take away the ability to edit"}</Form.Label>
+                  <Form.Label>{loc.takeAwayTheAbilityToEdit}</Form.Label>
                 </Form.Group>
                 <Button
                   onClick={expireCoEditorPermissons}
                   variant="secondary"
                   className="mb-3"
                 >
-                  {"Perform"}
+                  {loc.perform}
                 </Button>
               </>
             )}

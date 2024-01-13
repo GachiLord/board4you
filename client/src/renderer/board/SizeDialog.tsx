@@ -8,8 +8,10 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import getCanvasSize from '../../common/getCanvasSize'
 import setCanvasSize from '../lib/setCanvasSize'
 import { LocaleContext } from '../base/constants/LocaleContext'
+import store, { RootState } from '../store/store'
+import { useSelector } from 'react-redux'
+import { itemIn } from '../lib/twiks'
 import BoardManagerContext from '../base/constants/BoardManagerContext'
-import store from '../store/store'
 
 
 
@@ -19,6 +21,7 @@ export default function SizeDialog() {
   })
   const [show, setShow] = useState(false)
   const loc = useContext(LocaleContext)
+  const mode = useSelector((state: RootState) => state.board.mode)
   const boardManager = useContext(BoardManagerContext)
 
   const handleClose = () => {
@@ -30,7 +33,7 @@ export default function SizeDialog() {
     const sizeChange = { baseHeight: size.height, height: fullHeight, width: size.width }
     boardEvents.emit('sizeHasChanged', sizeChange)
     // send changes
-    if (boardManager.canShare()) boardManager.send('SetSize', {
+    if (itemIn(mode, 'coop', 'author')) boardManager.send('SetSize', {
       ...boardManager.getCredentials(),
       data: size
     })

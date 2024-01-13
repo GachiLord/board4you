@@ -47,7 +47,7 @@ pub fn room_filter(
         .and(with_db_client(db_client.clone()))
         .and(as_string(CONTENT_LENGTH_LIMIT))
         .and(with_rooms(rooms.clone()))
-        .and(with_ws_users(ws_users))
+        .and(with_ws_users(ws_users.clone()))
         .and_then(delete_room);
     let get_private_ids = room_base
         .and(warp::path("private"))
@@ -74,6 +74,7 @@ pub fn room_filter(
         .and(warp::put())
         .and(as_string(CONTENT_LENGTH_LIMIT))
         .and(with_rooms(rooms))
+        .and(with_ws_users(ws_users))
         .and_then(update_co_editor);
 
     delete
@@ -405,6 +406,7 @@ async fn check_co_editor(
 async fn update_co_editor(
     room_info: String,
     rooms: Rooms,
+    ws_users: WSUsers,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let room_info: RoomCredentials = match serde_json::from_str(&room_info) {
         Ok(c) => c,
@@ -421,6 +423,9 @@ async fn update_co_editor(
             if room.private_id == room_info.private_id {
                 // update co-editor token
                 let new_id = room.update_editor_private_id();
+                // send update_msg
+                let update_msg = json!({ "UpdateCoEditorData": { "payload": "updated" } });
+                send_all_except_sender(ws_users.read().await, room, None, update_msg.to_string());
                 return Ok(Response::builder()
                     .status(StatusCode::OK)
                     .body(json!({ "co_editor_private_id": new_id }).to_string())

@@ -155,25 +155,4 @@ export default class BoardManager {
     return { private_id, public_id }
   }
 
-  isShared() {
-    return this.status.roomId != null
-  }
-
-  canShare() {
-    return this.isShared() && this.isAuthor()
-  }
-
-  isAuthor() {
-    return store.getState().rooms[this.status.roomId] != undefined
-  }
-
-  isCoEditor() {
-    const privateId = store.getState().rooms[this.status.roomId]
-    return privateId != undefined && privateId.includes('_co_editor')
-  }
-
-  canEdit() {
-    return this.isAuthor() || !this.isShared()
-  }
-
 }

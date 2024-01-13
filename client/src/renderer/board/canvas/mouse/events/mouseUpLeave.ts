@@ -20,18 +20,17 @@ import { convertToStrings } from "../../share/convert";
 
 export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManager: BoardManager, props: IDrawerProps) {
   const state = store.getState()
-  const isShared = state.board.mode === 'shared'
+  const canDraw = itemIn(state.board.mode, 'author', 'coop')
   const isDrawing = state.stage.isDrawable
   const drawingShapeId = state.stage.drawingShapeId
   const private_id = state.rooms[boardManager.status.roomId]
   const tool = props.tool
 
-
   whenDraw(e, boardManager, ({ stage, canvas, temporary, isRightClick }) => {
     // if right mouse clicked set cursor according tool
     // share fun
     const shareSegment = (shapeId: string) => {
-      if (isShared)
+      if (canDraw)
         boardManager.send('PushSegment', {
           public_id: boardManager.status.roomId,
           private_id: private_id,
@@ -40,7 +39,7 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
         })
     }
     const share = (edit: Edit) => {
-      if (isShared)
+      if (canDraw)
         boardManager.send('Push', {
           public_id: boardManager.status.roomId,
           private_id: private_id,

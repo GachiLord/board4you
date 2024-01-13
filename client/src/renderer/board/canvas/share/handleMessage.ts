@@ -9,7 +9,7 @@ import store from "../../../store/store"
 import { emptyCurrent, emptyHistory, emptyUndone } from "../../../features/history"
 import setCanvasSize from "../../../lib/setCanvasSize"
 import BoardManager from "../../../lib/BoardManager/BoardManager"
-import { setTitle } from "../../../features/board"
+import { setMode, setTitle } from "../../../features/board"
 import { PushSegmentData } from "../../../lib/BoardManager/typing"
 import { deleteRoom } from "../../../features/rooms"
 import { set } from "../../../features/tool"
@@ -84,8 +84,11 @@ export default function(msg: string, { editManager, boardManager, setLoading, se
     }
     case 'UpdateCoEditorData': {
       // remove invalid co editor private id      
-      store.dispatch(deleteRoom(boardManager.status.roomId))
-      store.dispatch(set('move'))
+      if (store.getState().board.mode === 'coop') {
+        store.dispatch(setMode('viewer'))
+        store.dispatch(deleteRoom(boardManager.status.roomId))
+        store.dispatch(set('move'))
+      }
       break
     }
   }

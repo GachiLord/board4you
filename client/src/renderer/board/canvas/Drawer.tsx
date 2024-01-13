@@ -7,7 +7,7 @@ import { lineType } from "../../features/toolSettings";
 import store, { RootState } from "../../store/store";
 import Konva from "konva";
 import BoardManager from "../../lib/BoardManager/BoardManager";
-import { useLocation, useNavigate, useParams } from "react-router";
+import { redirect, useLocation, useNavigate, useNavigation, useParams } from "react-router";
 import { setMode } from "../../features/board";
 import Persister from "../../lib/Persister";
 import Alert from "../../base/components/Alert";
@@ -18,10 +18,9 @@ import BoardManagerContext from "../../base/constants/BoardManagerContext";
 import Loading from "../../base/components/Loading";
 import clearCanvas from "./image/clearCanvas";
 import { LocaleContext } from "../../base/constants/LocaleContext";
-import bootstrap from "./bootstrap";
 import isMobile from '../../lib/isMobile'
 import useResize from '.././../lib/useResize'
-
+import bootstrap from "./bootstrap";
 
 export interface IDrawerProps {
   tool: ToolName,
@@ -33,14 +32,15 @@ export interface IDrawerProps {
 new Persister(store, 'rooms')
 
 export default function Drawer(props: IDrawerProps) {
-  // constants
+  // core vars
   const mode = useSelector((state: RootState) => state.board.mode)
+  const isShared = mode !== 'local'
   const localization = useContext(LocaleContext)
   const boardManager = useContext<BoardManager>(BoardManagerContext)
   // alerts
   const [roomExists, setRoomExists] = useState(true)
   const [isError, setError] = useState(false)
-  const [isLoading, setLoading] = useState(mode === 'shared' && roomExists)
+  const [isLoading, setLoading] = useState(mode !== 'local' && roomExists)
   // state
   const dispatch = useDispatch()
   const stage = useRef<Konva.Stage | null>(null)
@@ -87,7 +87,7 @@ export default function Drawer(props: IDrawerProps) {
       navigate,
       cleanUp
     })
-  }, [mode, routerLocation])
+  }, [routerLocation, isShared])
 
   return (
     <>

@@ -9,6 +9,7 @@ import boardEvents from "../base/constants/boardEvents"
 import isMobile from "../lib/isMobile"
 import { LocaleContext } from "../base/constants/LocaleContext"
 import { useParams } from "react-router"
+import { itemIn } from "../lib/twiks"
 
 
 export default function ShareBar() {
@@ -37,11 +38,11 @@ export default function ShareBar() {
   const onShare = () => {
     if (board.mode === 'local') {
       boardEvents.emit('roomCreated')
-      dispatch(setMode('shared'))
+      dispatch(setMode('author'))
       setOpen(false)
     }
     else {
-      navigator.clipboard.writeText(`${location.host}/board/${roomId}/${board.inviteId}`)
+      navigator.clipboard.writeText(`${location.host}/board/${roomId}/${board.shareInfo?.inviteId}`)
       setCopied(true)
       setTimeout(() => setCopied(false), 3000)
     }
@@ -60,14 +61,14 @@ export default function ShareBar() {
           <div style={closeArea} onClick={() => { setOpen(false) }}></div>
           <div style={share} className="card p-2 position-absolute">
             <button
-              disabled={board.mode === 'shared' && !board.inviteId || copied}
+              disabled={!itemIn(board.mode, 'author', 'local') || copied}
               type="button"
               className="btn btn-outline-primary"
               onClick={onShare}
             >
-              {board.mode === 'local' && 'Share'}
-              {(board.mode === 'shared' && !copied) && 'Invite editor'}
-              {(board.mode === 'shared' && copied) && 'Copied'}
+              {board.mode === 'local' && loc.share}
+              {(board.mode === 'author' && !copied) && loc.inviteEditor}
+              {(board.mode === 'author' && copied) && loc.copied}
             </button>
           </div>
         </div>

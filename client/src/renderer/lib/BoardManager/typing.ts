@@ -51,7 +51,7 @@ export type MessageType = 'Join' | 'Quit' | 'UndoRedo' | 'Empty' |
   'Push' | 'PushSegment' | 'PushData' | 'Pull' | 'Info' |
   'SetSize' | 'SetTitle' | 'UpdateCoEditorData' | 'PullData' |
   'PushSegmentData' | 'UndoRedoData' | 'EmptyData' | 'SizeData' |
-  'TitleData' | 'Info' | 'QuitData'
+  'TitleData' | 'Info' | 'QuitData' | 'UpdateCoEditor'
 // errors
 export class TimeOutError extends Error {
   constructor(msg = "connection timeout after", durationMs: number, options?: ErrorOptions) {

@@ -504,7 +504,7 @@ pub fn send_all_except_sender(
     clients: RwLockReadGuard<'_, HashMap<Arc<usize>, UnboundedSender<Message>>>,
     room: &Room,
     sender_id: Option<Arc<usize>>,
-    mut data: String,
+    data: String,
 ) {
     let sender_is_none = sender_id.is_none();
     let sender_id = sender_id.unwrap_or(Arc::new(0));
@@ -514,7 +514,7 @@ pub fn send_all_except_sender(
             let user = clients.get(&u);
             match user {
                 Some(user) => {
-                    let _ = user.send(Message::text(mem::take(&mut data)));
+                    let _ = user.send(Message::text(data.clone()));
                 }
                 None => (),
             };
