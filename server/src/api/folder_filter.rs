@@ -1,4 +1,6 @@
-use super::common::{as_string, with_user_data, UserDataFromJwt, CONTENT_LENGTH_LIMIT};
+use super::common::{
+    as_string, generate_res, with_user_data, UserDataFromJwt, CONTENT_LENGTH_LIMIT,
+};
 use crate::{
     entities::folder,
     libs::state::{DbClient, JwtKey},
@@ -62,18 +64,13 @@ async fn create_folder(
     // parse folder
     let folder: FolderInitials = match serde_json::from_str(&folder) {
         Ok(f) => f,
-        Err(_) => {
-            return Ok(Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body("failed to parse body".to_string())
-                .unwrap())
-        }
+        Err(_) => return Ok(generate_res(StatusCode::BAD_REQUEST, None)),
     };
     if folder.title.len() > 36 {
-        return Ok(Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .body("title is too long".to_string())
-            .unwrap());
+        return Ok(generate_res(
+            StatusCode::BAD_REQUEST,
+            Some("title is too long"),
+        ));
     }
     // create folder
     match user_data.user_data {
@@ -84,29 +81,17 @@ async fn create_folder(
                         .status(StatusCode::OK)
                         .header(SET_COOKIE, c1)
                         .header(SET_COOKIE, c2)
-                        .body(json!({ "public_id": public_id.to_string() }).to_string())
-                        .unwrap())
+                        .body(json!({ "public_id": public_id.to_string() }).to_string()))
                 }
                 None => {
                     return Ok(Response::builder()
                         .status(StatusCode::OK)
-                        .body(json!({ "public_id": public_id.to_string() }).to_string())
-                        .unwrap())
+                        .body(json!({ "public_id": public_id.to_string() }).to_string()))
                 }
             },
-            Err(_) => {
-                return Ok(Response::builder()
-                    .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body("cannot create the folder".to_string())
-                    .unwrap())
-            }
+            Err(_) => return Ok(generate_res(StatusCode::INTERNAL_SERVER_ERROR, None)),
         },
-        None => {
-            return Ok(Response::builder()
-                .status(StatusCode::UNAUTHORIZED)
-                .body("auth to create folders".to_string())
-                .unwrap())
-        }
+        None => return Ok(generate_res(StatusCode::UNAUTHORIZED, None)),
     }
 }
 
@@ -125,17 +110,12 @@ async fn read_folder(
                 .status(StatusCode::OK)
                 .header(SET_COOKIE, c1)
                 .header(SET_COOKIE, c2)
-                .body(serde_json::to_string(&folder).unwrap())
-                .unwrap()),
+                .body(serde_json::to_string(&folder).unwrap())),
             None => Ok(Response::builder()
                 .status(StatusCode::OK)
-                .body(serde_json::to_string(&folder).unwrap())
-                .unwrap()),
+                .body(serde_json::to_string(&folder).unwrap())),
         },
-        None => Ok(Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body("no such folder".to_string())
-            .unwrap()),
+        None => Ok(generate_res(StatusCode::NOT_FOUND, None)),
     }
 }
 
@@ -153,23 +133,16 @@ async fn read_own_folders_list(
                         .status(StatusCode::OK)
                         .header(SET_COOKIE, c1)
                         .header(SET_COOKIE, c2)
-                        .body(serde_json::to_string(&folder_list).unwrap())
-                        .unwrap())
+                        .body(serde_json::to_string(&folder_list).unwrap()))
                 }
                 None => {
                     return Ok(Response::builder()
                         .status(StatusCode::OK)
-                        .body(serde_json::to_string(&folder_list).unwrap())
-                        .unwrap())
+                        .body(serde_json::to_string(&folder_list).unwrap()))
                 }
             }
         }
-        None => {
-            return Ok(Response::builder()
-                .status(StatusCode::UNAUTHORIZED)
-                .body("auth to read own folders".to_string())
-                .unwrap())
-        }
+        None => return Ok(generate_res(StatusCode::UNAUTHORIZED, None)),
     }
 }
 
@@ -180,18 +153,10 @@ async fn update_folder_contents(
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let folder_info: folder::FolderInfo = match serde_json::from_str(&update_info) {
         Ok(info) => info,
-        Err(_) => {
-            return Ok(Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body("failed to parse body")
-                .unwrap());
-        }
+        Err(_) => return Ok(generate_res(StatusCode::BAD_REQUEST, None)),
     };
     if folder_info.title.len() > 36 {
-        return Ok(Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .body("title is too long")
-            .unwrap());
+        return Ok(generate_res(StatusCode::OK, Some("title is too long")));
     }
 
     match user_data.user_data {
@@ -200,17 +165,14 @@ async fn update_folder_contents(
             if !folder::is_owned_by_public_id(&db_client, folder_info.public_id.clone(), user.id)
                 .await
             {
-                return Ok(Response::builder()
-                    .status(StatusCode::FORBIDDEN)
-                    .body("user is not owner")
-                    .unwrap());
+                return Ok(generate_res(
+                    StatusCode::FORBIDDEN,
+                    Some("user is not owner"),
+                ));
             }
             // update folder
             if let Err(_) = folder::update(&db_client, folder_info).await {
-                return Ok(Response::builder()
-                    .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body("failed to update the folder")
-                    .unwrap());
+                return Ok(generate_res(StatusCode::INTERNAL_SERVER_ERROR, None));
             }
             match user_data.new_jwt_cookie_values {
                 // send response
@@ -219,23 +181,16 @@ async fn update_folder_contents(
                         .status(StatusCode::OK)
                         .header(SET_COOKIE, c1)
                         .header(SET_COOKIE, c2)
-                        .body("updated")
-                        .unwrap())
+                        .body("updated".to_string()))
                 }
                 None => {
                     return Ok(Response::builder()
                         .status(StatusCode::OK)
-                        .body("updated")
-                        .unwrap())
+                        .body("updated".to_string()))
                 }
             }
         }
-        None => {
-            return Ok(Response::builder()
-                .status(StatusCode::UNAUTHORIZED)
-                .body("auth to modify folders")
-                .unwrap())
-        }
+        None => return Ok(generate_res(StatusCode::UNAUTHORIZED, None)),
     }
 }
 
@@ -248,17 +203,14 @@ async fn delete_folder(
         Some(user) => {
             // check if user is owner
             if !folder::is_owned_by_public_id(&db_client, public_id.clone(), user.id).await {
-                return Ok(Response::builder()
-                    .status(StatusCode::FORBIDDEN)
-                    .body("user is not owner")
-                    .unwrap());
+                return Ok(generate_res(
+                    StatusCode::FORBIDDEN,
+                    Some("user is not owner"),
+                ));
             }
             // delete folder
             if let Err(_) = folder::delete(&db_client, public_id).await {
-                return Ok(Response::builder()
-                    .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body("cannot delete folder")
-                    .unwrap());
+                return Ok(generate_res(StatusCode::NOT_FOUND, Some("no such folder")));
             }
             // response
             match user_data.new_jwt_cookie_values {
@@ -267,22 +219,15 @@ async fn delete_folder(
                         .status(StatusCode::OK)
                         .header(SET_COOKIE, c1)
                         .header(SET_COOKIE, c2)
-                        .body("deleted")
-                        .unwrap())
+                        .body("deleted".to_string()))
                 }
                 None => {
                     return Ok(Response::builder()
                         .status(StatusCode::OK)
-                        .body("deleted")
-                        .unwrap())
+                        .body("deleted".to_string()))
                 }
             }
         }
-        None => {
-            return Ok(Response::builder()
-                .status(StatusCode::UNAUTHORIZED)
-                .body("auth to delete folders")
-                .unwrap())
-        }
+        None => return Ok(generate_res(StatusCode::UNAUTHORIZED, None)),
     }
 }

@@ -122,19 +122,6 @@ pub async fn read_list_by_owner(db_client: &DbClient, owner_id: i32) -> Vec<Fold
     }
 }
 
-pub async fn is_owned(db_client: &DbClient, folder_id: i32, owner_id: i32) -> bool {
-    match db_client
-        .query_one(
-            "SELECT owner_id FROM folders WHERE id = ($1)",
-            &[&folder_id],
-        )
-        .await
-    {
-        Ok(row) => return row.get::<&str, i32>("owner_id") == owner_id,
-        Err(_) => return false,
-    }
-}
-
 pub async fn is_owned_by_public_id(db_client: &DbClient, public_id: String, owner_id: i32) -> bool {
     match db_client
         .query_one(

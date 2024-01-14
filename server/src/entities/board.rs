@@ -8,6 +8,18 @@ pub enum SaveAction {
     Created,
     Updated,
 }
+/// Inserts new row if there is no room in db
+/// or Updates existing row
+///
+/// # Panics
+///
+/// Panics if board_state cannot be serialized
+///
+/// # Errors
+///
+/// This function will return an error if:
+/// - failed to insert new row
+/// - failed to update existing row
 pub async fn save(client: &Arc<Client>, room: &Room) -> Result<SaveAction, Box<dyn Error>> {
     let board_state = serde_json::to_value(&room.board).expect("failed to serealize room.board");
     match client
@@ -47,9 +59,10 @@ pub async fn get(
         .query_one("SELECT * FROM boards WHERE public_id = $1", &[&public_id])
         .await?;
 
-    let board: Board =
+    let mut board: Board =
         serde_json::from_value(sql_res.get("board_state")).expect("failed to parse board_state");
     let private_id = sql_res.get("private_id");
+    board.title = sql_res.get("title");
 
     Ok((private_id, board))
 }
@@ -59,34 +72,6 @@ pub struct BoardInfo {
     pub id: i32,
     pub title: String,
     pub public_id: String,
-}
-
-pub async fn get_many(client: &Client, ids: Vec<i32>) -> Result<Vec<BoardInfo>, &'static str> {
-    // build array of public_ids
-    let mut query_arr = String::new();
-
-    for id in ids {
-        query_arr.push_str(&id.to_string());
-        query_arr.push(',');
-    }
-    query_arr.pop();
-    // exec query
-    let query = format!("SELECT title, public_id, id FROM boards WHERE public_id IN {query_arr}");
-    let rows = client.query(&query, &[]).await;
-    // return BoardInfo
-    match rows {
-        Ok(rows) => {
-            return Ok(rows
-                .iter()
-                .map(|row| BoardInfo {
-                    title: row.get("title"),
-                    public_id: row.get("public_id"),
-                    id: row.get("id"),
-                })
-                .collect())
-        }
-        Err(_) => return Err("query has failed"),
-    }
 }
 
 pub async fn get_by_owner(

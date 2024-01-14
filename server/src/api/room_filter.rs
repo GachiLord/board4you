@@ -1,5 +1,6 @@
 use super::common::{
-    as_string, with_user_data, Reply, ReplyWithPayload, UserDataFromJwt, CONTENT_LENGTH_LIMIT,
+    as_string, generate_res, with_user_data, Reply, ReplyWithPayload, UserDataFromJwt,
+    CONTENT_LENGTH_LIMIT,
 };
 use crate::{
     entities::board::{self, get_by_owner, save},
@@ -108,16 +109,7 @@ async fn create_room(
     // create room from room_initials
     let room: RoomInitials = match serde_json::from_str(&room_initials) {
         Ok(room) => room,
-        Err(e) => {
-            let res = Response::builder().status(StatusCode::BAD_REQUEST).body(
-                json!({
-                    "message": "cannot parse body".to_string(),
-                    "payload": e.to_string()
-                })
-                .to_string(),
-            );
-            return Ok(res);
-        }
+        Err(_) => return Ok(generate_res(StatusCode::BAD_REQUEST, None)),
     };
     // ids
     let public_id = Uuid::new_v4().to_string();
@@ -133,7 +125,7 @@ async fn create_room(
     let room = Room {
         public_id: public_id.to_owned(),
         private_id: private_id.to_owned(),
-        users: WeakHashSet::new(),
+        users: WeakHashSet::with_capacity(10),
         board: Board {
             current: room
                 .current
@@ -191,18 +183,13 @@ async fn read_own_list(
                     .status(StatusCode::OK)
                     .header(SET_COOKIE, c1)
                     .header(SET_COOKIE, c2)
-                    .body(serde_json::to_string(&list).unwrap())
-                    .unwrap()),
+                    .body(serde_json::to_string(&list).unwrap())),
                 None => Ok(Response::builder()
                     .status(StatusCode::OK)
-                    .body(serde_json::to_string(&list).unwrap())
-                    .unwrap()),
+                    .body(serde_json::to_string(&list).unwrap())),
             }
         }
-        None => Ok(Response::builder()
-            .status(StatusCode::UNAUTHORIZED)
-            .body("auth to view own boards".to_string())
-            .unwrap()),
+        None => Ok(generate_res(StatusCode::UNAUTHORIZED, None)),
     }
 }
 
@@ -313,15 +300,11 @@ async fn get_private_ids(
             }
             Err(e) => {
                 println!("{}", e.to_string());
-                return Ok(Response::builder()
-                    .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body("unexpected error".to_owned()));
+                return Ok(generate_res(StatusCode::INTERNAL_SERVER_ERROR, None));
             }
         }
     }
-    return Ok(Response::builder()
-        .status(StatusCode::UNAUTHORIZED)
-        .body("auth to get private_ids".to_owned()));
+    return Ok(generate_res(StatusCode::UNAUTHORIZED, None));
 }
 
 async fn read_co_editors(
@@ -330,36 +313,19 @@ async fn read_co_editors(
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let room_credentials: RoomCredentials = match serde_json::from_str(&room_info) {
         Ok(c) => c,
-        Err(_) => {
-            return Ok(Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body("failed to parse body".to_owned())
-                .unwrap())
-        }
+        Err(_) => return Ok(generate_res(StatusCode::BAD_REQUEST, None)),
     };
 
     match rooms.read().await.get(&room_credentials.public_id) {
         Some(room) => {
             if room.private_id == room_credentials.private_id {
-                return Ok(Response::builder()
-                    .status(StatusCode::OK)
-                    .body(
-                        json!({ "co_editor_private_id": room.board.co_editor_private_id })
-                            .to_string(),
-                    )
-                    .unwrap());
+                return Ok(Response::builder().status(StatusCode::OK).body(
+                    json!({ "co_editor_private_id": room.board.co_editor_private_id }).to_string(),
+                ));
             }
-            return Ok(Response::builder()
-                .status(StatusCode::UNAUTHORIZED)
-                .body("private_id is invalid".to_owned())
-                .unwrap());
+            return Ok(generate_res(StatusCode::UNAUTHORIZED, None));
         }
-        None => {
-            return Ok(Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .body("no such room".to_owned())
-                .unwrap())
-        }
+        None => return Ok(generate_res(StatusCode::NOT_FOUND, None)),
     }
 }
 
@@ -375,12 +341,7 @@ async fn check_co_editor(
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let check_info: CheckInfo = match serde_json::from_str(&check_info) {
         Ok(c) => c,
-        Err(_) => {
-            return Ok(Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body("failed to parse body".to_owned())
-                .unwrap())
-        }
+        Err(_) => return Ok(generate_res(StatusCode::BAD_REQUEST, None)),
     };
 
     match rooms.read().await.get(&check_info.public_id) {
@@ -388,18 +349,13 @@ async fn check_co_editor(
             if room.board.co_editor_private_id == check_info.co_editor_private_id {
                 return Ok(Response::builder()
                     .status(StatusCode::OK)
-                    .body(json!({ "valid": true }).to_string())
-                    .unwrap());
+                    .body(json!({ "valid": true }).to_string()));
             }
             return Ok(Response::builder()
                 .status(StatusCode::OK)
-                .body(json!({ "valid": false }).to_string())
-                .unwrap());
+                .body(json!({ "valid": false }).to_string()));
         }
-        None => Ok(Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body("no such room".to_owned())
-            .unwrap()),
+        None => Ok(generate_res(StatusCode::NOT_FOUND, None)),
     }
 }
 
@@ -410,12 +366,7 @@ async fn update_co_editor(
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let room_info: RoomCredentials = match serde_json::from_str(&room_info) {
         Ok(c) => c,
-        Err(_) => {
-            return Ok(Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body("failed to parse body".to_owned())
-                .unwrap())
-        }
+        Err(_) => return Ok(generate_res(StatusCode::BAD_REQUEST, None)),
     };
 
     match rooms.write().await.get_mut(&room_info.public_id) {
@@ -428,17 +379,13 @@ async fn update_co_editor(
                 send_all_except_sender(ws_users.read().await, room, None, update_msg.to_string());
                 return Ok(Response::builder()
                     .status(StatusCode::OK)
-                    .body(json!({ "co_editor_private_id": new_id }).to_string())
-                    .unwrap());
+                    .body(json!({ "co_editor_private_id": new_id }).to_string()));
             }
-            return Ok(Response::builder()
-                .status(StatusCode::UNAUTHORIZED)
-                .body("private_id is invalid".to_owned())
-                .unwrap());
+            return Ok(generate_res(
+                StatusCode::UNAUTHORIZED,
+                Some("private_id is invalid"),
+            ));
         }
-        None => Ok(Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body("no such room".to_owned())
-            .unwrap()),
+        None => Ok(generate_res(StatusCode::NOT_FOUND, None)),
     }
 }
