@@ -147,11 +147,11 @@ pub async fn user_message(
                 }
                 None => match get(&db_client, &public_id).await {
                     Ok((private_id, board)) => {
-                        let room = Room {
+                        let mut room = Room {
                             public_id: public_id.to_owned(),
                             private_id,
                             board,
-                            users: WeakHashSet::new(),
+                            users: WeakHashSet::with_capacity(10),
                             owner_id: None,
                         };
                         send_join_info(
@@ -160,6 +160,7 @@ pub async fn user_message(
                             room.board.title.clone(),
                             client,
                         );
+                        room.add_user(user_id.to_owned());
                         rooms.insert(public_id, room);
                     }
                     Err(_) => {

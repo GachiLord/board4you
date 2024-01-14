@@ -21,8 +21,8 @@ use warp::{
 };
 
 use super::common::{
-    as_string, with_jwt_cookies, with_user_data, Reply, ReplyWithPayload, UserDataFromJwt,
-    CONTENT_LENGTH_LIMIT,
+    as_string, generate_res, with_jwt_cookies, with_user_data, Reply, ReplyWithPayload,
+    UserDataFromJwt, CONTENT_LENGTH_LIMIT,
 };
 
 pub fn user_filter(
@@ -118,9 +118,7 @@ async fn read_user_private(
         };
         return Ok(res);
     }
-    return Ok(Response::builder()
-        .status(StatusCode::UNAUTHORIZED)
-        .body("auth to get this info".to_string()));
+    return Ok(generate_res(StatusCode::UNAUTHORIZED, None));
 }
 
 async fn read_user(
@@ -146,9 +144,10 @@ async fn read_user(
             return Ok(Response::builder().status(StatusCode::OK).body(body));
         }
         Err(_) => {
-            return Ok(Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .body("user not found".to_string()))
+            return Ok(generate_res(
+                StatusCode::NOT_FOUND,
+                Some("user is not found"),
+            ))
         }
     }
 }
@@ -169,20 +168,14 @@ async fn update_user(
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let update_data: UpdateData = match serde_json::from_str(&update_data) {
         Ok(u) => u,
-        Err(_) => {
-            return Ok(Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body("cannot parse body".to_string())
-                .unwrap())
-        }
+        Err(_) => return Ok(generate_res(StatusCode::BAD_REQUEST, None)),
     };
     if let Err(_) =
         user::verify_password(&db_client, &update_data.login, &update_data.password).await
     {
         return Ok(Response::builder()
             .status(StatusCode::BAD_REQUEST)
-            .body("wrong password".to_string())
-            .unwrap());
+            .body("wrong password".to_string()));
     }
 
     match refresh_token {
@@ -192,8 +185,7 @@ async fn update_user(
                 if let Err(e) = user::update(&db_client, &update_data.user, user.id).await {
                     return Ok(Response::builder()
                         .status(StatusCode::BAD_REQUEST)
-                        .body(e.to_string())
-                        .unwrap());
+                        .body(e.to_string()));
                 }
                 // update cookies
                 let user = UserData {
@@ -209,21 +201,14 @@ async fn update_user(
                     .status(StatusCode::OK)
                     .header(SET_COOKIE, c1)
                     .header(SET_COOKIE, c2)
-                    .body("updated".to_string())
-                    .unwrap());
+                    .body("updated".to_string()));
             }
             Err(_) => {
-                return Ok(Response::builder()
-                    .status(StatusCode::UNAUTHORIZED)
-                    .body("auth to update user info".to_string())
-                    .unwrap());
+                return Ok(generate_res(StatusCode::UNPROCESSABLE_ENTITY, None));
             }
         },
         None => {
-            return Ok(Response::builder()
-                .status(StatusCode::UNAUTHORIZED)
-                .body("auth to update user info".to_string())
-                .unwrap());
+            return Ok(generate_res(StatusCode::UNAUTHORIZED, None));
         }
     }
 }
@@ -241,18 +226,10 @@ pub async fn delete_user(
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let delete_data: DeleteData = match serde_json::from_str(&delete_data) {
         Ok(d) => d,
-        Err(_) => {
-            return Ok(Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body("failded to parse body")
-                .unwrap())
-        }
+        Err(_) => return Ok(generate_res(StatusCode::BAD_REQUEST, None)),
     };
     if refresh_token.is_none() {
-        return Ok(Response::builder()
-            .status(StatusCode::UNAUTHORIZED)
-            .body("auth to delete user")
-            .unwrap());
+        return Ok(generate_res(StatusCode::UNAUTHORIZED, None));
     }
     let refresh_token = refresh_token.unwrap();
 
@@ -270,29 +247,18 @@ pub async fn delete_user(
                             .status(StatusCode::OK)
                             .header(SET_COOKIE, c_1)
                             .header(SET_COOKIE, c_2)
-                            .body("deleted")
-                            .unwrap())
+                            .body("deleted".to_string()))
                     }
-                    Err(_) => {
-                        return Ok(Response::builder()
-                            .status(StatusCode::INTERNAL_SERVER_ERROR)
-                            .body("failded to delete user")
-                            .unwrap())
-                    }
+                    Err(_) => return Ok(generate_res(StatusCode::INTERNAL_SERVER_ERROR, None)),
                 }
             }
             Err(_) => {
-                return Ok(Response::builder()
-                    .status(StatusCode::BAD_REQUEST)
-                    .body("wrong password")
-                    .unwrap())
+                return Ok(generate_res(
+                    StatusCode::BAD_REQUEST,
+                    Some("wrong password"),
+                ))
             }
         },
-        Err(_) => {
-            return Ok(Response::builder()
-                .status(StatusCode::UNAUTHORIZED)
-                .body("auth to delete user")
-                .unwrap())
-        }
+        Err(_) => return Ok(generate_res(StatusCode::UNAUTHORIZED, None)),
     }
 }

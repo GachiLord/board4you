@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
-use warp::http::StatusCode;
+use warp::http::{response::Builder, Response, StatusCode};
 use warp::hyper::body::Bytes;
 use warp::Filter;
 
@@ -11,9 +11,50 @@ use crate::libs::auth::{
 use crate::libs::state::{DbClient, JwtKey};
 use crate::{with_db_client, with_jwt_key};
 
-// structs
+// constants
 
 pub const CONTENT_LENGTH_LIMIT: u64 = 1024 * 16;
+
+const UNAUTHORIZED_MSG: &'static str = "auth to perform this action";
+const NOT_FOUND_MSG: &'static str = "resource is not found";
+const BAD_REQUEST_MSG: &'static str = "cannot parse the body";
+const INTERNAL_SERVER_ERROR_MSG: &'static str = "unexpected server error";
+const FORBIDDEN_MSG: &'static str = "insufficient rights to perform this action";
+
+// response generator
+
+fn builder(status_code: StatusCode) -> Builder {
+    Response::builder().status(status_code)
+}
+
+pub fn generate_res(code: StatusCode, msg: Option<&str>) -> warp::http::Result<Response<String>> {
+    match code {
+        StatusCode::UNAUTHORIZED => {
+            return builder(code).body(msg.unwrap_or(UNAUTHORIZED_MSG).to_string())
+        }
+        StatusCode::NOT_FOUND => {
+            return builder(code).body(msg.unwrap_or(NOT_FOUND_MSG).to_string())
+        }
+        StatusCode::BAD_REQUEST => {
+            return builder(code).body(msg.unwrap_or(BAD_REQUEST_MSG).to_string())
+        }
+        StatusCode::INTERNAL_SERVER_ERROR => {
+            return builder(code).body(msg.unwrap_or(INTERNAL_SERVER_ERROR_MSG).to_string())
+        }
+        StatusCode::FORBIDDEN => {
+            return builder(code).body(msg.unwrap_or(FORBIDDEN_MSG).to_string())
+        }
+        _ => {
+            let msg = match msg {
+                Some(msg) => msg.to_string(),
+                None => "done".to_string(),
+            };
+            return builder(StatusCode::OK).body(msg);
+        }
+    }
+}
+
+// structs
 
 #[derive(Deserialize, Serialize)]
 pub struct ReplyWithPayload {
@@ -138,4 +179,3 @@ pub async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, 
 
     Ok(warp::reply::with_status(json, code))
 }
-
