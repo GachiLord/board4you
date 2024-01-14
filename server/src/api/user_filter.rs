@@ -5,8 +5,7 @@ use crate::{
     },
     libs::{
         auth::{
-            expire_refresh_token, get_jwt_cookies, get_jwt_with_new_data, verify_refresh_token,
-            UserData,
+            expire_refresh_token, get_jwt_cookies, get_jwt_tokens, verify_refresh_token, UserData,
         },
         state::{DbClient, JwtKey},
     },
@@ -195,7 +194,7 @@ async fn update_user(
                     first_name: update_data.user.first_name,
                     second_name: update_data.user.second_name,
                 };
-                let (a_t, r_t) = get_jwt_with_new_data(jwt_key, user);
+                let (a_t, r_t) = get_jwt_tokens(jwt_key, user);
                 let (c1, c2) = get_jwt_cookies(a_t, r_t, None);
                 return Ok(Response::builder()
                     .status(StatusCode::OK)

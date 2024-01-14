@@ -8,6 +8,18 @@ pub enum SaveAction {
     Created,
     Updated,
 }
+/// Inserts new row if there is no room in db
+/// or Updates existing row
+///
+/// # Panics
+///
+/// Panics if board_state cannot be serialized
+///
+/// # Errors
+///
+/// This function will return an error if:
+/// - failed to insert new row
+/// - failed to update existing row
 pub async fn save(client: &Arc<Client>, room: &Room) -> Result<SaveAction, Box<dyn Error>> {
     let board_state = serde_json::to_value(&room.board).expect("failed to serealize room.board");
     match client

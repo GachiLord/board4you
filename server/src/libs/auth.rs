@@ -20,6 +20,8 @@ pub struct UserData {
 
 // funs
 
+/// Adds cookie headers with provided access_token and refresh_token values
+/// to the reply
 pub fn set_jwt_token_response(
     reply: impl Reply,
     access_token: String,
@@ -42,13 +44,16 @@ pub fn set_jwt_token_response(
     return response;
 }
 
+/// Accepts access_token and returns cookie value with it.
+/// If max_age is None, sets it to 15 minutes
 pub fn get_access_token_cookie(value: String, max_age: Option<i32>) -> String {
     format!(
         "access_token={value}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age={}",
         max_age.unwrap_or(15 * 60)
     )
 }
-
+/// Accepts refresh_token and returns cookie value with it
+/// If max_age is None, sets it to 30 days
 pub fn get_refresh_token_cookie(value: String, max_age: Option<i32>) -> String {
     format!(
         "refresh_token={value}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age={}",
@@ -56,11 +61,18 @@ pub fn get_refresh_token_cookie(value: String, max_age: Option<i32>) -> String {
     )
 }
 
+/// Returns a tuple of jwt tokens(access_token, refresh_token) with provided UserData   
 pub fn get_jwt_tokens(jwt_key: Arc<HS256Key>, data: UserData) -> (String, String) {
     let (access_claims, refresh_claims) = get_claims(data);
     get_tokens(&jwt_key, access_claims, refresh_claims)
 }
 
+/// Expires provided refresh_token, returns a tuple of jwt tokens and UserData(access_token, refresh_token, UserData)
+/// if the token is valid
+///
+/// # Errors
+///
+/// This function will return an error if provided refresh_token is invalid
 pub async fn get_jwt_tokens_from_refresh(
     client: &DbClient,
     jwt_key: Arc<HS256Key>,
@@ -76,11 +88,11 @@ pub async fn get_jwt_tokens_from_refresh(
     Err(())
 }
 
-pub fn get_jwt_with_new_data(jwt_key: Arc<HS256Key>, new_data: UserData) -> (String, String) {
-    // generate new tokenes
-    get_jwt_tokens(jwt_key, new_data)
-}
-
+/// Expires provided refresh_token and returns UserData if it is valid
+///
+/// # Errors
+///
+/// This function will return an error if the token is invalid
 pub async fn expire_refresh_token(
     db_client: &DbClient,
     jwt_key: &Arc<HS256Key>,
@@ -96,6 +108,8 @@ pub async fn expire_refresh_token(
     return Err(());
 }
 
+/// Returns cookies with jwt token values.
+/// If max_age is None, sets 15 minutes for access_token and 30 days for refresh_token
 pub fn get_jwt_cookies(
     access_token: String,
     refresh_token: String,
@@ -109,6 +123,11 @@ pub fn get_jwt_cookies(
 
 // helpers
 
+/// Returns UserData if the token is valid
+///
+/// # Errors
+///
+/// This function will return an error if the token is invalid
 pub fn verify_access_token(jwt_key: Arc<HS256Key>, jwt_token: &str) -> Result<UserData, ()> {
     let mut options = VerificationOptions::default();
     options.max_validity = Some(Duration::from_mins(15));
@@ -119,6 +138,11 @@ pub fn verify_access_token(jwt_key: Arc<HS256Key>, jwt_token: &str) -> Result<Us
     }
 }
 
+/// Returns UserData if the token is valid
+///
+/// # Errors
+///
+/// This function will return an error if token is invalid
 pub async fn verify_refresh_token(
     db_client: &DbClient,
     jwt_key: &Arc<HS256Key>,
@@ -138,6 +162,7 @@ pub async fn verify_refresh_token(
     }
 }
 
+/// Returns JWTClaims with provided user_data
 fn get_claims(data: UserData) -> (JWTClaims<UserData>, JWTClaims<UserData>) {
     return (
         Claims::with_custom_claims(data.clone(), Duration::from_mins(15)),
@@ -145,6 +170,11 @@ fn get_claims(data: UserData) -> (JWTClaims<UserData>, JWTClaims<UserData>) {
     );
 }
 
+/// Returns jwt token values based on provided JWTClaims
+///
+/// # Panics
+///
+/// Panics if failed to authenticate the claims
 fn get_tokens(
     jwt_key: &Arc<HS256Key>,
     access_claims: JWTClaims<UserData>,

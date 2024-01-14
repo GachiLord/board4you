@@ -11,6 +11,11 @@ use tokio_postgres::Client;
 use warp::ws::Message;
 use weak_table::WeakHashSet;
 
+/// current - edits that are accepted
+/// undone - edits that are not accepted
+/// size - canvas size
+/// title - board's title
+/// co_editor_private_id - token for co-editors, may change if author asks
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 pub struct Board {
     pub current: Vec<Map<String, Value>>,
@@ -49,6 +54,11 @@ pub struct PullData {
 }
 
 impl Board {
+    /// Returns a diff which lets user sync his state with server's
+    ///
+    /// # Panics
+    ///
+    /// Panics if there is an edit without id property
     pub fn pull(&self, user_current: Vec<String>, user_undone: Vec<String>) -> PullData {
         // convert Vectors to HashSets
         let current: HashSet<&str> = HashSet::from_iter(
@@ -129,6 +139,14 @@ impl Board {
         };
     }
 
+    /// Pushes a new edit to self.current
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error:
+    /// - if the edit is not a json
+    /// - if the edit is not an object
+    /// - if the edit has no id property
     pub fn push(&mut self, data: String) -> Result<(), &'static str> {
         // parse data as HashMap
         let value: Value = match serde_json::from_str(&data) {
@@ -146,6 +164,11 @@ impl Board {
         Ok(())
     }
 
+    /// Executes Undo and Redo commands
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if command.id does not exit in self.current or self.undone
     pub fn exec_command(&mut self, command: Command) -> Result<(), &'static str> {
         match command.name {
             CommandName::Undo => {
@@ -177,14 +200,23 @@ impl Board {
         Ok(())
     }
 
+    /// clears self.current
     pub fn empty_current(&mut self) {
         self.current.clear();
     }
 
+    /// clears self.undone
     pub fn empty_undone(&mut self) {
         self.undone.clear();
     }
 
+    /// Returns item's id
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - item has no id
+    /// - item's id is not a string
     fn retrive_id(item: &Map<String, Value>) -> Result<String, &'static str> {
         // check if id is present
         let id = match item.get("id") {
@@ -208,6 +240,11 @@ impl Default for BoardSize {
     }
 }
 
+/// public_id - id for connection to the room
+/// private_id - author's token for editing, invites, deletion etc.
+/// users - room's connected users
+/// board - state of the room
+/// onwer_id - id of the creator, is_some if the author was authed
 #[derive(Debug, Default)]
 pub struct Room {
     pub public_id: String,
@@ -218,14 +255,17 @@ pub struct Room {
 }
 
 impl Room {
+    /// Adds user to the room
     pub fn add_user(&mut self, id: Arc<usize>) {
         self.users.insert(id);
     }
 
+    /// Removes user from the room
     pub fn remove_user(&mut self, id: Arc<usize>) {
         self.users.remove(&id);
     }
 
+    /// Updates self.co_editor_private_id and returns new one
     pub fn update_editor_private_id(&mut self) -> String {
         let editor_private_id = BASE64URL.encode(&HS256Key::generate().to_bytes()) + "_co_editor";
         self.board.co_editor_private_id = editor_private_id.to_owned();
