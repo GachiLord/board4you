@@ -1,8 +1,13 @@
 // libs
 use api::handle_rejection;
+use fast_log::config::Config;
+use fast_log::consts::LogSize;
+use fast_log::plugin::file_split::RollingType;
+use fast_log::plugin::packer::LogPacker;
 use jwt_simple::prelude::*;
 use libs::state::{Rooms, WSUsers};
 use lifecycle::remove_unused_rooms;
+use log::error;
 use std::convert::Infallible;
 use std::error::Error;
 use std::path::Path;
@@ -26,6 +31,16 @@ static NEXT_USER_ID: AtomicUsize = AtomicUsize::new(1);
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    // initialize logging system
+    let log_path =
+        (&env::var("LOG_PATH").expect("$LOG_PATH is not provided")).to_owned() + "/server.log";
+    fast_log::init(Config::new().console().chan_len(Some(100000)).file_split(
+        &log_path,
+        LogSize::MB(4),
+        RollingType::All,
+        LogPacker {},
+    ))
+    .unwrap();
     // Connect to the database.
     let db_user = &env::var("DB_USER").expect("$DB_USER is not provided");
     let db_host = &env::var("DB_HOST").expect("$DB_HOST is not provided");
@@ -45,7 +60,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // so spawn it off to run on its own.
     tokio::spawn(async move {
         if let Err(e) = connection.await {
-            eprintln!("connection error: {}", e);
+            error!("connection error: {}", e);
         }
     });
     let client = Arc::new(client);

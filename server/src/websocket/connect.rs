@@ -1,16 +1,22 @@
+use futures_util::{SinkExt, StreamExt, TryFutureExt};
+use log::{debug, error, warn};
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use futures_util::{SinkExt, StreamExt, TryFutureExt};
 use tokio_postgres::Client;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::WebSocket;
 // use
-use crate::websocket::message::user_message;
 use crate::libs::state::{Rooms, WSUsers};
+use crate::websocket::message::user_message;
 
-
-pub async fn user_connected(user_id: usize, db_client: Arc<Client>, ws: WebSocket, users: WSUsers, rooms: Rooms) {
-    eprintln!("new board user: {}", user_id);
+pub async fn user_connected(
+    user_id: usize,
+    db_client: Arc<Client>,
+    ws: WebSocket,
+    users: WSUsers,
+    rooms: Rooms,
+) {
+    debug!("new board user: {}", user_id);
     // create user_id Arc pointer
     let user_id_arc = Arc::new(user_id);
 
@@ -27,7 +33,7 @@ pub async fn user_connected(user_id: usize, db_client: Arc<Client>, ws: WebSocke
             user_ws_tx
                 .send(message)
                 .unwrap_or_else(|e| {
-                    eprintln!("websocket send error: {}", e);
+                    warn!("websocket send error: {}", e);
                 })
                 .await;
         }
@@ -45,7 +51,7 @@ pub async fn user_connected(user_id: usize, db_client: Arc<Client>, ws: WebSocke
         let msg = match result {
             Ok(msg) => msg,
             Err(e) => {
-                eprintln!("websocket error(uid={}): {}", user_id, e);
+                warn!("websocket error(uid={}): {}", user_id, e);
                 break;
             }
         };
@@ -53,12 +59,12 @@ pub async fn user_connected(user_id: usize, db_client: Arc<Client>, ws: WebSocke
         let rooms = rooms.clone();
         let user_id_arc = user_id_arc.clone();
         let db_client = db_client.clone();
-        let user_message_task = tokio::spawn(async move{
+        let user_message_task = tokio::spawn(async move {
             user_message(user_id_arc, msg, &db_client, &users, &rooms).await;
         });
         // disconnect user if there is a server error
-        if user_message_task.await.is_err(){
-            eprintln!("disconnect user(uid={user_id}) because of an error");
+        if user_message_task.await.is_err() {
+            error!("disconnect user(uid={user_id}) because of an error");
             break;
         }
     }
@@ -68,8 +74,8 @@ pub async fn user_connected(user_id: usize, db_client: Arc<Client>, ws: WebSocke
     user_disconnected(user_id_arc.clone(), &users).await;
 }
 
-async fn user_disconnected(id: Arc<usize>, users: &WSUsers){
-    eprintln!("good bye user: {}", id);
+async fn user_disconnected(id: Arc<usize>, users: &WSUsers) {
+    debug!("good bye user: {}", id);
     // Stream closed up, so remove from the user list
     users.write().await.remove(&id);
     // drop user_id_arc to remove user from room automatically

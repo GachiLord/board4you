@@ -10,6 +10,7 @@ use crate::{
 };
 use data_encoding::BASE64URL;
 use jwt_simple::algorithms::HS256Key;
+use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use uuid::Uuid;
@@ -299,7 +300,7 @@ async fn get_private_ids(
                 }
             }
             Err(e) => {
-                println!("{}", e.to_string());
+                error!("{}", e.to_string());
                 return Ok(generate_res(StatusCode::INTERNAL_SERVER_ERROR, None));
             }
         }

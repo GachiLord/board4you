@@ -1,5 +1,6 @@
 use crate::entities::board::save;
 use crate::libs::state::Rooms;
+use log::info;
 use std::{mem::take, sync::Arc};
 use tokio::time::{self, Duration};
 use tokio_postgres::Client;
@@ -27,6 +28,6 @@ pub async fn remove_unused_rooms(client: &Arc<Client>, rooms: &Rooms, duration: 
             let _ = save(&client, &room).await;
         }
         // cleanup log
-        println!("{} unused room(s) removed", expired_rooms.len());
+        info!("{} unused room(s) removed", expired_rooms.len());
     }
 }
