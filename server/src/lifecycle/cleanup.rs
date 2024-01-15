@@ -5,13 +5,14 @@ use std::{mem::take, sync::Arc};
 use tokio::time::{self, Duration};
 use tokio_postgres::Client;
 
-pub async fn remove_unused_rooms(client: &Arc<Client>, rooms: &Rooms, duration: Duration) {
+/// Creates an infinite loop which scans for rooms without users and saves them to db.
+/// The function waites for provided duration intil start of a new cycle
+pub async fn remove_unused_rooms(client: &Arc<Client>, rooms: Rooms, duration: Duration) {
     let mut interval = time::interval(duration);
     loop {
         // wait for duration
         interval.tick().await;
         // remove unused rooms
-        let rooms = rooms.clone();
         let mut rooms = rooms.write().await;
         let mut expired_rooms = vec![];
         // collect and expire unused rooms

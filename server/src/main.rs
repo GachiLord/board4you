@@ -6,7 +6,7 @@ use fast_log::plugin::file_split::RollingType;
 use fast_log::plugin::packer::LogPacker;
 use jwt_simple::prelude::*;
 use libs::state::{Rooms, WSUsers};
-use lifecycle::remove_unused_rooms;
+use lifecycle::{monitor, remove_unused_rooms};
 use log::error;
 use std::convert::Infallible;
 use std::error::Error;
@@ -124,7 +124,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     .expect("jwt_secret is not found");
     let jwt_key = Arc::new(HS256Key::from_bytes(jwt_secret_value.as_bytes()));
     // apis
-    let apis = api::api(client.clone(), jwt_key, rooms.clone(), users);
+    let apis = api::api(client.clone(), jwt_key, rooms.clone(), users.clone());
     // bundle all routes
     let routes = apis.or(board).or(static_site).recover(handle_rejection);
     // create cleanup task to remove unused rooms
@@ -134,11 +134,28 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .expect("$CLEANUP_INTERVAL_MINUTES must be u64 integer"),
         Err(_) => 30,
     };
+    // cleanup task
+    let rooms_clean_up = rooms.clone();
     tokio::spawn(async move {
         remove_unused_rooms(
             &client,
-            &rooms,
+            rooms_clean_up,
             time::Duration::from_secs(cleanup_interval * 60),
+        )
+        .await;
+    });
+    // create monitoring task
+    let monitor_interval: u64 = match &env::var("MONITOR_INTERVAL_MINUTES") {
+        Ok(t) => t
+            .parse()
+            .expect("$MONITOR_INTERVAL_MINUTES must be u64 integer"),
+        Err(_) => 5,
+    };
+    tokio::spawn(async move {
+        monitor(
+            time::Duration::from_secs(monitor_interval * 60),
+            rooms,
+            users,
         )
         .await;
     });

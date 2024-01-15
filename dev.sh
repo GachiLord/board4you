@@ -11,6 +11,7 @@ export DB_PASSWORD_PATH="${PWD}/secrets/db_password.txt"
 export JWT_SECRET_PATH="${PWD}/secrets/jwt_secret.txt"
 export ENV="DEVELOPMENT"
 export LOG_PATH="${PWD}/log"
+export MONITOR_INTERVAL_MINUTES=1
 # rust
 export RUST_BACKTRACE=1
 export RUST_LOG=trace
