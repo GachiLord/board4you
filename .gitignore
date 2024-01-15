@@ -14,3 +14,4 @@ electron-builder.env
 target/
 bun.lockb
 secrets/*.txt
+log/*.log
