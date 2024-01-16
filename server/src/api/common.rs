@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
+use std::net::SocketAddr;
 use warp::http::{response::Builder, Response, StatusCode};
 use warp::hyper::body::Bytes;
+use warp::reject::Rejection;
 use warp::Filter;
 
 use crate::libs::auth::{verify_access_token, verify_refresh_token, UserData};
@@ -76,6 +78,11 @@ pub struct Reply {
     pub message: String,
 }
 
+#[derive(Debug)]
+struct RateLimit;
+
+impl warp::reject::Reject for RateLimit {}
+
 // helpers
 pub fn with_jwt_cookies(
 ) -> impl Filter<Extract = (Option<String>, Option<String>), Error = Infallible> + Clone {
@@ -131,6 +138,15 @@ async fn convert_to_string(bytes: Bytes) -> Result<String, warp::Rejection> {
 
 // rejecting
 
+pub fn validate_addr() -> impl Filter<Extract = ((),), Error = Rejection> + Copy {
+    warp::addr::remote().and_then(|addr: Option<SocketAddr>| async move {
+        match addr {
+            Some(_addr) => return Ok(()),
+            None => return Err(warp::reject::custom(RateLimit)),
+        }
+    })
+}
+
 pub async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, Infallible> {
     let code;
     let message;
@@ -138,6 +154,9 @@ pub async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, 
     if err.is_not_found() {
         code = StatusCode::NOT_FOUND;
         message = "NOT_FOUND";
+    } else if let Some(_) = err.find::<RateLimit>() {
+        code = StatusCode::IM_A_TEAPOT;
+        message = "I'm a teapot";
     } else if let Some(_) = err.find::<warp::filters::body::BodyDeserializeError>() {
         // This error happens if the body could not be deserialized correctly
         // We can use the cause to analyze the error and customize the error message
@@ -153,9 +172,8 @@ pub async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, 
         message = "BAD_REQUEST";
     } else {
         // We should have expected this... Just log and say its a 500
-        eprintln!("unhandled rejection: {:?}", err);
         code = StatusCode::INTERNAL_SERVER_ERROR;
-        message = "UNHANDLED_REJECTION";
+        message = "UNHANDLED_REJECTION 1";
     }
 
     let json = warp::reply::json(&ErrorMessage {

@@ -1,5 +1,5 @@
 // libs
-use api::{handle_rejection, request_hanlder, with_jwt_cookies};
+use api::{handle_rejection, request_hanlder, validate_addr, with_jwt_cookies};
 use fast_log::config::Config;
 use fast_log::consts::LogSize;
 use fast_log::plugin::file_split::RollingType;
@@ -136,7 +136,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     .and(with_jwt_cookies())
     .and_then(request_hanlder);
     // bundle all routes
-    let routes = apis.or(static_site).recover(handle_rejection);
+    let routes = validate_addr()
+        .untuple_one()
+        .and(apis.or(static_site))
+        .recover(handle_rejection);
     // create cleanup task to remove unused rooms
     let cleanup_interval: u64 = match &env::var("CLEANUP_INTERVAL_MINUTES") {
         Ok(t) => t
@@ -181,6 +184,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     server.await;
     Ok(())
 }
+
+// shared resources
 
 pub fn with_ws_users(
     users: WSUsers,

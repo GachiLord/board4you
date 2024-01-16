@@ -16,6 +16,7 @@ use warp::Filter;
 // exports
 
 pub use common::handle_rejection;
+pub use common::validate_addr;
 pub use common::with_jwt_cookies;
 
 pub fn api(
