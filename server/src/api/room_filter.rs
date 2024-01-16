@@ -1,10 +1,12 @@
 use super::common::{
-    as_string, generate_res, with_user_data, Reply, ReplyWithPayload, UserDataFromJwt,
-    CONTENT_LENGTH_LIMIT,
+    as_string, generate_res, with_user_data, Reply, ReplyWithPayload, CONTENT_LENGTH_LIMIT,
 };
 use crate::{
     entities::board::{self, get_by_owner, save},
-    libs::state::{Board, BoardSize, DbClient, JwtKey, Room, Rooms, WSUsers},
+    libs::{
+        auth::UserData,
+        state::{Board, BoardSize, DbClient, JwtKey, Room, Rooms, WSUsers},
+    },
     websocket::send_all_except_sender,
     with_db_client, with_rooms, with_ws_users,
 };
@@ -15,7 +17,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use uuid::Uuid;
 use warp::{
-    http::header::SET_COOKIE,
     http::Response,
     http::StatusCode,
     reply::{json, with_status, Json, WithStatus},
@@ -105,7 +106,7 @@ async fn create_room(
     room_initials: String,
     db_client: DbClient,
     rooms: Rooms,
-    user_data: UserDataFromJwt,
+    user_data: Option<UserData>,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     // create room from room_initials
     let room: RoomInitials = match serde_json::from_str(&room_initials) {
@@ -119,7 +120,7 @@ async fn create_room(
     // owner info
     let mut owner_id: Option<i32> = None;
     // add owner if user is authed
-    if let Some(data) = user_data.user_data {
+    if let Some(data) = user_data {
         owner_id = Some(data.id)
     }
     // create Room instance
@@ -150,45 +151,28 @@ async fn create_room(
     }
     // update rooms
     rooms.write().await.insert(public_id.to_owned(), room);
-
-    // res
-    let body = json!({
-            "private_id": private_id,
-            "public_id": public_id
-    })
-    .to_string();
-    // reply with jwt if neccessary
-    if let Some((a_t, r_t)) = user_data.new_jwt_cookie_values {
-        let res = Response::builder()
-            .status(StatusCode::CREATED)
-            .header(SET_COOKIE, a_t)
-            .header(SET_COOKIE, r_t)
-            .body(body);
-        return Ok(res);
-    }
-    // reply if cant
-    let res = Response::builder().status(StatusCode::CREATED).body(body);
+    // response
+    let res = Response::builder().status(StatusCode::CREATED).body(
+        json!({
+                "private_id": private_id,
+                "public_id": public_id
+        })
+        .to_string(),
+    );
     Ok(res)
 }
 
 async fn read_own_list(
     db_client: DbClient,
-    user_data: UserDataFromJwt,
+    user_data: Option<UserData>,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-    match user_data.user_data {
+    match user_data {
         Some(user) => {
             let list = get_by_owner(&db_client, user.id).await.unwrap_or(vec![]);
 
-            match user_data.new_jwt_cookie_values {
-                Some((c1, c2)) => Ok(Response::builder()
-                    .status(StatusCode::OK)
-                    .header(SET_COOKIE, c1)
-                    .header(SET_COOKIE, c2)
-                    .body(serde_json::to_string(&list).unwrap())),
-                None => Ok(Response::builder()
-                    .status(StatusCode::OK)
-                    .body(serde_json::to_string(&list).unwrap())),
-            }
+            Ok(Response::builder()
+                .status(StatusCode::OK)
+                .body(serde_json::to_string(&list).unwrap()))
         }
         None => Ok(generate_res(StatusCode::UNAUTHORIZED, None)),
     }
@@ -265,9 +249,9 @@ struct RoomData {
 
 async fn get_private_ids(
     db_client: DbClient,
-    jwt_data: UserDataFromJwt,
+    jwt_data: Option<UserData>,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-    if let Some(user) = jwt_data.user_data {
+    if let Some(user) = jwt_data {
         let owned_rooms = db_client
             .query(
                 "SELECT private_id, public_id FROM boards WHERE owner_id=($1)",
@@ -287,17 +271,7 @@ async fn get_private_ids(
                     })
                     .collect::<Vec<RoomData>>();
                 let body = serde_json::to_string(&rooms).unwrap();
-                // send with headers
-                match jwt_data.new_jwt_cookie_values {
-                    Some((c1, c2)) => {
-                        return Ok(Response::builder()
-                            .header(SET_COOKIE, c1)
-                            .header(SET_COOKIE, c2)
-                            .status(StatusCode::OK)
-                            .body(body))
-                    }
-                    None => return Ok(Response::builder().status(StatusCode::OK).body(body)),
-                }
+                return Ok(Response::builder().status(StatusCode::OK).body(body));
             }
             Err(e) => {
                 error!("{}", e.to_string());

@@ -21,7 +21,7 @@ use warp::{
 
 use super::common::{
     as_string, generate_res, with_jwt_cookies, with_user_data, Reply, ReplyWithPayload,
-    UserDataFromJwt, CONTENT_LENGTH_LIMIT,
+    CONTENT_LENGTH_LIMIT,
 };
 
 pub fn user_filter(
@@ -103,19 +103,11 @@ struct UserInfo {
 }
 
 async fn read_user_private(
-    retrived_user_data: UserDataFromJwt,
+    retrived_user_data: Option<UserData>,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-    if let Some(user) = retrived_user_data.user_data {
+    if let Some(user) = retrived_user_data {
         let body = serde_json::to_string(&user).unwrap();
-        let res = match retrived_user_data.new_jwt_cookie_values {
-            Some((c1, c2)) => Response::builder()
-                .header(SET_COOKIE, c1)
-                .header(SET_COOKIE, c2)
-                .status(StatusCode::OK)
-                .body(body),
-            None => Response::builder().status(StatusCode::OK).body(body),
-        };
-        return Ok(res);
+        return Ok(Response::builder().status(StatusCode::OK).body(body));
     }
     return Ok(generate_res(StatusCode::UNAUTHORIZED, None));
 }

@@ -4,10 +4,7 @@ use warp::http::{response::Builder, Response, StatusCode};
 use warp::hyper::body::Bytes;
 use warp::Filter;
 
-use crate::libs::auth::{
-    get_access_token_cookie, get_jwt_tokens_from_refresh, get_refresh_token_cookie,
-    verify_access_token, UserData,
-};
+use crate::libs::auth::{verify_access_token, verify_refresh_token, UserData};
 use crate::libs::state::{DbClient, JwtKey};
 use crate::{with_db_client, with_jwt_key};
 
@@ -85,52 +82,41 @@ pub fn with_jwt_cookies(
     warp::cookie::optional("access_token").and(warp::cookie::optional("refresh_token"))
 }
 
+/// Extracts UserData if access or refresh token is valid
 pub fn with_user_data(
     db_client: &DbClient,
     jwt_key: JwtKey,
-) -> impl Filter<Extract = (UserDataFromJwt,), Error = Infallible> + Clone {
+) -> impl Filter<Extract = (Option<UserData>,), Error = Infallible> + Clone {
     with_db_client(db_client.clone())
         .and(with_jwt_key(jwt_key))
         .and(with_jwt_cookies())
         .and_then(retrive_user_data)
 }
 
+/// Returns UserData if access or refresh token is valid
 pub async fn retrive_user_data(
     db_client: DbClient,
     jwt_key: JwtKey,
     access_token: Option<String>,
     refresh_token: Option<String>,
-) -> Result<UserDataFromJwt, Infallible> {
+) -> Result<Option<UserData>, Infallible> {
     let some_access_token = access_token.is_some();
     let some_refresh_token = refresh_token.is_some();
 
     if some_access_token {
         if let Ok(user_data) = verify_access_token(jwt_key.clone(), &access_token.unwrap()) {
-            return Ok(UserDataFromJwt {
-                user_data: Some(user_data),
-                new_jwt_cookie_values: None,
-            });
+            return Ok(Some(user_data));
         }
     }
     if some_refresh_token {
-        let refresh_token: &'static str = Box::leak(refresh_token.unwrap().into_boxed_str());
-        if let Ok((access_token, refresh_token, user_data)) =
-            get_jwt_tokens_from_refresh(&db_client, jwt_key, &refresh_token).await
+        if let Ok(user_data) =
+            verify_refresh_token(&db_client, &jwt_key, &refresh_token.unwrap()).await
         {
-            return Ok(UserDataFromJwt {
-                user_data: Some(user_data),
-                new_jwt_cookie_values: Some((
-                    get_access_token_cookie(access_token, None),
-                    get_refresh_token_cookie(refresh_token, None),
-                )),
-            });
+            return Ok(Some(user_data));
         }
     }
     // if there is no valid tokens return nothing
-    Ok(UserDataFromJwt {
-        user_data: None,
-        new_jwt_cookie_values: None,
-    })
+    Ok(None)
 }
 
 pub fn as_string(limit: u64) -> impl Filter<Extract = (String,), Error = warp::Rejection> + Clone {
