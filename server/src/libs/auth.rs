@@ -8,6 +8,11 @@ use warp::http::header::{HeaderMap, HeaderValue, SET_COOKIE};
 use warp::reply::Response;
 use warp::Reply;
 
+// consts
+
+const ACCESS_TOKEN_MAX_AGE: i32 = 15 * 60;
+const REFRESH_TOKEN_MAX_AGE: i32 = 60 * 60 * 24 * 30;
+
 // struct
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UserData {
@@ -45,19 +50,19 @@ pub fn set_jwt_token_response(
 }
 
 /// Accepts access_token and returns cookie value with it.
-/// If max_age is None, sets it to 15 minutes
+/// If max_age is None, sets it to ACCESS_TOKEN_MAX_AGE
 pub fn get_access_token_cookie(value: String, max_age: Option<i32>) -> String {
     format!(
         "access_token={value}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age={}",
-        max_age.unwrap_or(15 * 60)
+        max_age.unwrap_or(ACCESS_TOKEN_MAX_AGE)
     )
 }
 /// Accepts refresh_token and returns cookie value with it
-/// If max_age is None, sets it to 30 days
+/// If max_age is None, sets it to REFRESH_TOKEN_MAX_AGE
 pub fn get_refresh_token_cookie(value: String, max_age: Option<i32>) -> String {
     format!(
         "refresh_token={value}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age={}",
-        max_age.unwrap_or(60 * 60 * 24 * 30)
+        max_age.unwrap_or(REFRESH_TOKEN_MAX_AGE)
     )
 }
 
@@ -76,11 +81,11 @@ pub fn get_jwt_tokens(jwt_key: Arc<HS256Key>, data: UserData) -> (String, String
 pub async fn get_jwt_tokens_from_refresh(
     client: &DbClient,
     jwt_key: Arc<HS256Key>,
-    refresh_token: &str,
+    refresh_token: String,
 ) -> Result<(String, String, UserData), ()> {
     if let Ok(user_data) = verify_refresh_token(client, &jwt_key, &refresh_token).await {
         // expire this token
-        let _ = create(client, refresh_token).await;
+        let _ = create(client, &refresh_token).await;
         // generate new ones
         let (a_t, r_t) = get_jwt_tokens(jwt_key, user_data.clone());
         return Ok((a_t, r_t, user_data));
@@ -109,7 +114,7 @@ pub async fn expire_refresh_token(
 }
 
 /// Returns cookies with jwt token values.
-/// If max_age is None, sets 15 minutes for access_token and 30 days for refresh_token
+/// If max_age is None, sets ACCESS_TOKEN_MAX_AGE for access_token and REFRESH_TOKEN_MAX_AGE for refresh_token
 pub fn get_jwt_cookies(
     access_token: String,
     refresh_token: String,
@@ -130,7 +135,7 @@ pub fn get_jwt_cookies(
 /// This function will return an error if the token is invalid
 pub fn verify_access_token(jwt_key: Arc<HS256Key>, jwt_token: &str) -> Result<UserData, ()> {
     let mut options = VerificationOptions::default();
-    options.max_validity = Some(Duration::from_mins(15));
+    options.max_validity = Some(Duration::from_mins(ACCESS_TOKEN_MAX_AGE as u64));
 
     match jwt_key.verify_token::<UserData>(jwt_token, Some(options)) {
         Ok(claims) => Ok(claims.custom),
@@ -149,7 +154,7 @@ pub async fn verify_refresh_token(
     jwt_token: &str,
 ) -> Result<UserData, ()> {
     let mut options = VerificationOptions::default();
-    options.max_validity = Some(Duration::from_days(30));
+    options.max_validity = Some(Duration::from_days(REFRESH_TOKEN_MAX_AGE as u64));
 
     match jwt_key.verify_token::<UserData>(jwt_token, Some(options)) {
         Ok(claims) => {
@@ -165,8 +170,11 @@ pub async fn verify_refresh_token(
 /// Returns JWTClaims with provided user_data
 fn get_claims(data: UserData) -> (JWTClaims<UserData>, JWTClaims<UserData>) {
     return (
-        Claims::with_custom_claims(data.clone(), Duration::from_mins(15)),
-        Claims::with_custom_claims(data, Duration::from_days(30)),
+        Claims::with_custom_claims(
+            data.clone(),
+            Duration::from_mins(ACCESS_TOKEN_MAX_AGE as u64),
+        ),
+        Claims::with_custom_claims(data, Duration::from_days(REFRESH_TOKEN_MAX_AGE as u64)),
     );
 }
 
