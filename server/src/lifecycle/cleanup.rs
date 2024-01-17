@@ -7,7 +7,7 @@ use tokio_postgres::Client;
 
 /// Creates an infinite loop which scans for rooms without users and saves them to db.
 /// The function waites for provided duration intil start of a new cycle
-pub async fn remove_unused_rooms(client: &Arc<Client>, rooms: Rooms, duration: Duration) {
+pub async fn cleanup(client: &Arc<Client>, rooms: Rooms, duration: Duration) {
     let mut interval = time::interval(duration);
     loop {
         // wait for duration

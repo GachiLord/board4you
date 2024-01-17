@@ -1,12 +1,13 @@
 // libs
-use api::{handle_rejection, request_hanlder, validate_addr, with_jwt_cookies};
+use api::{handle_rejection, request_hanlder, with_jwt_cookies};
 use fast_log::config::Config;
 use fast_log::consts::LogSize;
 use fast_log::plugin::file_split::RollingType;
 use fast_log::plugin::packer::LogPacker;
 use jwt_simple::prelude::*;
+use libs::flood_protection::{ban_manager, validate_addr, BannedUsers};
 use libs::state::{Rooms, WSUsers};
-use lifecycle::{monitor, remove_unused_rooms};
+use lifecycle::{cleanup, monitor};
 use log::error;
 use std::convert::Infallible;
 use std::error::Error;
@@ -15,6 +16,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::{env, fs};
 use tokio::signal::unix::signal;
+use tokio::sync::mpsc;
 use tokio::time;
 use tokio_postgres::{Client, NoTls};
 use warp::Filter;
@@ -135,8 +137,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     .and(with_jwt_key(jwt_key))
     .and(with_jwt_cookies())
     .and_then(request_hanlder);
-    // bundle all routes
-    let routes = validate_addr()
+    // bundle all routes and set up ban system
+    let banned_users = BannedUsers::default();
+    let banned_users_1 = banned_users.clone();
+    let banned_users_2 = banned_users.clone();
+    let (tx, rx) = mpsc::unbounded_channel();
+    // create ban manager task
+    tokio::spawn(async move {
+        ban_manager(rx, banned_users).await;
+    });
+    let routes = validate_addr(tx, banned_users_1)
         .untuple_one()
         .and(apis.or(static_site))
         .recover(handle_rejection);
@@ -150,7 +160,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // cleanup task
     let rooms_clean_up = rooms.clone();
     tokio::spawn(async move {
-        remove_unused_rooms(
+        cleanup(
             &client,
             rooms_clean_up,
             time::Duration::from_secs(cleanup_interval * 60),
@@ -169,6 +179,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             time::Duration::from_secs(monitor_interval * 60),
             rooms,
             users,
+            banned_users_2,
         )
         .await;
     });
