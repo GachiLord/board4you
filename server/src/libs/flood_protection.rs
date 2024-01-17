@@ -14,8 +14,7 @@ const BAN_LIMIT: Duration = Duration::from_secs(10 * 60);
 const STRICT_BAN_LIMIT: Duration = Duration::from_secs(24 * 60 * 60);
 const MEASURE_RATE: Duration = Duration::from_secs(15);
 const REQUEST_LIMIT: u16 = 50;
-const MESSAGE_LIMIT: u16 = 500; // TODO: must fit into average msg length
-
+const MESSAGE_LIMIT: u16 = 2000;
 // custom rejection
 
 #[derive(Debug)]
@@ -84,7 +83,7 @@ impl BannedVisitor {
             strict,
         }
     }
-    fn ban_is_over(&self) -> bool {
+    pub fn ban_is_over(&self) -> bool {
         let diff = SystemTime::now()
             .duration_since(self.ban_time)
             .unwrap_or(Duration::ZERO);
@@ -184,8 +183,12 @@ async fn visitor_handler(
                     (*user).message_count = 1;
                     user.last_message = SystemTime::now();
                 }
+                debug!(
+                    "user with ip {} has sent {} messages",
+                    addr, user.message_count
+                );
                 // check if the message limit was exceeded
-                if user.request_count > MESSAGE_LIMIT {
+                if user.message_count > MESSAGE_LIMIT {
                     // ban user
                     let mut banned_users = banned_users.write().await;
                     let banned_count = banned_users.len();

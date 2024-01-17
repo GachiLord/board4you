@@ -5,18 +5,19 @@ use fast_log::consts::LogSize;
 use fast_log::plugin::file_split::RollingType;
 use fast_log::plugin::packer::LogPacker;
 use jwt_simple::prelude::*;
-use libs::flood_protection::{ban_manager, validate_addr, BannedUsers};
+use libs::flood_protection::{ban_manager, validate_addr, BannedUsers, ManagerCommand};
 use libs::state::{Rooms, WSUsers};
 use lifecycle::{cleanup, monitor};
 use log::error;
 use std::convert::Infallible;
 use std::error::Error;
+use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::{env, fs};
 use tokio::signal::unix::signal;
-use tokio::sync::mpsc;
+use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio::time;
 use tokio_postgres::{Client, NoTls};
 use warp::Filter;
@@ -71,24 +72,49 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // create state of the app
     let users = WSUsers::default();
     let rooms = Rooms::default();
+    // set up ban manager
+    let banned_users = BannedUsers::default();
+    let banned_users_1 = banned_users.clone();
+    let banned_users_2 = banned_users.clone();
+    let banned_users_3 = banned_users.clone();
+    let (ban_manager_tx, ban_manager_rx) = mpsc::unbounded_channel();
+    let ban_manager_tx_1 = ban_manager_tx.clone();
+    // create ban manager task
+    tokio::spawn(async move {
+        ban_manager(ban_manager_rx, banned_users).await;
+    });
     // filters for Rc
     // ws route
     let board = warp::path("board")
         .and(warp::ws())
+        .and(warp::addr::remote())
+        .and(warp::any().map(move || ban_manager_tx_1.clone()))
+        .and(warp::any().map(move || banned_users_3.clone()))
         .and(with_ws_users(users.clone()))
         .and(with_rooms(rooms.clone()))
         .and(with_db_client(client.clone()))
-        .map(move |ws: warp::ws::Ws, users, rooms, db_client| {
-            ws.on_upgrade(move |socket| {
-                user_connected(
-                    NEXT_USER_ID.fetch_add(1, Ordering::Relaxed),
-                    db_client,
-                    socket,
-                    users,
-                    rooms,
-                )
-            })
-        });
+        .map(
+            move |ws: warp::ws::Ws,
+                  addr: Option<SocketAddr>,
+                  ban_manager_tx: UnboundedSender<ManagerCommand>,
+                  banned_users: BannedUsers,
+                  users,
+                  rooms,
+                  db_client| {
+                ws.on_upgrade(move |socket| {
+                    user_connected(
+                        NEXT_USER_ID.fetch_add(1, Ordering::Relaxed),
+                        addr,
+                        ban_manager_tx,
+                        banned_users,
+                        db_client,
+                        socket,
+                        users,
+                        rooms,
+                    )
+                })
+            },
+        );
     // static paths
     let public_path = (&env::var("PUBLIC_PATH").expect("$PUBLIC_PATH is not provided")).to_owned();
     let index_path = Path::new(&public_path)
@@ -138,15 +164,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     .and(with_jwt_cookies())
     .and_then(request_hanlder);
     // bundle all routes and set up ban system
-    let banned_users = BannedUsers::default();
-    let banned_users_1 = banned_users.clone();
-    let banned_users_2 = banned_users.clone();
-    let (tx, rx) = mpsc::unbounded_channel();
-    // create ban manager task
-    tokio::spawn(async move {
-        ban_manager(rx, banned_users).await;
-    });
-    let routes = validate_addr(tx, banned_users_1)
+    let routes = validate_addr(ban_manager_tx, banned_users_1)
         .untuple_one()
         .and(apis.or(static_site))
         .recover(handle_rejection);
