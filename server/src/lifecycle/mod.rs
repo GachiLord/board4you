@@ -1,5 +1,5 @@
 mod cleanup;
 mod monitor;
 
-pub use cleanup::remove_unused_rooms;
+pub use cleanup::cleanup;
 pub use monitor::monitor;

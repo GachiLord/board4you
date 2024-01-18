@@ -1,12 +1,12 @@
+use crate::libs::auth::{verify_access_token, verify_refresh_token, UserData};
+use crate::libs::flood_protection::RateLimit;
+use crate::libs::state::{DbClient, JwtKey};
+use crate::{with_db_client, with_jwt_key};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use warp::http::{response::Builder, Response, StatusCode};
 use warp::hyper::body::Bytes;
 use warp::Filter;
-
-use crate::libs::auth::{verify_access_token, verify_refresh_token, UserData};
-use crate::libs::state::{DbClient, JwtKey};
-use crate::{with_db_client, with_jwt_key};
 
 // constants
 
@@ -138,6 +138,9 @@ pub async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, 
     if err.is_not_found() {
         code = StatusCode::NOT_FOUND;
         message = "NOT_FOUND";
+    } else if let Some(_) = err.find::<RateLimit>() {
+        code = StatusCode::IM_A_TEAPOT;
+        message = "I'm a teapot";
     } else if let Some(_) = err.find::<warp::filters::body::BodyDeserializeError>() {
         // This error happens if the body could not be deserialized correctly
         // We can use the cause to analyze the error and customize the error message
@@ -153,9 +156,8 @@ pub async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, 
         message = "BAD_REQUEST";
     } else {
         // We should have expected this... Just log and say its a 500
-        eprintln!("unhandled rejection: {:?}", err);
         code = StatusCode::INTERNAL_SERVER_ERROR;
-        message = "UNHANDLED_REJECTION";
+        message = "UNHANDLED_REJECTION 1";
     }
 
     let json = warp::reply::json(&ErrorMessage {
