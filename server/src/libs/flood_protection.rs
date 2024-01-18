@@ -1,4 +1,5 @@
 use log::debug;
+use std::cmp;
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
@@ -14,7 +15,8 @@ const BAN_LIMIT: Duration = Duration::from_secs(10 * 60);
 const STRICT_BAN_LIMIT: Duration = Duration::from_secs(24 * 60 * 60);
 const MEASURE_RATE: Duration = Duration::from_secs(15);
 const REQUEST_LIMIT: u16 = 50;
-const MESSAGE_LIMIT: u16 = 2000;
+const MESSAGE_LIMIT: u16 = 3000;
+const CRITICAL_BAN_COUNT: usize = 100;
 // custom rejection
 
 #[derive(Debug)]
@@ -120,6 +122,9 @@ pub async fn ban_manager(mut rx: UnboundedReceiver<ManagerCommand>, mut banned_u
     while let Some(cmd) = rx.recv().await {
         match cmd {
             ManagerCommand::Action(action) => {
+                if recent_visitors.len() > CRITICAL_BAN_COUNT {
+                    clean_up_recent_visitors(&mut recent_visitors);
+                }
                 visitor_handler(&mut banned_users, &mut recent_visitors, action).await;
             }
             ManagerCommand::UnbanUser(addr) => {
@@ -156,7 +161,8 @@ async fn visitor_handler(
                     // ban user
                     let mut banned_users = banned_users.write().await;
                     let banned_count = banned_users.len();
-                    banned_users.insert(addr, BannedVisitor::new(banned_count > 100));
+                    banned_users
+                        .insert(addr, BannedVisitor::new(banned_count > CRITICAL_BAN_COUNT));
                     debug!("banned user with ip: {}", addr);
                 }
             } else {
@@ -190,9 +196,11 @@ async fn visitor_handler(
                 // check if the message limit was exceeded
                 if user.message_count > MESSAGE_LIMIT {
                     // ban user
+                    debug!("banned user with ip: {}", addr);
                     let mut banned_users = banned_users.write().await;
                     let banned_count = banned_users.len();
-                    banned_users.insert(addr, BannedVisitor::new(banned_count > 100));
+                    banned_users
+                        .insert(addr, BannedVisitor::new(banned_count > CRITICAL_BAN_COUNT));
                 }
             } else {
                 visitors.insert(
@@ -207,4 +215,14 @@ async fn visitor_handler(
             }
         }
     }
+}
+
+fn clean_up_recent_visitors(visitors: &mut RecentVisitors) {
+    let now = SystemTime::now();
+    visitors.retain(|_, visitor| {
+        let diff = now
+            .duration_since(cmp::max(visitor.last_request, visitor.last_message))
+            .unwrap_or(Duration::ZERO);
+        diff > MEASURE_RATE
+    })
 }

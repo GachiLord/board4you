@@ -77,6 +77,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let banned_users_1 = banned_users.clone();
     let banned_users_2 = banned_users.clone();
     let banned_users_3 = banned_users.clone();
+    let banned_users_4 = banned_users.clone();
     let (ban_manager_tx, ban_manager_rx) = mpsc::unbounded_channel();
     let ban_manager_tx_1 = ban_manager_tx.clone();
     // create ban manager task
@@ -181,6 +182,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         cleanup(
             &client,
             rooms_clean_up,
+            banned_users_4,
             time::Duration::from_secs(cleanup_interval * 60),
         )
         .await;
