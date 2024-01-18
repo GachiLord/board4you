@@ -18,10 +18,13 @@ use std::sync::Arc;
 use std::{env, fs};
 use tokio::signal::unix::signal;
 use tokio::sync::mpsc::{self, UnboundedSender};
+use tokio::sync::oneshot;
 use tokio::time;
 use tokio_postgres::{Client, NoTls};
 use warp::Filter;
 use websocket::user_connected;
+
+use crate::lifecycle::on_shutdown;
 // modules
 mod api;
 mod entities;
@@ -178,9 +181,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
     // cleanup task
     let rooms_clean_up = rooms.clone();
+    let rooms_to_monitor = rooms.clone();
+    let client_for_cleanup = client.clone();
     tokio::spawn(async move {
         cleanup(
-            &client,
+            &client_for_cleanup,
             rooms_clean_up,
             banned_users_4,
             time::Duration::from_secs(cleanup_interval * 60),
@@ -197,7 +202,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     tokio::spawn(async move {
         monitor(
             time::Duration::from_secs(monitor_interval * 60),
-            rooms,
+            rooms_to_monitor,
             users,
             banned_users_2,
         )
@@ -205,14 +210,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
     });
     // run server
     let mut stream = signal(tokio::signal::unix::SignalKind::terminate()).unwrap();
-    let (_, server) =
-        warp::serve(routes).bind_with_graceful_shutdown(([0, 0, 0, 0], 3000), async move {
-            stream
-                .recv()
-                .await
-                .expect("failed to listen to shutdown signal");
-        });
-    server.await;
+    let (tx, rx) = oneshot::channel();
+    // spawn server task
+    let (_, server) = warp::serve(routes)
+        .bind_with_graceful_shutdown(([0, 0, 0, 0], 3000), async move { rx.await.ok().unwrap() });
+    tokio::spawn(server);
+    // wait for a signal
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {
+            on_shutdown(&client, rooms.clone()).await;
+            tx.send(()).unwrap();
+        },
+        _ = stream.recv() => {
+            on_shutdown(&client, rooms).await;
+            tx.send(()).unwrap();
+        }
+    }
+    // return ok
     Ok(())
 }
 
