@@ -14,7 +14,7 @@ use warp::Filter;
 const BAN_LIMIT: Duration = Duration::from_secs(10 * 60);
 const STRICT_BAN_LIMIT: Duration = Duration::from_secs(24 * 60 * 60);
 const MEASURE_RATE: Duration = Duration::from_secs(15);
-const REQUEST_LIMIT: u16 = 50;
+const REQUEST_LIMIT: u16 = 75;
 const MESSAGE_LIMIT: u16 = 3000;
 const CRITICAL_BAN_COUNT: usize = 100;
 // custom rejection
