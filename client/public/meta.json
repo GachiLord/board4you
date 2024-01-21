@@ -2767,7 +2767,7 @@
       "format": "esm"
     },
     "src/renderer/lib/CanvasUtils.ts": {
-      "bytes": 10471,
+      "bytes": 8945,
       "imports": [
         {
           "path": "konva/lib/Shape",
@@ -2808,7 +2808,7 @@
       "format": "esm"
     },
     "src/renderer/lib/EditManager.ts": {
-      "bytes": 4294,
+      "bytes": 4158,
       "imports": [
         {
           "path": "src/renderer/lib/CanvasUtils.ts",
@@ -3100,7 +3100,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/share/convert.ts": {
-      "bytes": 256,
+      "bytes": 604,
       "imports": [
         {
           "path": "../../../lib/EditManager",
@@ -3111,7 +3111,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/mouse/func/shapeChange.ts": {
-      "bytes": 2480,
+      "bytes": 2479,
       "imports": [
         {
           "path": "src/renderer/lib/CanvasUtils.ts",
@@ -3172,7 +3172,7 @@
       "format": "esm"
     },
     "src/renderer/lib/Selection.ts": {
-      "bytes": 1795,
+      "bytes": 1574,
       "imports": [
         {
           "path": "node_modules/.pnpm/konva@8.4.3/node_modules/konva/lib/index.js",
@@ -3208,7 +3208,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/mouse/events/mouseDown.ts": {
-      "bytes": 4719,
+      "bytes": 4752,
       "imports": [
         {
           "path": "src/renderer/lib/twiks.ts",
@@ -3279,7 +3279,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/mouse/events/mouseMove.ts": {
-      "bytes": 4458,
+      "bytes": 4578,
       "imports": [
         {
           "path": "src/renderer/store/store.ts",
@@ -3356,7 +3356,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/mouse/events/mouseUpLeave.ts": {
-      "bytes": 5123,
+      "bytes": 5134,
       "imports": [
         {
           "path": "src/renderer/lib/CanvasUtils.ts",
@@ -12378,7 +12378,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/share/handlePull.ts": {
-      "bytes": 1493,
+      "bytes": 1431,
       "imports": [
         {
           "path": "src/renderer/base/constants/boardEvents.ts",
@@ -12440,7 +12440,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/share/handlePushUpdate.ts": {
-      "bytes": 927,
+      "bytes": 880,
       "imports": [
         {
           "path": "konva",
@@ -12461,7 +12461,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/share/handlePushEnd.ts": {
-      "bytes": 1801,
+      "bytes": 1716,
       "imports": [
         {
           "path": "node_modules/.pnpm/konva@8.4.3/node_modules/konva/lib/index.js",
@@ -12738,7 +12738,7 @@
       "format": "esm"
     },
     "src/renderer/lib/BoardManager/BoardManager.ts": {
-      "bytes": 5229,
+      "bytes": 5344,
       "imports": [
         {
           "path": "node_modules/.pnpm/websocket-ts@2.1.5/node_modules/websocket-ts/dist/esm/src/index.js",
@@ -12769,6 +12769,16 @@
           "path": "src/renderer/store/store.ts",
           "kind": "import-statement",
           "original": "../../store/store"
+        },
+        {
+          "path": "../EditManager",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "src/renderer/board/canvas/share/convert.ts",
+          "kind": "import-statement",
+          "original": "../../board/canvas/share/convert"
         }
       ],
       "format": "esm"
@@ -12902,9 +12912,19 @@
       ],
       "format": "esm"
     },
+    "src/common/empty.ts": {
+      "bytes": 18,
+      "imports": [],
+      "format": "esm"
+    },
     "src/renderer/lib/ImageUtils.ts": {
-      "bytes": 2810,
+      "bytes": 2875,
       "imports": [
+        {
+          "path": "src/common/empty.ts",
+          "kind": "import-statement",
+          "original": "jspdf"
+        },
         {
           "path": "src/renderer/store/store.ts",
           "kind": "import-statement",
@@ -12914,6 +12934,11 @@
           "path": "../base/typing/ISize",
           "kind": "import-statement",
           "external": true
+        },
+        {
+          "path": "src/common/empty.ts",
+          "kind": "import-statement",
+          "original": "pdfjs-dist"
         },
         {
           "path": "src/renderer/features/progress.ts",
@@ -12935,7 +12960,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/image/insertImage.ts": {
-      "bytes": 1740,
+      "bytes": 1928,
       "imports": [
         {
           "path": "src/renderer/store/store.ts",
@@ -12986,6 +13011,16 @@
           "path": "../../../base/typing/ISize",
           "kind": "import-statement",
           "external": true
+        },
+        {
+          "path": "../../../lib/BoardManager/BoardManager",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "src/renderer/board/canvas/share/convert.ts",
+          "kind": "import-statement",
+          "original": "../share/convert"
         }
       ],
       "format": "esm"
@@ -13057,7 +13092,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/native/runCommand.ts": {
-      "bytes": 4203,
+      "bytes": 4215,
       "imports": [
         {
           "path": "src/renderer/store/store.ts",
@@ -22363,7 +22398,7 @@
           "bytesInOutput": 51
         },
         "node_modules/.pnpm/react-dom@18.2.0_react@18.2.0/node_modules/react-dom/cjs/react-dom.production.min.js": {
-          "bytesInOutput": 130135
+          "bytesInOutput": 130139
         },
         "node_modules/.pnpm/react-dom@18.2.0_react@18.2.0/node_modules/react-dom/index.js": {
           "bytesInOutput": 253
@@ -23290,10 +23325,10 @@
           "bytesInOutput": 10
         },
         "src/renderer/lib/CanvasUtils.ts": {
-          "bytesInOutput": 3569
+          "bytesInOutput": 3629
         },
         "src/renderer/lib/EditManager.ts": {
-          "bytesInOutput": 1561
+          "bytesInOutput": 1732
         },
         "src/renderer/lib/twiks.ts": {
           "bytesInOutput": 692
@@ -23317,25 +23352,25 @@
           "bytesInOutput": 17
         },
         "src/renderer/board/canvas/share/convert.ts": {
-          "bytesInOutput": 96
+          "bytesInOutput": 190
         },
         "src/renderer/board/canvas/mouse/func/shapeChange.ts": {
-          "bytesInOutput": 756
+          "bytesInOutput": 761
         },
         "src/renderer/lib/Selection.ts": {
-          "bytesInOutput": 562
+          "bytesInOutput": 563
         },
         "src/renderer/board/canvas/mouse/events/mouseDown.ts": {
-          "bytesInOutput": 1603
+          "bytesInOutput": 1636
         },
         "src/renderer/board/canvas/mouse/events/mouseMove.ts": {
-          "bytesInOutput": 1692
+          "bytesInOutput": 1734
         },
         "src/renderer/board/canvas/mouse/func/cursor.ts": {
           "bytesInOutput": 200
         },
         "src/renderer/board/canvas/mouse/events/mouseUpLeave.ts": {
-          "bytesInOutput": 1737
+          "bytesInOutput": 1752
         },
         "src/renderer/board/canvas/mouse/events/mouseEnter.ts": {
           "bytesInOutput": 44
@@ -23803,10 +23838,10 @@
           "bytesInOutput": 44
         },
         "src/renderer/board/canvas/share/handlePushUpdate.ts": {
-          "bytesInOutput": 422
+          "bytesInOutput": 423
         },
         "src/renderer/board/canvas/share/handlePushEnd.ts": {
-          "bytesInOutput": 543
+          "bytesInOutput": 550
         },
         "src/renderer/lib/setCanvasSize.ts": {
           "bytesInOutput": 150
@@ -23836,7 +23871,7 @@
           "bytesInOutput": 225
         },
         "src/renderer/lib/BoardManager/BoardManager.ts": {
-          "bytesInOutput": 2485
+          "bytesInOutput": 2461
         },
         "src/renderer/board/canvas/native/handleBoardEvents.ts": {
           "bytesInOutput": 691
@@ -23850,20 +23885,23 @@
         "src/renderer/board/canvas/image/renderAll.ts": {
           "bytesInOutput": 64
         },
+        "src/common/empty.ts": {
+          "bytesInOutput": 10
+        },
         "src/renderer/lib/ImageUtils.ts": {
-          "bytesInOutput": 1334
+          "bytesInOutput": 1298
         },
         "src/renderer/board/canvas/native/paste.ts": {
           "bytesInOutput": 514
         },
         "src/renderer/board/canvas/image/insertImage.ts": {
-          "bytesInOutput": 532
+          "bytesInOutput": 626
         },
         "src/renderer/board/canvas/native/openFile.ts": {
           "bytesInOutput": 712
         },
         "src/renderer/board/canvas/native/runCommand.ts": {
-          "bytesInOutput": 1337
+          "bytesInOutput": 1344
         },
         "src/renderer/board/canvas/native/handleWebEvents.ts": {
           "bytesInOutput": 348
@@ -24730,7 +24768,7 @@
           "bytesInOutput": 2784
         }
       },
-      "bytes": 930004
+      "bytes": 930488
     },
     "public/web.css": {
       "imports": [
