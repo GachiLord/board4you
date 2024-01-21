@@ -1,5 +1,5 @@
 use crate::entities::board::get;
-use crate::libs::state::{BoardSize, Command, CommandName, Room};
+use crate::libs::state::{BoardSize, Command, CommandName, Edit, Room};
 use crate::libs::state::{PullData, Rooms, WSUsers};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -36,7 +36,7 @@ enum BoardMessage {
     Push {
         public_id: String,
         private_id: String,
-        data: Vec<String>,
+        data: Vec<Edit>,
         silent: bool,
     },
     PushSegment {
@@ -69,7 +69,7 @@ enum BoardMessage {
     PullData(PullData),
     PushData {
         action: String,
-        data: Vec<String>,
+        data: Vec<Edit>,
     },
     PushSegmentData {
         action_type: String,
@@ -103,17 +103,29 @@ pub async fn user_message(
     users: &WSUsers,
     rooms: &Rooms,
 ) {
+    // clients and rooms
+    let clients = users.read().await;
+    let client = clients.get(&user_id).expect("WsUser does not exist");
     // looks weird
     let msg: BoardMessage = match msg.to_str() {
         Ok(s) => match serde_json::from_str(s) {
             Ok(j) => j,
-            Err(_) => return,
+            Err(e) => {
+                send_to_user(
+                    client,
+                    json!({ "Info": {"status": "bad", "action": "unknown", "payload": e.to_string() } }),
+                );
+                return;
+            }
         },
-        Err(_) => return,
+        Err(_) => {
+            send_to_user(
+                client,
+                json!({ "Info": {"status": "bad", "action": "unknown", "payload": "message is not a string" } }),
+            );
+            return;
+        }
     };
-    // clients and rooms
-    let clients = users.read().await;
-    let client = clients.get(&user_id).expect("WsUser does not exist");
     // handle all msg variants
     match msg {
         BoardMessage::Join { public_id } => {
@@ -203,7 +215,7 @@ pub async fn user_message(
                     send_to_user(
                         client,
                         json!({
-                        "Info": {"status": "bad", "action":"Push", "payload": "private_id is invalid"}
+                        "Info": {"status": "bad", "action":"SetTitle", "payload": "private_id is invalid"}
                         }),
                     );
                     return;
@@ -256,16 +268,15 @@ pub async fn user_message(
                         return;
                     }
                     // save changes and validate data
-                    data.iter()
-                        .for_each(|edit| match r.board.push(edit.to_owned()) {
-                            Ok(()) => (),
-                            Err(e) => send_to_user(
-                                client,
-                                json!({
-                                    "Info": {"status": "bad", "action":"Push", "payload": e}
-                                }),
-                            ),
-                        });
+                    data.to_owned().into_iter().for_each(|edit| match r.board.push(edit) {
+                        Ok(()) => (),
+                        Err(e) => send_to_user(
+                            client,
+                            json!({
+                                "Info": {"status": "bad", "action":"Push", "payload": e.to_string()}
+                            }),
+                        ),
+                    });
                     // form data
                     let push_data = BoardMessage::PushData {
                         action: ("Push".to_owned()),
@@ -433,7 +444,16 @@ pub async fn user_message(
                         return;
                     }
                     // update board state
-                    r.board.size = data;
+                    if let Err(e) = r.board.set_size(data.height, data.width) {
+                        // if size is invalid do nothing
+                        send_to_user(
+                            client,
+                            json!({
+                                "Info": {"status": "bad", "action":"SetSize", "payload": e.to_string()}
+                            }),
+                        );
+                        return;
+                    }
                     // form SetSize msg
                     let response = BoardMessage::SizeData { data: (data) };
                     let response = serde_json::to_string(&response).unwrap();

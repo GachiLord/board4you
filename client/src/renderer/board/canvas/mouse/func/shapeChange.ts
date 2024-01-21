@@ -8,7 +8,7 @@ import { itemIn, run } from "../../../../lib/twiks";
 import { v4 } from "uuid";
 import { Edit } from "../../../../lib/EditManager";
 import BoardManager from "../../../../lib/BoardManager/BoardManager";
-import { convertToStrings } from "../../share/convert";
+import { convertToEnum } from "../../share/convert";
 
 
 
@@ -39,7 +39,7 @@ async function changeHandler(transformer: Konva.Transformer, boardManager: Board
       boardManager.send('Push', {
         public_id,
         private_id,
-        data: convertToStrings([edit]),
+        data: [convertToEnum(edit)],
         silent: false
       })
     }
@@ -73,7 +73,7 @@ async function changeHandler(transformer: Konva.Transformer, boardManager: Board
     // add changes in history
     const edit: Edit = {
       id: v4(),
-      type: 'modify',
+      edit_type: 'modify',
       initial: initial,
       current: current
     }

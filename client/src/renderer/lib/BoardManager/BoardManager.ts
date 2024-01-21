@@ -12,6 +12,8 @@ import { doRequest } from '../twiks'
 import { Handlers, BoardStatus, BoardOptions, Info, TimeOutError, NoSushRoomError, RoomInfo, MessageType, BoardMessage } from './typing'
 import ISize from '../../base/typing/ISize'
 import store from '../../store/store'
+import { Edit } from "../EditManager";
+import { convertToEnum } from "../../board/canvas/share/convert";
 
 
 export default class BoardManager {
@@ -123,8 +125,8 @@ export default class BoardManager {
 
   static async createRoom(history: IHistoryState, size: ISize, title: string): Promise<RoomInfo> {
     const roomInitials = {
-      current: history.current.map(i => JSON.stringify(i)),
-      undone: history.undone.map(i => JSON.stringify(i)),
+      current: history.current.map(edit => convertToEnum(edit)),
+      undone: history.undone.map(edit => convertToEnum(edit)),
       size: size,
       title: title
     }

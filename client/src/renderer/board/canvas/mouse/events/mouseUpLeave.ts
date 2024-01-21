@@ -15,7 +15,7 @@ import { Arrow } from "konva/lib/shapes/Arrow";
 import { setCursor } from "../func/cursor";
 import BoardManager from "../../../../lib/BoardManager/BoardManager";
 import { Edit } from "../../../../lib/EditManager";
-import { convertToStrings } from "../../share/convert";
+import { convertToEnum } from "../../share/convert";
 
 
 export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManager: BoardManager, props: IDrawerProps) {
@@ -43,7 +43,7 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
         boardManager.send('Push', {
           public_id: boardManager.status.roomId,
           private_id: private_id,
-          data: convertToStrings([edit]),
+          data: ([convertToEnum(edit)]),
           silent: true
         })
     }
@@ -57,7 +57,7 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
     })
 
     if (itemIn(tool, 'pen', 'eraser', 'arrow', 'line') && isDrawing && drawingShapeId) {
-      const lastLine: unknown = CanvasUtils.findLastOne(canvas, { shapeId: drawingShapeId })
+      const lastLine: unknown = CanvasUtils.findLastOne(canvas, { shape_id: drawingShapeId })
       // validate lastLine
       if (!(lastLine instanceof Line || lastLine instanceof Arrow)) throw new TypeError('last created element must be a Line or an Arrow')
       // save
@@ -69,18 +69,18 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
       // cache the line to improve perfomance
       lastLine.cache()
       // add line to history
-      const edit: Edit = { id: lastLine.attrs.shapeId, type: 'add', shape: CanvasUtils.toShape(lastLine) }
+      const edit: Edit = { id: lastLine.attrs.shape_id, edit_type: 'add', shape: CanvasUtils.toShape(lastLine) }
       store.dispatch(addCurrent(edit))
       // send PushSegmentEnd msg
       shareSegment(drawingShapeId)
       share(edit)
     }
     else if (itemIn(tool, 'rect', 'ellipse') && isDrawing && drawingShapeId) {
-      const lastShape: unknown = CanvasUtils.findLastOne(canvas, { shapeId: drawingShapeId })
+      const lastShape: unknown = CanvasUtils.findLastOne(canvas, { shape_id: drawingShapeId })
       // validate lastLine
       if (!(lastShape instanceof Rect || lastShape instanceof Ellipse)) throw new TypeError('last created element must be an Ellipse or Rect')
       // save
-      const edit: Edit = { id: lastShape.attrs.shapeId, type: 'add', shape: CanvasUtils.toShape(lastShape) }
+      const edit: Edit = { id: lastShape.attrs.shape_id, edit_type: 'add', shape: CanvasUtils.toShape(lastShape) }
       store.dispatch(addCurrent(edit))
       // send PushSegmentEnd msg
       shareSegment(drawingShapeId)
@@ -111,7 +111,7 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
 
           if (shape instanceof Konva.Shape) selected.push(shape)
           shapes.forEach(i => {
-            if (i.attrs.connected.has(shape.attrs.shapeId) && i instanceof Konva.Shape) {
+            if (i.attrs.connected.has(shape.attrs.shape_id) && i instanceof Konva.Shape) {
               selected.push(i)
             }
           })

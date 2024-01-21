@@ -5,7 +5,7 @@ use crate::{
     entities::board::{self, get_by_owner, save},
     libs::{
         auth::UserData,
-        state::{Board, BoardSize, DbClient, JwtKey, Room, Rooms, WSUsers},
+        state::{Board, BoardSize, DbClient, Edit, JwtKey, Room, Rooms, WSUsers},
     },
     websocket::send_all_except_sender,
     with_db_client, with_rooms, with_ws_users,
@@ -91,8 +91,8 @@ pub fn room_filter(
 
 #[derive(Deserialize, Serialize)]
 struct RoomInitials {
-    current: Vec<String>,
-    undone: Vec<String>,
+    current: Vec<Edit>,
+    undone: Vec<Edit>,
     size: BoardSize,
     title: String,
 }
@@ -111,7 +111,12 @@ async fn create_room(
     // create room from room_initials
     let room: RoomInitials = match serde_json::from_str(&room_initials) {
         Ok(room) => room,
-        Err(_) => return Ok(generate_res(StatusCode::BAD_REQUEST, None)),
+        Err(e) => {
+            return Ok(generate_res(
+                StatusCode::BAD_REQUEST,
+                Some(e.to_string().as_str()),
+            ))
+        }
     };
     // ids
     let public_id = Uuid::new_v4().to_string();
@@ -129,16 +134,8 @@ async fn create_room(
         private_id: private_id.to_owned(),
         users: WeakHashSet::with_capacity(10),
         board: Board {
-            current: room
-                .current
-                .iter()
-                .map(|e| serde_json::from_str(e).unwrap())
-                .collect(),
-            undone: room
-                .undone
-                .iter()
-                .map(|e| serde_json::from_str(e).unwrap())
-                .collect(),
+            current: room.current,
+            undone: room.undone,
             size: room.size,
             title: room.title,
             co_editor_private_id,
