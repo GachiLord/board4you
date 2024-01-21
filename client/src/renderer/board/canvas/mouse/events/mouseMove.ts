@@ -33,16 +33,16 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
     // handle tools usage
     if (itemIn(tool, 'pen', 'eraser') && isDrawable && drawingShapeId) {
       const target = e.target
-      const lastline: unknown = CanvasUtils.findLastOne(canvas, { shapeId: drawingShapeId })
+      const lastline: unknown = CanvasUtils.findLastOne(canvas, { shape_id: drawingShapeId })
       // validate lastLine
       if (!(lastline instanceof Line)) throw new TypeError('last created element must be a Line')
       // add ref to eraser line if pointer is on shape
       if (target !== stage && tool === 'eraser') {
         // add connected
-        lastline.attrs.connected.add(target.attrs.shapeId)
+        lastline.attrs.connected.add(target.attrs.shape_id)
         // send segments
         share({
-          shapeId: target.attrs.shapeId,
+          shapeId: target.attrs.shape_id,
           connected: drawingShapeId
         })
       }
@@ -56,7 +56,7 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
     }
 
     else if (itemIn(tool, 'arrow', 'line') && isDrawable && drawingShapeId) {
-      const lastLine: unknown = canvas.children.at(-1)
+      const lastLine: unknown = CanvasUtils.findLastOne(canvas, { shape_id: drawingShapeId })
       // validate
       if (!(lastLine instanceof Line || lastLine instanceof Arrow)) throw new TypeError('last created element must be a Line or an Arrow')
       // set points
@@ -70,7 +70,7 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
       })
     }
     else if (tool === 'rect' && isDrawable && drawingShapeId) {
-      const shape: unknown = canvas.children.at(-1)
+      const shape: unknown = CanvasUtils.findLastOne(canvas, { shape_id: drawingShapeId })
       // validate
       if (!(shape instanceof Rect)) throw new TypeError('last created element must be a Rect')
       // prepare new values
@@ -89,7 +89,7 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
       })
     }
     else if (tool === 'ellipse' && isDrawable && drawingShapeId) {
-      const shape: unknown = canvas.children.at(-1)
+      const shape: unknown = CanvasUtils.findLastOne(canvas, { shape_id: drawingShapeId })
       // validate
       if (!(shape instanceof Ellipse)) throw new TypeError('last created element must be an Ellipse')
       // prepare values

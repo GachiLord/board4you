@@ -19,7 +19,7 @@ import { Edit } from '../../../lib/EditManager';
 import { v4 } from 'uuid';
 import BoardManager from '../../../lib/BoardManager/BoardManager';
 import getPrivateId from '../share/getPrivateId';
-import { convertToStrings } from '../share/convert';
+import { convertToEnum } from '../share/convert';
 
 
 
@@ -95,7 +95,7 @@ export default async function(stage: Konva.Stage, boardManger: BoardManager, o: 
     if (selection.length !== 0) {
       const edit: Edit = {
         id: v4(),
-        type: 'remove',
+        edit_type: 'remove',
         shapes: selection
       }
       editManager.applyEdit(edit)
@@ -110,13 +110,13 @@ export default async function(stage: Konva.Stage, boardManger: BoardManager, o: 
       if (itemIn(mode, 'author', 'coop')) boardManger.send('Push', {
         public_id,
         private_id,
-        data: convertToStrings([edit]),
+        data: [convertToEnum(edit)],
         silent: false
       })
     }
   }
   if (o === 'paste' && data instanceof ClipboardEvent && canRunCommand) {
-    insertImage({ data: data, editManager: editManager })
+    insertImage(boardManger, { data: data, editManager: editManager })
     run(api => {
       api.handleFileChange()
     })

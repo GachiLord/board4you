@@ -8,55 +8,58 @@ import EditManager, { Edit } from "../../../lib/EditManager"
 import IImage from "./IImage"
 import IShape from "../../../base/typing/IShape"
 import ISize from "../../../base/typing/ISize"
+import BoardManager from "../../../lib/BoardManager/BoardManager"
+import { convertToEnum } from "../share/convert"
 
 
-interface IInsertProps{
-    data: ClipboardEvent|string|IImage, 
-    editManager: EditManager, 
-    pos?: ICoor,
-    maxSize?: ISize
+interface IInsertProps {
+  data: ClipboardEvent | string | IImage,
+  editManager: EditManager,
+  pos?: ICoor,
+  maxSize?: ISize
 }
 
-export default async function(insertProps: IInsertProps){
-    const stage = store.getState().stage
-    const maxSize = insertProps.maxSize ? insertProps.maxSize: {height: stage.baseHeight, width: stage.width}
-    const data = insertProps.data
-    const editManager = insertProps.editManager
+export default async function(boardManager: BoardManager, insertProps: IInsertProps) {
+  const stage = store.getState().stage
+  const maxSize = insertProps.maxSize ? insertProps.maxSize : { height: stage.baseHeight, width: stage.width }
+  const data = insertProps.data
+  const editManager = insertProps.editManager
 
-    let img: IImage = null
-    if (data instanceof ClipboardEvent){
-        img = await paste(data)
-    }
-    else if (typeof data === 'string'){
-        img = { url: data, size: await ImageUtils.getSizeOfBase64Img(data) }
-    }
-    else img = data
+  let img: IImage = null
+  if (data instanceof ClipboardEvent) {
+    img = await paste(data)
+  }
+  else if (typeof data === 'string') {
+    img = { url: data, size: await ImageUtils.getSizeOfBase64Img(data) }
+  }
+  else img = data
 
-    if (!img) return
+  if (!img || img.url.length > 50000) return
 
-    let pos = insertProps.pos
-    if (!pos){
-        pos = {...stage.stagePos}
-        pos.y = Math.abs(pos.y)
-    }
+  let pos = insertProps.pos
+  if (!pos) {
+    pos = { ...stage.stagePos }
+    pos.y = Math.abs(pos.y)
+  }
 
-    const shape: IShape = {
-        tool: 'img',
-        type: 'img',
-        x: pos.x,
-        y: pos.y,
-        url: img.url,
-        height: Math.min(img.size.height, maxSize.height),
-        width: Math.min(img.size.width, maxSize.width),
-        shapeId: uuid4(),
-        connected: []
-    }
-    const edit: Edit = {
-        id: uuid4(),
-        type: 'add',
-        shape: shape
-    }
+  const shape: IShape = {
+    tool: 'img',
+    shape_type: 'img',
+    x: pos.x,
+    y: pos.y,
+    url: img.url,
+    height: Math.min(img.size.height, maxSize.height),
+    width: Math.min(img.size.width, maxSize.width),
+    shape_id: uuid4(),
+    connected: []
+  }
+  const edit: Edit = {
+    id: uuid4(),
+    edit_type: 'add',
+    shape: shape
+  }
 
-    editManager.applyEdit(edit)
-    store.dispatch(addCurrent(edit))    
+  editManager.applyEdit(edit)
+  boardManager.send('Push', { ...boardManager.getCredentials(), data: [convertToEnum(edit)], silent: false })
+  store.dispatch(addCurrent(edit))
 }

@@ -64,58 +64,58 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
       shape = {
         tool: tool,
         points: [pos.x, pos.y],
-        type: tool === 'arrow' ? 'arrow' : 'line',
+        shape_type: tool === 'arrow' ? 'arrow' : 'line',
         color: tool !== 'eraser' ? color : '#ffffff',
-        shapeId: uuid4(),
+        shape_id: uuid4(),
         x: 0,
         y: 0,
-        lineSize: lineSize,
-        lineType: lineType,
+        line_size: lineSize,
+        line_type: lineType,
         connected: []
       }
 
       // add shape to canvas
       canvas.add(CanvasUtils.toKonvaObject(shape))
       // save active shapeId
-      store.dispatch(setDrawingShapeId(shape.shapeId))
+      store.dispatch(setDrawingShapeId(shape.shape_id))
       // send segment
       share(shape)
     }
     else if (tool === 'rect') {
       shape = {
         tool: tool,
-        type: tool,
+        shape_type: tool,
         x: pos.x,
         y: pos.y,
         height: 0,
         width: 0,
         color: color,
-        shapeId: uuid4(),
-        lineSize: lineSize,
-        lineType: lineType,
+        shape_id: uuid4(),
+        line_size: lineSize,
+        line_type: lineType,
       }
       canvas.add(CanvasUtils.toKonvaObject(shape))
       // save active shapeId
-      store.dispatch(setDrawingShapeId(shape.shapeId))
+      store.dispatch(setDrawingShapeId(shape.shape_id))
       // send segment
       share(shape)
     }
     else if (tool === 'ellipse') {
       shape = {
         tool: tool,
-        type: tool,
+        shape_type: tool,
         x: pos.x,
         y: pos.y,
-        radiusY: 0,
-        radiusX: 0,
+        radius_y: 0,
+        radius_x: 0,
         color: color,
-        shapeId: uuid4(),
-        lineSize: lineSize,
-        lineType: lineType,
+        shape_id: uuid4(),
+        line_size: lineSize,
+        line_type: lineType,
       }
       canvas.add(CanvasUtils.toKonvaObject(shape))
       // save active shapeId
-      store.dispatch(setDrawingShapeId(shape.shapeId))
+      store.dispatch(setDrawingShapeId(shape.shape_id))
       // send segment
       share(shape)
     }
@@ -142,7 +142,7 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
         const connected: Konva.Shape[] = []
         // find shapes which have interception with clientRect
         canvas.children.forEach(s => {
-          if (s.attrs.connected.has(e.target.attrs.shapeId) && s instanceof Konva.Shape) connected.push(s)
+          if (s.attrs.connected.has(e.target.attrs.shape_id) && s instanceof Konva.Shape) connected.push(s)
         })
         // create transformer for them
         if (e.target instanceof Konva.Shape) Selection.create([e.target, ...connected], boardManager)

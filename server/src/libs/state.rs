@@ -1,7 +1,6 @@
 use data_encoding::BASE64URL;
 use jwt_simple::algorithms::HS256Key;
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
 use std::{
     collections::{HashMap, HashSet},
     sync::{Arc, Weak},
@@ -18,8 +17,8 @@ use weak_table::WeakHashSet;
 /// co_editor_private_id - token for co-editors, may change if author asks
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 pub struct Board {
-    pub current: Vec<Map<String, Value>>,
-    pub undone: Vec<Map<String, Value>>,
+    pub current: Vec<Edit>,
+    pub undone: Vec<Edit>,
     pub size: BoardSize,
     pub title: String,
     pub co_editor_private_id: String,
@@ -27,9 +26,92 @@ pub struct Board {
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 pub struct BoardSize {
-    height: u16,
-    width: u16,
+    pub height: u16,
+    pub width: u16,
 }
+
+// shape
+
+const TOOL_NAMES: [&'static str; 9] = [
+    "pen", "line", "arrow", "rect", "ellipse", "eraser", "move", "select", "img",
+];
+const SHAPE_TYPES: [&'static str; 5] = ["line", "arrow", "rect", "ellipse", "img"];
+const MAX_DIMENSION_SIZE: f32 = 10_000_f32;
+const MAX_IMAGE_LENGTH: u16 = 60_000;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct Shape {
+    x: f32,
+    y: f32,
+    tool: String,
+    shape_type: String,
+    shape_id: String,
+    color: Option<String>,
+    line_size: Option<u16>,
+    line_type: Option<String>,
+    height: Option<f32>,
+    width: Option<f32>,
+    radius_x: Option<f32>,
+    radius_y: Option<f32>,
+    rotation: Option<f32>,
+    scale_x: Option<f32>,
+    scale_y: Option<f32>,
+    skew_x: Option<f32>,
+    skew_y: Option<f32>,
+    points: Option<Vec<u16>>,
+    connected: Option<Vec<String>>,
+    url: Option<String>,
+}
+
+// edits
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Add {
+    id: String,
+    edit_type: String,
+    shape: Shape,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Remove {
+    id: String,
+    edit_type: String,
+    shapes: Vec<Shape>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Modify {
+    id: String,
+    edit_type: String,
+    current: Vec<Shape>,
+    initial: Vec<Shape>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum Edit {
+    Add(Add),
+    Remove(Remove),
+    Modify(Modify),
+}
+
+impl Edit {
+    fn id(&self) -> &str {
+        match self {
+            Edit::Add(e) => &e.id,
+            Edit::Remove(e) => &e.id,
+            Edit::Modify(e) => &e.id,
+        }
+    }
+    fn edit_type(&self) -> &str {
+        match self {
+            Edit::Add(e) => &e.edit_type,
+            Edit::Remove(e) => &e.edit_type,
+            Edit::Modify(e) => &e.edit_type,
+        }
+    }
+}
+
+// commands
 
 pub struct Command {
     pub name: CommandName,
@@ -44,13 +126,28 @@ pub enum CommandName {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct EditData {
-    should_be_created_edits: Vec<String>,
+    should_be_created_edits: Vec<Edit>,
     should_be_deleted_ids: Vec<String>,
 }
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct PullData {
     current: EditData,
     undone: EditData,
+}
+
+#[derive(Debug)]
+pub enum PushError {
+    WrongValue(&'static str),
+    ParseError(String),
+}
+
+impl ToString for PushError {
+    fn to_string(&self) -> String {
+        match self {
+            Self::WrongValue(msg) => msg.to_string(),
+            Self::ParseError(msg) => msg.to_string(),
+        }
+    }
 }
 
 impl Board {
@@ -64,13 +161,13 @@ impl Board {
         let current: HashSet<&str> = HashSet::from_iter(
             self.current
                 .iter()
-                .map(|e| e.get("id").unwrap().as_str().unwrap())
+                .map(|e| e.id())
                 .collect::<HashSet<&str>>(),
         );
         let undone: HashSet<&str> = HashSet::from_iter(
             self.undone
                 .iter()
-                .map(|e| e.get("id").unwrap().as_str().unwrap())
+                .map(|e| e.id())
                 .collect::<HashSet<&str>>(),
         );
         let user_current: HashSet<&str> =
@@ -111,12 +208,9 @@ impl Board {
             current: EditData {
                 should_be_created_edits: self
                     .current
-                    .iter()
-                    .filter(|e| {
-                        current_create
-                            .contains::<String>(&e.get("id").unwrap().as_str().unwrap().to_string())
-                    })
-                    .map(|v| serde_json::to_string(v).unwrap())
+                    .clone()
+                    .into_iter()
+                    .filter(|e| current_create.contains::<String>(&e.id().to_string()))
                     .collect(),
                 should_be_deleted_ids: Vec::from_iter(
                     current_delete.into_iter().map(|v| v.to_owned()),
@@ -125,12 +219,9 @@ impl Board {
             undone: EditData {
                 should_be_created_edits: self
                     .undone
-                    .iter()
-                    .filter(|e| {
-                        undone_create
-                            .contains::<String>(&e.get("id").unwrap().as_str().unwrap().to_string())
-                    })
-                    .map(|v| serde_json::to_string(v).unwrap())
+                    .clone()
+                    .into_iter()
+                    .filter(|e| undone_create.contains::<String>(&e.id().to_string()))
                     .collect(),
                 should_be_deleted_ids: Vec::from_iter(
                     undone_delete.into_iter().map(|v| v.to_owned()),
@@ -145,22 +236,74 @@ impl Board {
     ///
     /// This function will return an error:
     /// - if the edit is not a json
-    /// - if the edit is not an object
     /// - if the edit has no id property
-    pub fn push(&mut self, data: String) -> Result<(), &'static str> {
-        // parse data as HashMap
-        let value: Value = match serde_json::from_str(&data) {
-            Ok(v) => v,
-            Err(_) => return Err("data is not a json"),
-        };
-        let value_as_object = match value.as_object() {
-            Some(v) => v,
-            None => return Err("data is not an object"),
-        };
-        // check for id property
-        Board::retrive_id(value_as_object)?;
+    /// - if the edit_type is not add or remove or modify
+    pub fn push(&mut self, edit: Edit) -> Result<(), PushError> {
+        // check id
+        if edit.id().len() != 36 {
+            return Err(PushError::WrongValue("id must be 36 chars long"));
+        }
+        // check edit_type
+        let edit_type = edit.edit_type();
+        if edit_type != "add" && edit_type != "remove" && edit_type != "modify" {
+            return Err(PushError::WrongValue("wrong edit_type"));
+        }
+        // check shapes
+        match edit {
+            Edit::Add(ref e) => Board::validate_shape(&e.shape)?,
+            Edit::Remove(ref e) => {
+                for shape in e.shapes.iter() {
+                    Board::validate_shape(&shape)?;
+                }
+            }
+            Edit::Modify(ref e) => {
+                for shape in e.current.iter() {
+                    Board::validate_shape(&shape)?;
+                }
+                for shape in e.initial.iter() {
+                    Board::validate_shape(&shape)?;
+                }
+            }
+        }
         // push changes
-        self.current.push(value_as_object.to_owned());
+        self.current.push(edit);
+        Ok(())
+    }
+
+    fn validate_shape(shape: &Shape) -> Result<(), PushError> {
+        if !TOOL_NAMES.contains(&shape.tool.as_str()) {
+            return Err(PushError::WrongValue("no such tool"));
+        }
+        if !SHAPE_TYPES.contains(&shape.shape_type.as_str()) {
+            return Err(PushError::WrongValue("no such shape_type"));
+        }
+        if shape.line_size.unwrap_or(0) > MAX_DIMENSION_SIZE as u16 {
+            return Err(PushError::WrongValue("line_size is too large"));
+        }
+        if shape.height.unwrap_or(0.0) > MAX_DIMENSION_SIZE
+            || shape.width.unwrap_or(0.0) > MAX_DIMENSION_SIZE
+        {
+            return Err(PushError::WrongValue("height or width is too large"));
+        }
+        if shape.radius_x.unwrap_or(0.0) > MAX_DIMENSION_SIZE
+            || shape.radius_y.unwrap_or(0.0) > MAX_DIMENSION_SIZE
+        {
+            return Err(PushError::WrongValue("radius_x or radius_y is too large"));
+        }
+        if shape.scale_x.unwrap_or(0.0) > MAX_DIMENSION_SIZE
+            || shape.scale_y.unwrap_or(0.0) > MAX_DIMENSION_SIZE
+        {
+            return Err(PushError::WrongValue("scale_x or scale_y is too large"));
+        }
+        match shape.url {
+            Some(ref url) => {
+                if url.len().try_into().unwrap_or(u16::MAX) > MAX_IMAGE_LENGTH {
+                    return Err(PushError::WrongValue("image is too large"));
+                }
+            }
+            None => (),
+        }
+
         Ok(())
     }
 
@@ -172,10 +315,7 @@ impl Board {
     pub fn exec_command(&mut self, command: Command) -> Result<(), &'static str> {
         match command.name {
             CommandName::Undo => {
-                let edit_index = self.current.iter().position(|e| {
-                    let id = Board::retrive_id(e);
-                    return id.as_ref() == Ok(&command.id);
-                });
+                let edit_index = self.current.iter().position(|e| e.id() == command.id);
                 let edit_index = match edit_index {
                     Some(id) => id,
                     None => return Err("no sush id"),
@@ -184,10 +324,7 @@ impl Board {
                 self.undone.push(edit);
             }
             CommandName::Redo => {
-                let edit_index = self.undone.iter().position(|e| {
-                    let id = Board::retrive_id(e);
-                    return id.as_ref() == Ok(&command.id);
-                });
+                let edit_index = self.undone.iter().position(|e| e.id() == command.id);
                 let edit_index = match edit_index {
                     Some(id) => id,
                     None => return Err("no sush id"),
@@ -210,24 +347,13 @@ impl Board {
         self.undone.clear();
     }
 
-    /// Returns item's id
-    ///
-    /// # Errors
-    ///
-    /// This function will return an error if:
-    /// - item has no id
-    /// - item's id is not a string
-    fn retrive_id(item: &Map<String, Value>) -> Result<String, &'static str> {
-        // check if id is present
-        let id = match item.get("id") {
-            Some(id) => match id.as_str() {
-                Some(id) => id,
-                None => return Err("id is not a string"),
-            },
-            None => return Err("data has no id"),
-        };
-
-        return Ok(id.to_string());
+    pub fn set_size(&mut self, height: u16, width: u16) -> Result<(), PushError> {
+        if height > MAX_DIMENSION_SIZE as u16 || width > MAX_DIMENSION_SIZE as u16 {
+            return Err(PushError::WrongValue("size is too big"));
+        }
+        self.size.height = height;
+        self.size.width = width;
+        Ok(())
     }
 }
 
