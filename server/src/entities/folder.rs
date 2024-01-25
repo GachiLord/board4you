@@ -61,7 +61,7 @@ pub async fn read(
         Ok(row) => {
             // get folder contents
             let contents = db_client.query(
-                "SELECT title, id, public_id FROM boards WHERE id IN (SELECT board_id FROM board_folder WHERE folder_id = ($1))", 
+                "SELECT title, id, public_id FROM boards WHERE id IN (SELECT board_id FROM board_folder WHERE folder_id = ($1)) ORDER BY id DESC", 
                 &[&row.get::<&str, i32>("id")]
             ).await.expect("failed to query folder contents");
             // get owner_info
@@ -120,7 +120,7 @@ pub async fn read_list_by_owner(
             let query_params = get_page_query_params(count.get("count"), page);
             let rows = db_client
                 .query(
-                    "SELECT title, id, public_id FROM folders WHERE owner_id = ($1) LIMIT ($2) OFFSET ($3)",
+                    "SELECT title, id, public_id FROM folders WHERE owner_id = ($1) ORDER BY id DESC LIMIT ($2) OFFSET ($3)",
                     &[&owner_id, &query_params.limit, &query_params.offset],
                 )
                 .await.unwrap();
