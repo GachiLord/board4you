@@ -3,13 +3,15 @@ import { useParams } from "react-router";
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import ListGroup from 'react-bootstrap/ListGroup';
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { doRequest } from "../lib/twiks";
 import { Link } from "react-router-dom";
 import Loading from "../base/components/Loading";
 import Alert from "../base/components/Alert";
 import { Board, BoardInfo } from "../board/folder/Board";
 import { LocaleContext } from "../base/constants/LocaleContext";
+import List from "../base/components/List";
+import { Paginated } from "../base/typing/Pagination";
 
 
 interface Folder {
@@ -30,16 +32,18 @@ interface FolderInfo {
 }
 
 export default function Folder() {
+  const [page, setPage] = useState(1)
   const { folderId } = useParams()
   const loc = useContext(LocaleContext)
   const [title, setTitle] = useState("")
   const [contents, setContents] = useState<BoardInfo[]>([])
   const [isLoading, setLoading] = useState(false)
   const boardsQuery = useQuery({
-    queryKey: ['room', 'own'],
+    queryKey: ['room', 'own', page],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       if (!folderId) throw new Error('no such folder')
-      const boards: BoardInfo[] = await doRequest('room/own', undefined, 'GET')
+      const boards: Paginated<BoardInfo> = await doRequest(`room/own/${page}`, undefined, 'GET')
       return boards
     }
   })
@@ -95,16 +99,29 @@ export default function Folder() {
           onRemove: (folderQuery.data.is_owned) && (b => setContents(v => v.filter(i => i.id !== b.id)))
         }))}
       </ListGroup>
-      {(boardsQuery.data.length !== 0 && folderQuery.data.is_owned) && <h4>{loc.boardsToAdd}</h4>}
-      <ListGroup className="m-3">
-        {folderQuery.data.is_owned && (
-          boardsQuery.data.filter(b => contents.findIndex(c => c.id === b.id) === -1).map(b => Board({
-            loc,
-            board: b,
-            onAdd: (board => setContents(v => v.concat([board])))
-          }))
-        )}
-      </ListGroup>
+      {(boardsQuery.data.content.length !== 0 && folderQuery.data.is_owned) && <h4>{loc.boardsToAdd}</h4>}
+      <List
+        pagination={{
+          contents: boardsQuery.data.content,
+          currentPage: page,
+          maxPage: boardsQuery.data.max_page,
+          onPrev: () => setPage(v => v - 1),
+          onNext: () => setPage(v => v + 1),
+          onIndex: (index) => setPage(index)
+        }}
+
+      >
+        <ListGroup className="m-3">
+          {folderQuery.data.is_owned && (
+            boardsQuery.data.content.filter(b => contents.findIndex(c => c.id === b.id) === -1).map(b => Board({
+              loc,
+              board: b,
+              onAdd: (board => setContents(v => v.concat([board])))
+            }))
+          )}
+        </ListGroup>
+
+      </List>
       {folderQuery.data.is_owned && <Button className="m-3" variant="primary" onClick={handleSave}>{loc.save}</Button>}
     </div>
   )

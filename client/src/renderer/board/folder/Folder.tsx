@@ -22,7 +22,7 @@ export function Folder({ loc, folder, onRemove }: FolderProps) {
         {folder.title === "" ? loc.untitled : folder.title}
       </div>
       <div className="d-inline">
-        <Link className="ms-5" key={folder.id} to={`/folder/${folder.public_id}`}>
+        <Link className="ms-5" key={folder.public_id} to={`/folder/${folder.public_id}`}>
           <Button size="sm" variant="primary">{loc.open}</Button>
         </Link>
         {onRemove && <Button size="sm" className="ms-1" variant="secondary" onClick={() => onRemove(folder)}>{loc.del}</Button>}
