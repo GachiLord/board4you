@@ -37,9 +37,9 @@ root.render(
             <Route path="/" element={<Home />} />
             <Route index element={<Home />} />
             <Route path="board/:roomId?/:inviteId?" element={<Editor />} />
-            <Route path="boards/own" element={<OwnBoards />} />
-            <Route path="folder/:folderId?" element={<Folder />} />
-            <Route path="folders/own" element={<OwnFolders />} />
+            <Route path="boards/own/:page?" element={<OwnBoards />} />
+            <Route path="folder/:folderId" element={<Folder />} />
+            <Route path="folders/own/:page?" element={<OwnFolders />} />
             <Route path="signin" element={<SignIn />} />
             <Route path="signup" element={<SignUp />} />
             <Route path="profile/:nickName" element={<Profile />} />

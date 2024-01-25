@@ -4,6 +4,8 @@ use std::error::Error;
 use std::sync::Arc;
 use tokio_postgres::Client;
 
+use super::{get_page_query_params, Paginated};
+
 pub enum SaveAction {
     Created,
     Updated,
@@ -76,23 +78,36 @@ pub struct BoardInfo {
 
 pub async fn get_by_owner(
     client: &Client,
+    page: i64,
     owner_id: i32,
-) -> Result<Vec<BoardInfo>, tokio_postgres::Error> {
-    let result = client
-        .query(
-            "SELECT id, title, public_id FROM boards WHERE owner_id = ($1)",
+) -> Result<Paginated<Vec<BoardInfo>>, tokio_postgres::Error> {
+    let count = client
+        .query_one(
+            "SELECT COUNT(*) FROM boards WHERE owner_id = ($1)",
             &[&owner_id],
         )
         .await?;
+    let query_params = get_page_query_params(count.get("count"), page);
 
-    Ok(result
-        .iter()
-        .map(|row| BoardInfo {
-            title: row.get("title"),
-            public_id: row.get("public_id"),
-            id: row.get("id"),
-        })
-        .collect())
+    let result = client
+        .query(
+            "SELECT id, title, public_id FROM boards WHERE owner_id = ($1) LIMIT ($2) OFFSET ($3)",
+            &[&owner_id, &query_params.limit, &query_params.offset],
+        )
+        .await?;
+
+    Ok(Paginated {
+        content: result
+            .iter()
+            .map(|row| BoardInfo {
+                title: row.get("title"),
+                public_id: row.get("public_id"),
+                id: row.get("id"),
+            })
+            .collect(),
+        current_page: page,
+        max_page: query_params.max_page,
+    })
 }
 
 pub async fn delete(

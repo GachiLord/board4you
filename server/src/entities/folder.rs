@@ -1,4 +1,8 @@
-use super::user::{self, UserInfo};
+use super::{
+    get_page_query_params,
+    user::{self, UserInfo},
+    Paginated,
+};
 use crate::entities::board::BoardInfo;
 use crate::libs::state::DbClient;
 use futures_util::try_join;
@@ -100,25 +104,47 @@ pub struct FolderShortInfo {
     public_id: String,
 }
 
-pub async fn read_list_by_owner(db_client: &DbClient, owner_id: i32) -> Vec<FolderShortInfo> {
+pub async fn read_list_by_owner(
+    db_client: &DbClient,
+    page: i64,
+    owner_id: i32,
+) -> Paginated<Vec<FolderShortInfo>> {
     match db_client
-        .query(
-            "SELECT title, id, public_id FROM folders WHERE owner_id = ($1)",
+        .query_one(
+            "SELECT COUNT(*) FROM folders WHERE owner_id = ($1)",
             &[&owner_id],
         )
         .await
     {
-        Ok(rows) => rows
-            .iter()
-            .map(|row| {
-                return FolderShortInfo {
-                    id: row.get("id"),
-                    title: row.get("title"),
-                    public_id: row.get("public_id"),
-                };
-            })
-            .collect(),
-        Err(_) => vec![],
+        Ok(count) => {
+            let query_params = get_page_query_params(count.get("count"), page);
+            let rows = db_client
+                .query(
+                    "SELECT title, id, public_id FROM folders WHERE owner_id = ($1) LIMIT ($2) OFFSET ($3)",
+                    &[&owner_id, &query_params.limit, &query_params.offset],
+                )
+                .await.unwrap();
+
+            Paginated {
+                content: rows
+                    .iter()
+                    .map(|row| {
+                        return FolderShortInfo {
+                            id: row.get("id"),
+                            title: row.get("title"),
+                            public_id: row.get("public_id"),
+                        };
+                    })
+                    .collect(),
+                current_page: page,
+                max_page: query_params.max_page,
+            }
+        }
+        Err(_) => Paginated {
+            content: vec![],
+            current_page: 1,
+            max_page: 1,
+        },
     }
 }
 

@@ -2,7 +2,10 @@ use super::common::{
     as_string, generate_res, with_user_data, Reply, ReplyWithPayload, CONTENT_LENGTH_LIMIT,
 };
 use crate::{
-    entities::board::{self, get_by_owner, save},
+    entities::{
+        board::{self, get_by_owner, save},
+        Paginated,
+    },
     libs::{
         auth::UserData,
         state::{Board, BoardSize, DbClient, Edit, JwtKey, Room, Rooms, WSUsers},
@@ -44,6 +47,7 @@ pub fn room_filter(
         .and(warp::path("own"))
         .and(with_db_client(db_client.clone()))
         .and(with_user_data(&db_client, jwt_key.clone()))
+        .and(warp::path::param())
         .and_then(read_own_list);
     let delete = room_base
         .and(warp::delete())
@@ -162,10 +166,17 @@ async fn create_room(
 async fn read_own_list(
     db_client: DbClient,
     user_data: Option<UserData>,
+    page: u16,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     match user_data {
         Some(user) => {
-            let list = get_by_owner(&db_client, user.id).await.unwrap_or(vec![]);
+            let list = get_by_owner(&db_client, page as i64, user.id)
+                .await
+                .unwrap_or(Paginated {
+                    content: vec![],
+                    current_page: 1,
+                    max_page: 1,
+                });
 
             Ok(Response::builder()
                 .status(StatusCode::OK)

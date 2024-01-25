@@ -1,12 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import React, { useContext, useState } from "react";
 import { doRequest } from "../lib/twiks";
 import Loading from '../base/components/Loading';
 import Alert from "../base/components/Alert";
 import { Button, Form, ListGroup } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Folder, FolderShortInfo } from "../board/folder/Folder";
 import { LocaleContext } from "../base/constants/LocaleContext";
+import usePage from "../lib/usePage";
+import { Paginated, PaginatedDefault } from "../base/typing/Pagination";
+import List from "../base/components/List";
 
 
 
@@ -15,17 +18,20 @@ interface FolderInitials {
 }
 
 export default function OwnFolders() {
+  const navigate = useNavigate()
+  const page = usePage()
   const loc = useContext(LocaleContext)
   const [isLoading, setLoading] = useState(false)
   const [title, setTitle] = useState("")
-  const [userFolders, setFolders] = useState<FolderShortInfo[]>([])
+  const [pagination, setPagination] = useState<Paginated<FolderShortInfo>>(PaginatedDefault)
   const { isPending, isError } = useQuery({
-    queryKey: ['folders', 'own'],
+    queryKey: ['folders', 'own', page],
     queryFn: async () => {
-      const list: FolderShortInfo[] = await doRequest('folders/own', undefined, 'GET')
-      setFolders(list)
+      const list: Paginated<FolderShortInfo> = await doRequest(`folders/own/${page}`, undefined, 'GET')
+      setPagination(list)
       return list
-    }
+    },
+    placeholderData: keepPreviousData,
   })
 
   if (isPending || isLoading) return <Loading title='Loading your boards' />
@@ -36,7 +42,9 @@ export default function OwnFolders() {
   )
   const onRemove = (folder: FolderShortInfo) => {
     setLoading(true)
-    setFolders(v => v.filter(f => f.id !== folder.id))
+    setPagination(value => {
+      return { ...value, content: value.content.filter(f => f.id !== folder.id) }
+    })
     doRequest(`folder/${folder.public_id}`, undefined, 'DELETE').finally(() => setLoading(false))
   }
   const onCreate = () => {
@@ -51,7 +59,9 @@ export default function OwnFolders() {
           id: -1,
           public_id: res.public_id
         }
-        setFolders(v => v.concat([newFolder]))
+        setPagination(value => {
+          return { ...value, content: value.content.concat([newFolder]) }
+        })
         setTitle("")
       })
       .finally(() => setLoading(false))
@@ -68,11 +78,22 @@ export default function OwnFolders() {
       </Form.Group>
       <h4>{loc.yourFolders}</h4>
 
-      <ListGroup className="m-3">
-        {
-          userFolders.map(folder => Folder({ loc, folder, onRemove }))
-        }
-      </ListGroup>
+      <List
+        pagination={{
+          contents: pagination.content,
+          currentPage: page,
+          maxPage: pagination.max_page,
+          onPrev: () => navigate(`/folders/own/${page - 1}`),
+          onNext: () => navigate(`/folders/own/${page + 1}`),
+          onIndex: (index) => navigate(`/folders/own/${index}`)
+        }}
+      >
+        <ListGroup className="m-3">
+          {
+            pagination.content.map(folder => Folder({ loc, folder, onRemove }))
+          }
+        </ListGroup>
+      </List>
     </div>
   )
 }

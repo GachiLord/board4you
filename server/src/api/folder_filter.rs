@@ -35,6 +35,7 @@ pub fn folder_filter(
         .and(warp::path("own"))
         .and(with_db_client(db_client.clone()))
         .and(with_user_data(&db_client, jwt_key.clone()))
+        .and(warp::path::param())
         .and_then(read_own_folders_list);
     let update = warp::patch()
         .and(base_path)
@@ -107,10 +108,11 @@ async fn read_folder(
 async fn read_own_folders_list(
     db_client: DbClient,
     user_data: Option<UserData>,
+    page: u16,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     match user_data {
         Some(user) => {
-            let folder_list = folder::read_list_by_owner(&db_client, user.id).await;
+            let folder_list = folder::read_list_by_owner(&db_client, page as i64, user.id).await;
 
             return Ok(Response::builder()
                 .status(StatusCode::OK)
