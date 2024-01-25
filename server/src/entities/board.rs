@@ -91,7 +91,7 @@ pub async fn get_by_owner(
 
     let result = client
         .query(
-            "SELECT id, title, public_id FROM boards WHERE owner_id = ($1) LIMIT ($2) OFFSET ($3)",
+            "SELECT id, title, public_id FROM boards WHERE owner_id = ($1) ORDER BY id DESC LIMIT ($2) OFFSET ($3)",
             &[&owner_id, &query_params.limit, &query_params.offset],
         )
         .await?;
