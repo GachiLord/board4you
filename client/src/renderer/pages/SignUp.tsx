@@ -144,7 +144,7 @@ function SignUp({ target, onSubmit, submitText, preFill }: Props) {
           </>
         )}
         {(!target || target === 'password') && (
-          <Form.Group className="mb-3 position-relative" controlId="formBasicPassword">
+          <Form.Group className="mb-3 position-relative">
             <Form.Label>{loc.password}</Form.Label>
             <Form.Control
               isInvalid={isPasswordInvalid}
