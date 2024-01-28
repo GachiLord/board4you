@@ -6,6 +6,8 @@ export interface localization {
   appIsDesignedToWorkInLandScapeMode: string,
   untitled: string,
   title: string,
+  appDiscription: string,
+  repositoryOnGithub: string,
   // header
   home: string,
   createBoard: string,
@@ -122,6 +124,8 @@ const loc: localizationConfig = {
     appIsDesignedToWorkInLandScapeMode: 'Board4you is designed to work in landscape mode',
     untitled: 'Untitled',
     title: 'Title',
+    appDiscription: "Board4you is a free whiteboard app distributed under the GPL-3.0 license. The source code is available in a",
+    repositoryOnGithub: "repository on Github",
     // header
     home: 'Home',
     createBoard: 'Create board',
@@ -233,6 +237,8 @@ const loc: localizationConfig = {
     appIsDesignedToWorkInLandScapeMode: 'Board4you требуется ландшафтный режим для работы',
     untitled: 'Без названия',
     title: 'Название',
+    appDiscription: "Board4you - это бесплатное whiteboard-приложение, распространяемое под лицензией GPL-3.0. Исходный код доступен",
+    repositoryOnGithub: "в репозитории на Github",
     // header
     home: 'Домашняя страница',
     createBoard: 'Создать доску',
