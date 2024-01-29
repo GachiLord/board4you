@@ -213,9 +213,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let (tx, rx) = oneshot::channel();
     // spawn server task
     let tls_certificate =
-        &env::var("CERTIFICATE_FILENAME").expect("$CERTIFICATE_FILENAME is not provided");
-    let tls_key =
-        &env::var("CERTIFICATE_KEY_FILENAME").expect("$CERTIFICATE_KEY_FILENAME is not provided");
+        &env::var("CERTIFICATE_PATH").unwrap_or("/run/secrets/tls_cert".to_owned());
+    let tls_key = &env::var("CERTIFICATE_KEY_PATH").unwrap_or("/run/secrets/tls_key".to_owned());
     let (_, server) = warp::serve(routes)
         .tls()
         .cert_path(tls_certificate)

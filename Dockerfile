@@ -1,5 +1,5 @@
 # build client
-FROM oven/bun:latest as client-builder
+FROM node:latest as client-builder
 
 WORKDIR /
 
@@ -7,12 +7,11 @@ COPY ./client/package.json ./
 COPY ./client/build ./build
 COPY ./client/src ./src
 COPY ./client/scripts ./scripts
-COPY ./client/bunfig.toml ./bunfig.toml
 COPY ./client/public/web.html ./public/web.html
 # install deps
-RUN bun install --legacy-peer-deps
+RUN npm install --omit=optional -legacy-peer-deps
 # build static
-RUN bun run buildWeb
+RUN npm run buildWeb
 
 # build server
 FROM nwtgck/rust-musl-builder:latest as server-builder
@@ -32,14 +31,14 @@ ARG APP=/usr/src/app
 EXPOSE 3000
 
 ENV TZ=Etc/UTC \
-    APP_USER=appuser
+  APP_USER=appuser
 
 RUN addgroup -S $APP_USER \
-    && adduser -S -g $APP_USER $APP_USER
+  && adduser -S -g $APP_USER $APP_USER
 
 RUN apk update \
-    && apk add --no-cache ca-certificates tzdata \
-    && rm -rf /var/cache/apk/*
+  && apk add --no-cache ca-certificates tzdata \
+  && rm -rf /var/cache/apk/*
 
 COPY --from=server-builder /board4you-build/target/x86_64-unknown-linux-musl/release/server ${APP}/server
 COPY --from=client-builder /public ${APP}/public
