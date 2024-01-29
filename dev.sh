@@ -12,8 +12,6 @@ export JWT_SECRET_PATH="${PWD}/secrets/jwt_secret.txt"
 export ENV="DEVELOPMENT"
 export LOG_PATH="${PWD}/log"
 export MONITOR_INTERVAL_MINUTES=1
-export CERTIFICATE_PATH="${PWD}/secrets/cert.pem"
-export CERTIFICATE_KEY_PATH="${PWD}/secrets/key.pem"
 # rust
 export RUST_BACKTRACE=1
 export RUST_LOG=trace

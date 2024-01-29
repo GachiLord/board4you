@@ -212,13 +212,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut stream = signal(tokio::signal::unix::SignalKind::terminate()).unwrap();
     let (tx, rx) = oneshot::channel();
     // spawn server task
-    let tls_certificate =
-        &env::var("CERTIFICATE_PATH").unwrap_or("/run/secrets/tls_cert".to_owned());
-    let tls_key = &env::var("CERTIFICATE_KEY_PATH").unwrap_or("/run/secrets/tls_key".to_owned());
     let (_, server) = warp::serve(routes)
-        .tls()
-        .cert_path(tls_certificate)
-        .key_path(tls_key)
         .bind_with_graceful_shutdown(([0, 0, 0, 0], 3000), async move { rx.await.ok().unwrap() });
     tokio::spawn(server);
     // wait for a signal
