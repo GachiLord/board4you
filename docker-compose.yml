@@ -10,12 +10,10 @@ services:
       DB_USER: "board4you"
       LOG_PATH: "./log"
     ports:
-      - "80:3000"
+      - "3000:3000"
     secrets:
       - db_password
       - jwt_secret
-      - tls_cert
-      - tls_key
     depends_on:
       db:
         condition: service_healthy
@@ -51,7 +49,3 @@ secrets:
     file: ./secrets/db_password.txt
   jwt_secret:
     file: ./secrets/jwt_secret.txt
-  tls_cert:
-    file: ./secrets/cert.pem
-  tls_key:
-    file: ./secrets/key.pem
