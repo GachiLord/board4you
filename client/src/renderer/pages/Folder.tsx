@@ -4,7 +4,6 @@ import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import ListGroup from 'react-bootstrap/ListGroup';
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { doRequest } from "../lib/twiks";
 import { Link } from "react-router-dom";
 import Loading from "../base/components/Loading";
 import Alert from "../base/components/Alert";
@@ -12,6 +11,7 @@ import { Board, BoardInfo } from "../board/folder/Board";
 import { LocaleContext } from "../base/constants/LocaleContext";
 import List from "../base/components/List";
 import { Paginated } from "../base/typing/Pagination";
+import { request } from "../lib/request";
 
 
 interface Folder {
@@ -43,7 +43,7 @@ export default function Folder() {
     placeholderData: keepPreviousData,
     queryFn: async () => {
       if (!folderId) throw new Error('no such folder')
-      const boards: Paginated<BoardInfo> = await doRequest(`room/own/${page}`, undefined, 'GET')
+      const boards: Paginated<BoardInfo> = await request(`room/own/${page}`).get().body()
       return boards
     }
   })
@@ -51,7 +51,7 @@ export default function Folder() {
     queryKey: ['folder', folderId],
     queryFn: async () => {
       if (!folderId) throw new Error('no such folder')
-      const folder: Folder = await doRequest(`folder/${folderId}`, undefined, 'GET')
+      const folder: Folder = await request(`folder/${folderId}`).get().body()
       setTitle(folder.title)
       setContents(folder.contents)
       return folder
@@ -66,7 +66,7 @@ export default function Folder() {
       remove_board_ids: folderQuery.data.contents.filter(b => !contents.includes(b)).map(b => b.id)
     }
     setLoading(true)
-    doRequest('folder', folderInfo, 'PATCH').finally(() => setLoading(false))
+    request('folder').patch().body(folderInfo).finally(() => setLoading(false))
   }
   const handleTitleChange = (title: string) => {
     if (title.length <= 36) setTitle(title)

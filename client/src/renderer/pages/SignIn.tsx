@@ -2,10 +2,10 @@ import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import React, { useContext, useState } from 'react';
 import { Container } from 'react-bootstrap';
-import { doRequest } from '../lib/twiks';
 import { useNavigate } from 'react-router';
 import { updateAuth } from '../lib/auth';
 import { LocaleContext } from '../base/constants/LocaleContext';
+import { request } from '../lib/request';
 
 function SignIn() {
   const loc = useContext(LocaleContext)
@@ -16,7 +16,7 @@ function SignIn() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    doRequest('auth/login', { login, password }, 'POST')
+    request('auth/login').post().body({ login, password })
       .then(() => {
         updateAuth()
         navigate('/')

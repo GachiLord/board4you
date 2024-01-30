@@ -2,9 +2,9 @@ import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import React, { useContext, useState } from 'react';
 import { Container } from 'react-bootstrap';
-import { doRequest } from '../lib/twiks';
 import { useNavigate } from 'react-router';
 import { LocaleContext } from '../base/constants/LocaleContext';
+import { request } from '../lib/request';
 
 
 export interface User {
@@ -60,7 +60,7 @@ function SignUp({ target, onSubmit, submitText, preFill }: Props) {
       return
     }
     if (!validate()) return
-    doRequest('user', req, 'POST')
+    request('user').post().body(req)
       .then(() => {
         if (validate()) navigate('/signin')
       })

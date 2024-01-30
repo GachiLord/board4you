@@ -7,9 +7,9 @@ import { RootState } from "../../store/store";
 import { LocaleContext } from "../../base/constants/LocaleContext";
 import boardEvents from "../../base/constants/boardEvents";
 import BoardManagerContext from "../../base/constants/BoardManagerContext";
-import { doRequest } from "../../lib/twiks";
 import { useDispatch } from "react-redux";
 import { setInviteId } from "../../features/board";
+import { request } from "../../lib/request";
 
 
 export interface settings {
@@ -36,7 +36,7 @@ export default function SettingsModal({ onSave, onClose, show }: props) {
     onClose()
   }
   const expireCoEditorPermissons = () => {
-    doRequest('room/co-editor', boardManager.getCredentials(), 'PUT')
+    request('room/co-editor').put().body(boardManager.getCredentials())
       .then((r) => {
         dispatch(setInviteId(r.co_editor_private_id))
       })
