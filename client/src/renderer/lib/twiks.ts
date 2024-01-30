@@ -69,27 +69,4 @@ export function itemIn<T>(item: T, ...items: T[]) {
   return items.includes(item)
 }
 
-export async function doRequest(path: string, body?: object, method: 'POST' | 'GET' | 'PUT' | 'PATCH' | 'DELETE' = 'GET'): Promise<any> {
-  const req = await fetch(`${location.origin}/api/${path}`, {
-    method: method,
-    body: JSON.stringify(body)
-  })
-  let json: unknown
-  try {
-    json = await req.json()
-  }
-  catch {
-    req.text()
-      .then(t => {
-        json = t
-      })
-      .catch(() => {
-        json = {}
-      })
-  }
 
-  return new Promise((res, rej) => {
-    if (req.ok) res(json)
-    else return rej(req)
-  })
-}

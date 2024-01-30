@@ -8,12 +8,11 @@ import {
   WebsocketEvent,
 } from "websocket-ts";
 import { IHistoryState } from '../../features/history'
-import { doRequest } from '../twiks'
 import { Handlers, BoardStatus, BoardOptions, Info, TimeOutError, NoSushRoomError, RoomInfo, MessageType, BoardMessage } from './typing'
 import ISize from '../../base/typing/ISize'
 import store from '../../store/store'
-import { Edit } from "../EditManager";
 import { convertToEnum } from "../../board/canvas/share/convert";
+import { request } from "../request";
 
 
 export default class BoardManager {
@@ -130,11 +129,11 @@ export default class BoardManager {
       size: size,
       title: title
     }
-    return await doRequest('room', roomInitials, 'POST')
+    return await request('room').post().body(roomInitials)
   }
 
   static async deleteRoom(roomId: string, privateId: string): Promise<Info> {
-    return await doRequest('room', { public_id: roomId, private_id: privateId }, 'DELETE')
+    return await request('room').delete().body({ public_id: roomId, private_id: privateId })
   }
 
   send(messageType: MessageType, data: BoardMessage) {

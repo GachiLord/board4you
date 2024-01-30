@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import React, { useContext, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { doRequest } from "../lib/twiks";
 import { useDispatch } from "react-redux";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
@@ -13,6 +12,7 @@ import SignUp from "./SignUp";
 import { User, addUser } from "../features/user";
 import { logOut } from "../lib/auth";
 import { LocaleContext } from "../base/constants/LocaleContext";
+import { request } from "../lib/request";
 
 
 interface UpdateData {
@@ -44,7 +44,7 @@ export default function Profile() {
     queryKey: ['user', nickName],
     queryFn: async () => {
       if (user.authed && user.user.nickName === nickName) return user.user
-      const userInfo = await doRequest(`user/${nickName}`, undefined, 'GET')
+      const userInfo = await request(`user/${nickName}`).get().body()
       return {
         nickName: userInfo.public_login,
         firstName: userInfo.first_name,
@@ -74,7 +74,7 @@ export default function Profile() {
       password,
       login: user.user.login
     }
-    doRequest('user', updateData, 'PUT')
+    request('user').put().body(updateData)
       .then(() => {
         setInvalid(false)
         dispatch(addUser(userData))
@@ -95,7 +95,7 @@ export default function Profile() {
       password,
       login: user.user.login
     }
-    doRequest('user', updateData, 'PUT')
+    request('user').put().body(updateData)
       .then(() => setInvalid(false))
       .catch(() => setInvalid(true))
       .finally(() => {
@@ -105,7 +105,7 @@ export default function Profile() {
   }
   const handleDelete = () => {
     setLoading(true)
-    doRequest('user', { password }, 'DELETE')
+    request('user').delete().body({ password })
       .then(() => {
         logOut(true)
         navigate('/')

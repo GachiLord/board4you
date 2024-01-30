@@ -2,7 +2,6 @@ import React, { useContext, useState } from "react";
 import { Button, ListGroup } from "react-bootstrap";
 import { Board, BoardInfo } from "../board/folder/Board";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { doRequest } from "../lib/twiks";
 import Loading from "../base/components/Loading";
 import Alert from "../base/components/Alert";
 import { Link, useNavigate } from "react-router-dom";
@@ -11,6 +10,7 @@ import store from "../store/store";
 import { Paginated, PaginatedDefault } from "../base/typing/Pagination";
 import List from "../base/components/List";
 import usePage from "../lib/usePage";
+import { request } from "../lib/request";
 
 
 export default function OwnBoards() {
@@ -22,7 +22,7 @@ export default function OwnBoards() {
     queryKey: ['room', 'own', page],
     placeholderData: keepPreviousData,
     queryFn: async () => {
-      const boards: Paginated<BoardInfo> = await doRequest(`room/own/${page}`, undefined, 'GET')
+      const boards: Paginated<BoardInfo> = await request(`room/own/${page}`).get().body()
       setPagination(boards)
       return boards
     }
@@ -37,7 +37,7 @@ export default function OwnBoards() {
   // handlers
   const onRemove = (board: BoardInfo) => {
     const rooms = store.getState().rooms
-    doRequest('room', { public_id: board.public_id, private_id: rooms[board.public_id] }, 'DELETE')
+    request('room').delete().body({ public_id: board.public_id, private_id: rooms[board.public_id] })
       .catch((e) => console.log(e))
       .finally(() => {
         setPagination(value => {

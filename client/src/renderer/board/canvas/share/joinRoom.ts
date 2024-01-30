@@ -2,7 +2,7 @@ import { setMode, setRoomId, setShareInfo } from "../../../features/board"
 import { deleteRoom, setRoom } from "../../../features/rooms"
 import { set } from "../../../features/tool"
 import BoardManager from "../../../lib/BoardManager/BoardManager"
-import { doRequest } from "../../../lib/twiks"
+import { request } from "../../../lib/request"
 import store from "../../../store/store"
 import getPrivateId from "./getPrivateId"
 import pull from "./pull"
@@ -27,7 +27,7 @@ export default function joinRoom({ navigate, setLoading, setRoomExists, boardMan
       const mode = store.getState().board.mode
       const privateId = getPrivateId(roomId)
       if (mode === 'author') {
-        doRequest('room/co-editor/read', { public_id: roomId, private_id: privateId }, 'POST')
+        request('room/co-editor/read').post().body({ public_id: roomId, private_id: privateId })
           .then((r) => {
             store.dispatch(setShareInfo({
               privateId,
@@ -45,7 +45,7 @@ export default function joinRoom({ navigate, setLoading, setRoomExists, boardMan
       if (mode === 'coop') {
         // check if inviteId is valid
         const idToCheck = inviteId ? inviteId : privateId
-        doRequest('room/co-editor/check', { public_id: roomId, co_editor_private_id: idToCheck }, 'POST')
+        request('room/co-editor/check').post().body({ public_id: roomId, co_editor_private_id: idToCheck })
           .then((r) => {
             if (r.valid) {
               // add privateId and change tool

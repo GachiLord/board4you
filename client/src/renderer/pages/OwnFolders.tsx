@@ -1,6 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import React, { useContext, useState } from "react";
-import { doRequest } from "../lib/twiks";
 import Loading from '../base/components/Loading';
 import Alert from "../base/components/Alert";
 import { Button, Form, ListGroup } from "react-bootstrap";
@@ -10,6 +9,7 @@ import { LocaleContext } from "../base/constants/LocaleContext";
 import usePage from "../lib/usePage";
 import { Paginated, PaginatedDefault } from "../base/typing/Pagination";
 import List from "../base/components/List";
+import { request } from "../lib/request";
 
 
 
@@ -27,7 +27,7 @@ export default function OwnFolders() {
   const { isPending, isError } = useQuery({
     queryKey: ['folders', 'own', page],
     queryFn: async () => {
-      const list: Paginated<FolderShortInfo> = await doRequest(`folders/own/${page}`, undefined, 'GET')
+      const list: Paginated<FolderShortInfo> = await request(`folders/own/${page}`).get().body()
       setPagination(list)
       return list
     },
@@ -45,14 +45,14 @@ export default function OwnFolders() {
     setPagination(value => {
       return { ...value, content: value.content.filter(f => f.id !== folder.id) }
     })
-    doRequest(`folder/${folder.public_id}`, undefined, 'DELETE').finally(() => setLoading(false))
+    request(`folder/${folder.public_id}`).delete().body().finally(() => setLoading(false))
   }
   const onCreate = () => {
     const folderInitials: FolderInitials = {
       title
     }
     setLoading(true)
-    doRequest('folder', folderInitials, 'POST')
+    request('folder').post().body(folderInitials)
       .then((res) => {
         const newFolder: FolderShortInfo = {
           title,
