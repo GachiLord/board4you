@@ -37,9 +37,8 @@ export default async function(boardManager: BoardManager, insertProps: IInsertPr
     img = { url: data, size: await ImageUtils.getSizeOfBase64Img(data) }
   }
   else img = data
-
   // if img is empty or is too lagre(and we want to validate that), stop the function
-  if (!img || (!insertProps.skipImgLengthValidation && img.url.length > 50000)) return
+  if (!img || (!insertProps.skipImgLengthValidation && img.url.length > 50_000)) return
 
   let pos = insertProps.pos
   if (!pos) {
