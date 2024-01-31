@@ -1,6 +1,6 @@
 {
   "name": "board4you",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "client side of board4you",
   "repository": "https://github.com/GachiLord/board4you",
   "main": "./public/main.js",

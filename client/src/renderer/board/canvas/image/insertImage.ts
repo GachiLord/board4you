@@ -10,17 +10,21 @@ import IShape from "../../../base/typing/IShape"
 import ISize from "../../../base/typing/ISize"
 import BoardManager from "../../../lib/BoardManager/BoardManager"
 import { convertToEnum } from "../share/convert"
+import { itemIn } from "../../../lib/twiks"
 
 
 interface IInsertProps {
   data: ClipboardEvent | string | IImage,
   editManager: EditManager,
   pos?: ICoor,
-  maxSize?: ISize
+  maxSize?: ISize,
+  skipImgLengthValidation?: boolean
 }
 
 export default async function(boardManager: BoardManager, insertProps: IInsertProps) {
-  const stage = store.getState().stage
+  const state = store.getState()
+  const stage = state.stage
+  const mode = state.board.mode
   const maxSize = insertProps.maxSize ? insertProps.maxSize : { height: stage.baseHeight, width: stage.width }
   const data = insertProps.data
   const editManager = insertProps.editManager
@@ -33,8 +37,8 @@ export default async function(boardManager: BoardManager, insertProps: IInsertPr
     img = { url: data, size: await ImageUtils.getSizeOfBase64Img(data) }
   }
   else img = data
-
-  if (!img || img.url.length > 50000) return
+  // if img is empty or is too lagre(and we want to validate that), stop the function
+  if (!img || (!insertProps.skipImgLengthValidation && img.url.length > 50_000)) return
 
   let pos = insertProps.pos
   if (!pos) {
@@ -60,6 +64,6 @@ export default async function(boardManager: BoardManager, insertProps: IInsertPr
   }
 
   editManager.applyEdit(edit)
-  boardManager.send('Push', { ...boardManager.getCredentials(), data: [convertToEnum(edit)], silent: false })
+  if (itemIn(mode, 'coop', 'author')) boardManager.send('Push', { ...boardManager.getCredentials(), data: [convertToEnum(edit)], silent: false })
   store.dispatch(addCurrent(edit))
 }

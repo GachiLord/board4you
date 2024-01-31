@@ -46,7 +46,7 @@ export default async function(stage: Konva.Stage, boardManger: BoardManager, o: 
     boardEvents.emit('selectSize')
   }
   if (o === 'openFile' && typeof data === 'object' && !(data instanceof Event) && mode === 'local') {
-    openFile(data, canvas, temporaryLayer, editManager)
+    openFile(data, canvas, temporaryLayer, editManager, boardManger)
   }
   if (o === 'saveFile') {
     renderAll(canvas)
@@ -116,7 +116,11 @@ export default async function(stage: Konva.Stage, boardManger: BoardManager, o: 
     }
   }
   if (o === 'paste' && data instanceof ClipboardEvent && canRunCommand) {
-    insertImage(boardManger, { data: data, editManager: editManager })
+    let skipImgLengthValidation = false
+    run(() => {
+      skipImgLengthValidation = true
+    })
+    insertImage(boardManger, { data: data, editManager: editManager, skipImgLengthValidation })
     run(api => {
       api.handleFileChange()
     })

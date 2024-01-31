@@ -28,7 +28,7 @@ if (app.isPackaged) {
 }
 
 // state vars
-let currentFilePath:string = null
+let currentFilePath: string = null
 let fileHasChanged = false
 let fileIsSaving = false
 
@@ -47,36 +47,38 @@ function createWindow() {
 
   // dialog stuff
 
-  function exitAlert(){
+  function exitAlert() {
     const response = dialog.showMessageBoxSync(win, {
       message: localeCfg.exitAlertMsg,
       buttons: localeCfg.exitAlertOptions,
     })
 
-    if ( response === 0 ) return true
+    if (response === 0) return true
     else return false
   }
 
-  async function handleOpenFile(){
+  async function handleOpenFile() {
     const open = async () => {
       const opened = await ElectronFileManager.openFilesAsBase64Images()
 
-      win.webContents.send('onMenuButtonClick', 'openFile', opened )
-      currentFilePath = opened ? opened.path: undefined
+      win.webContents.send('onMenuButtonClick', 'openFile', opened)
+      if (opened && opened.path) {
+        currentFilePath = ElectronFileManager.getFileExtension(opened.path) !== 'png' ? opened.path : undefined
+      }
       globalThis.appWindow.setTitle(getAppTittle(opened && opened.path))
       fileHasChanged = false
     }
 
     if (!fileHasChanged) open()
-    else if(!exitAlert()) open()
+    else if (!exitAlert()) open()
 
   }
 
-  async function handleNewFile(){
-    if ( fileHasChanged && !fileIsSaving ) {
+  async function handleNewFile() {
+    if (fileHasChanged && !fileIsSaving) {
       if (exitAlert()) return//e.preventDefault()
       win.webContents.send('onMenuButtonClick', 'newFile')
-      currentFilePath = null 
+      currentFilePath = null
       globalThis.appWindow.setTitle(getAppTittle())
     }
     else win.webContents.send('onMenuButtonClick', 'newFile')
@@ -91,9 +93,9 @@ function createWindow() {
 
   win.on('close', (e) => {
     // dont close app while file is being saved
-    if ( fileIsSaving && currentFilePath !== null ) e.preventDefault()
+    if (fileIsSaving && currentFilePath !== null) e.preventDefault()
     // dont close app if there are unsaved changes
-    if ( fileHasChanged && !fileIsSaving ) {
+    if (fileHasChanged && !fileIsSaving) {
       if (exitAlert()) e.preventDefault()
     }
   })
@@ -114,17 +116,17 @@ app.whenReady().then(() => {
   // open with if there is a file path in args
   globalThis.appWindow.webContents.once('dom-ready', () => {
     currentFilePath = getPathFromArgs(process.argv)
-    if (currentFilePath){
+    if (currentFilePath) {
       const opened = FileManager.getFileAsBase64Imgs(currentFilePath)
-      globalThis.appWindow.webContents.send('onMenuButtonClick', 'openFile', opened )
+      globalThis.appWindow.webContents.send('onMenuButtonClick', 'openFile', opened)
       globalThis.appWindow.setTitle(getAppTittle(currentFilePath))
     }
   });
   // msgs listeners  
 
-  ipcMain.on('setCanvasSize', ( _, value ) => {
+  ipcMain.on('setCanvasSize', (_, value) => {
     globalThis.CanvasSize = value
-  } )
+  })
 
   ipcMain.on('newFile', () => {
     currentFilePath = null
@@ -134,13 +136,13 @@ app.whenReady().then(() => {
   ipcMain.on('saveFileAs', async (_, data) => {
     fileIsSaving = true
 
-    try{
+    try {
       currentFilePath = await ElectronFileManager.saveBase64As(data)
     }
-    catch{
+    catch {
       dialog.showErrorBox(localizationCfg.unexpectedError, localizationCfg.fileIsLocked)
     }
-    finally{
+    finally {
       fileHasChanged = false
       fileIsSaving = false
     }
@@ -149,14 +151,14 @@ app.whenReady().then(() => {
   ipcMain.on('saveFile', async (_, data) => {
     fileIsSaving = true
 
-    try{
+    try {
       if (currentFilePath) currentFilePath = await ElectronFileManager.saveBase64(data, currentFilePath)
       else currentFilePath = await ElectronFileManager.saveBase64As(data)
     }
-    catch{
+    catch {
       dialog.showErrorBox(localizationCfg.unexpectedError, localizationCfg.fileIsLocked)
     }
-    finally{
+    finally {
       globalThis.appWindow.setTitle(getAppTittle(currentFilePath))
       fileHasChanged = false
       fileIsSaving = false
@@ -166,7 +168,7 @@ app.whenReady().then(() => {
   ipcMain.on('fileHasChanged', () => {
     fileHasChanged = true
   })
-  
+
   ipcMain.on('fileHasOpened', () => {
     fileHasChanged = false
   })
