@@ -17,7 +17,8 @@ interface IInsertProps {
   data: ClipboardEvent | string | IImage,
   editManager: EditManager,
   pos?: ICoor,
-  maxSize?: ISize
+  maxSize?: ISize,
+  skipImgLengthValidation?: boolean
 }
 
 export default async function(boardManager: BoardManager, insertProps: IInsertProps) {
@@ -37,7 +38,8 @@ export default async function(boardManager: BoardManager, insertProps: IInsertPr
   }
   else img = data
 
-  if (!img || img.url.length > 50000) return
+  // if img is empty or is too lagre(and we want to validate that), stop the function
+  if (!img || (!insertProps.skipImgLengthValidation && img.url.length > 50000)) return
 
   let pos = insertProps.pos
   if (!pos) {
