@@ -151,7 +151,19 @@ export default class EditManager {
       case 'modify':
         edit.initial.forEach((attrs) => {
           const shapeToModify = CanvasUtils.findOne(this.layer, { shape_id: attrs.shape_id })
-          shapeToModify.setAttrs({ ...attrs, connected: new Set(attrs.connected) })
+          shapeToModify.setAttrs({
+            ...attrs,
+            x: attrs.x,
+            y: attrs.y,
+            radiusX: attrs.radius_x,
+            radiusY: attrs.radius_y,
+            rotation: attrs.rotation,
+            scaleX: attrs.scale_x,
+            scaleY: attrs.scale_y,
+            skewX: attrs.skew_x,
+            skewY: attrs.skew_y,
+            connected: new Set(attrs.connected)
+          })
         })
         break
     }

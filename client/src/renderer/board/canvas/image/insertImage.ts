@@ -10,6 +10,7 @@ import IShape from "../../../base/typing/IShape"
 import ISize from "../../../base/typing/ISize"
 import BoardManager from "../../../lib/BoardManager/BoardManager"
 import { convertToEnum } from "../share/convert"
+import { itemIn } from "../../../lib/twiks"
 
 
 interface IInsertProps {
@@ -20,7 +21,9 @@ interface IInsertProps {
 }
 
 export default async function(boardManager: BoardManager, insertProps: IInsertProps) {
-  const stage = store.getState().stage
+  const state = store.getState()
+  const stage = state.stage
+  const mode = state.board.mode
   const maxSize = insertProps.maxSize ? insertProps.maxSize : { height: stage.baseHeight, width: stage.width }
   const data = insertProps.data
   const editManager = insertProps.editManager
@@ -60,6 +63,6 @@ export default async function(boardManager: BoardManager, insertProps: IInsertPr
   }
 
   editManager.applyEdit(edit)
-  boardManager.send('Push', { ...boardManager.getCredentials(), data: [convertToEnum(edit)], silent: false })
+  if (itemIn(mode, 'coop', 'author')) boardManager.send('Push', { ...boardManager.getCredentials(), data: [convertToEnum(edit)], silent: false })
   store.dispatch(addCurrent(edit))
 }
