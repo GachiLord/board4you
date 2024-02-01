@@ -12,6 +12,8 @@ COPY ./client/public/web.html ./public/web.html
 RUN npm install --omit=optional -legacy-peer-deps
 # build static
 RUN npm run buildWeb
+# remove bundle analizer file
+RUN rm ./public/meta.json
 
 # build server
 FROM nwtgck/rust-musl-builder:latest as server-builder

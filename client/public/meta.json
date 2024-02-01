@@ -255,7 +255,7 @@
       ]
     },
     "src/common/localization.ts": {
-      "bytes": 10539,
+      "bytes": 11044,
       "imports": [],
       "format": "esm"
     },
@@ -2808,7 +2808,7 @@
       "format": "esm"
     },
     "src/renderer/lib/EditManager.ts": {
-      "bytes": 4158,
+      "bytes": 4488,
       "imports": [
         {
           "path": "src/renderer/lib/CanvasUtils.ts",
@@ -2849,7 +2849,7 @@
       "format": "esm"
     },
     "src/renderer/lib/twiks.ts": {
-      "bytes": 2574,
+      "bytes": 2041,
       "imports": [
         {
           "path": "../base/typing/ISize",
@@ -12183,6 +12183,11 @@
       ],
       "format": "esm"
     },
+    "src/renderer/lib/request.ts": {
+      "bytes": 2158,
+      "imports": [],
+      "format": "esm"
+    },
     "src/renderer/board/canvas/share/getPrivateId.ts": {
       "bytes": 164,
       "imports": [
@@ -12211,7 +12216,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/share/joinRoom.ts": {
-      "bytes": 2733,
+      "bytes": 2737,
       "imports": [
         {
           "path": "src/renderer/features/board.ts",
@@ -12234,9 +12239,9 @@
           "external": true
         },
         {
-          "path": "src/renderer/lib/twiks.ts",
+          "path": "src/renderer/lib/request.ts",
           "kind": "import-statement",
-          "original": "../../../lib/twiks"
+          "original": "../../../lib/request"
         },
         {
           "path": "src/renderer/store/store.ts",
@@ -12738,7 +12743,7 @@
       "format": "esm"
     },
     "src/renderer/lib/BoardManager/BoardManager.ts": {
-      "bytes": 5344,
+      "bytes": 5310,
       "imports": [
         {
           "path": "node_modules/.pnpm/websocket-ts@2.1.5/node_modules/websocket-ts/dist/esm/src/index.js",
@@ -12749,11 +12754,6 @@
           "path": "../../features/history",
           "kind": "import-statement",
           "external": true
-        },
-        {
-          "path": "src/renderer/lib/twiks.ts",
-          "kind": "import-statement",
-          "original": "../twiks"
         },
         {
           "path": "src/renderer/lib/BoardManager/typing.ts",
@@ -12771,14 +12771,14 @@
           "original": "../../store/store"
         },
         {
-          "path": "../EditManager",
-          "kind": "import-statement",
-          "external": true
-        },
-        {
           "path": "src/renderer/board/canvas/share/convert.ts",
           "kind": "import-statement",
           "original": "../../board/canvas/share/convert"
+        },
+        {
+          "path": "src/renderer/lib/request.ts",
+          "kind": "import-statement",
+          "original": "../request"
         }
       ],
       "format": "esm"
@@ -12845,7 +12845,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/native/writeToClipboard.ts": {
-      "bytes": 1564,
+      "bytes": 1452,
       "imports": [
         {
           "path": "src/renderer/store/store.ts",
@@ -12949,7 +12949,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/native/paste.ts": {
-      "bytes": 1870,
+      "bytes": 1625,
       "imports": [
         {
           "path": "../image/IImage",
@@ -12960,7 +12960,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/image/insertImage.ts": {
-      "bytes": 1928,
+      "bytes": 2227,
       "imports": [
         {
           "path": "src/renderer/store/store.ts",
@@ -13021,12 +13021,17 @@
           "path": "src/renderer/board/canvas/share/convert.ts",
           "kind": "import-statement",
           "original": "../share/convert"
+        },
+        {
+          "path": "src/renderer/lib/twiks.ts",
+          "kind": "import-statement",
+          "original": "../../../lib/twiks"
         }
       ],
       "format": "esm"
     },
     "src/renderer/board/canvas/native/openFile.ts": {
-      "bytes": 2877,
+      "bytes": 2717,
       "imports": [
         {
           "path": "src/renderer/board/canvas/image/clearCanvas.ts",
@@ -13087,12 +13092,17 @@
           "path": "../../../base/typing/ISize",
           "kind": "import-statement",
           "external": true
+        },
+        {
+          "path": "../../../lib/BoardManager/BoardManager",
+          "kind": "import-statement",
+          "external": true
         }
       ],
       "format": "esm"
     },
     "src/renderer/board/canvas/native/runCommand.ts": {
-      "bytes": 4215,
+      "bytes": 4353,
       "imports": [
         {
           "path": "src/renderer/store/store.ts",
@@ -20441,7 +20451,7 @@
       "format": "esm"
     },
     "src/renderer/board/settings/SettingsModal.tsx": {
-      "bytes": 3211,
+      "bytes": 3213,
       "imports": [
         {
           "path": "node_modules/.pnpm/react@18.2.0/node_modules/react/index.js",
@@ -20489,11 +20499,6 @@
           "original": "../../base/constants/BoardManagerContext"
         },
         {
-          "path": "src/renderer/lib/twiks.ts",
-          "kind": "import-statement",
-          "original": "../../lib/twiks"
-        },
-        {
           "path": "node_modules/.pnpm/react-redux@8.1.3_@types+react-dom@18.2.15_@types+react@18.2.37_react-dom@18.2.0_react@18.2.0_redux@4.2.1/node_modules/react-redux/es/index.js",
           "kind": "import-statement",
           "original": "react-redux"
@@ -20502,6 +20507,11 @@
           "path": "src/renderer/features/board.ts",
           "kind": "import-statement",
           "original": "../../features/board"
+        },
+        {
+          "path": "src/renderer/lib/request.ts",
+          "kind": "import-statement",
+          "original": "../../lib/request"
         }
       ],
       "format": "esm"
@@ -20902,13 +20912,27 @@
       ],
       "format": "esm"
     },
+    "build/board4you_home.png": {
+      "bytes": 30848,
+      "imports": []
+    },
     "src/renderer/pages/Home.tsx": {
-      "bytes": 83,
+      "bytes": 561,
       "imports": [
         {
           "path": "node_modules/.pnpm/react@18.2.0/node_modules/react/index.js",
           "kind": "import-statement",
           "original": "react"
+        },
+        {
+          "path": "build/board4you_home.png",
+          "kind": "import-statement",
+          "original": "../../../build/board4you_home.png"
+        },
+        {
+          "path": "src/renderer/base/constants/LocaleContext.ts",
+          "kind": "import-statement",
+          "original": "../base/constants/LocaleContext"
         }
       ],
       "format": "esm"
@@ -20950,7 +20974,7 @@
       "imports": []
     },
     "src/renderer/lib/auth.ts": {
-      "bytes": 1102,
+      "bytes": 1075,
       "imports": [
         {
           "path": "src/renderer/store/store.ts",
@@ -20963,14 +20987,14 @@
           "original": "../features/user"
         },
         {
-          "path": "src/renderer/lib/twiks.ts",
-          "kind": "import-statement",
-          "original": "./twiks"
-        },
-        {
           "path": "src/renderer/features/rooms.ts",
           "kind": "import-statement",
           "original": "../features/rooms"
+        },
+        {
+          "path": "src/renderer/lib/request.ts",
+          "kind": "import-statement",
+          "original": "./request"
         }
       ],
       "format": "esm"
@@ -21027,7 +21051,7 @@
       "format": "esm"
     },
     "src/renderer/pages/SignIn.tsx": {
-      "bytes": 1751,
+      "bytes": 1753,
       "imports": [
         {
           "path": "node_modules/.pnpm/react-bootstrap@2.9.1_@types+react@18.2.37_react-dom@18.2.0_react@18.2.0/node_modules/react-bootstrap/esm/Button.js",
@@ -21048,11 +21072,6 @@
           "path": "node_modules/.pnpm/react-bootstrap@2.9.1_@types+react@18.2.37_react-dom@18.2.0_react@18.2.0/node_modules/react-bootstrap/esm/index.js",
           "kind": "import-statement",
           "original": "react-bootstrap"
-        },
-        {
-          "path": "src/renderer/lib/twiks.ts",
-          "kind": "import-statement",
-          "original": "../lib/twiks"
         },
         {
           "path": "node_modules/.pnpm/react-router@6.18.0_react@18.2.0/node_modules/react-router/dist/main.js",
@@ -21068,12 +21087,17 @@
           "path": "src/renderer/base/constants/LocaleContext.ts",
           "kind": "import-statement",
           "original": "../base/constants/LocaleContext"
+        },
+        {
+          "path": "src/renderer/lib/request.ts",
+          "kind": "import-statement",
+          "original": "../lib/request"
         }
       ],
       "format": "esm"
     },
     "src/renderer/pages/SignUp.tsx": {
-      "bytes": 6335,
+      "bytes": 6307,
       "imports": [
         {
           "path": "node_modules/.pnpm/react-bootstrap@2.9.1_@types+react@18.2.37_react-dom@18.2.0_react@18.2.0/node_modules/react-bootstrap/esm/Button.js",
@@ -21096,11 +21120,6 @@
           "original": "react-bootstrap"
         },
         {
-          "path": "src/renderer/lib/twiks.ts",
-          "kind": "import-statement",
-          "original": "../lib/twiks"
-        },
-        {
           "path": "node_modules/.pnpm/react-router@6.18.0_react@18.2.0/node_modules/react-router/dist/main.js",
           "kind": "import-statement",
           "original": "react-router"
@@ -21109,6 +21128,11 @@
           "path": "src/renderer/base/constants/LocaleContext.ts",
           "kind": "import-statement",
           "original": "../base/constants/LocaleContext"
+        },
+        {
+          "path": "src/renderer/lib/request.ts",
+          "kind": "import-statement",
+          "original": "../lib/request"
         }
       ],
       "format": "esm"
@@ -22001,8 +22025,29 @@
       ],
       "format": "esm"
     },
+    "src/renderer/base/components/List.tsx": {
+      "bytes": 1358,
+      "imports": [
+        {
+          "path": "node_modules/.pnpm/react@18.2.0/node_modules/react/index.js",
+          "kind": "import-statement",
+          "original": "react"
+        },
+        {
+          "path": "../../base/typing/Pagination",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "node_modules/.pnpm/react-bootstrap@2.9.1_@types+react@18.2.37_react-dom@18.2.0_react@18.2.0/node_modules/react-bootstrap/esm/Pagination.js",
+          "kind": "import-statement",
+          "original": "react-bootstrap/Pagination"
+        }
+      ],
+      "format": "esm"
+    },
     "src/renderer/pages/Folder.tsx": {
-      "bytes": 3956,
+      "bytes": 4520,
       "imports": [
         {
           "path": "node_modules/.pnpm/react@18.2.0/node_modules/react/index.js",
@@ -22035,11 +22080,6 @@
           "original": "@tanstack/react-query"
         },
         {
-          "path": "src/renderer/lib/twiks.ts",
-          "kind": "import-statement",
-          "original": "../lib/twiks"
-        },
-        {
           "path": "node_modules/.pnpm/react-router-dom@6.18.0_react-dom@18.2.0_react@18.2.0/node_modules/react-router-dom/dist/main.js",
           "kind": "import-statement",
           "original": "react-router-dom"
@@ -22063,12 +22103,27 @@
           "path": "src/renderer/base/constants/LocaleContext.ts",
           "kind": "import-statement",
           "original": "../base/constants/LocaleContext"
+        },
+        {
+          "path": "src/renderer/base/components/List.tsx",
+          "kind": "import-statement",
+          "original": "../base/components/List"
+        },
+        {
+          "path": "../base/typing/Pagination",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "src/renderer/lib/request.ts",
+          "kind": "import-statement",
+          "original": "../lib/request"
         }
       ],
       "format": "esm"
     },
     "src/renderer/board/folder/Folder.tsx": {
-      "bytes": 1025,
+      "bytes": 1032,
       "imports": [
         {
           "path": "node_modules/.pnpm/react@18.2.0/node_modules/react/index.js",
@@ -22093,8 +22148,24 @@
       ],
       "format": "esm"
     },
+    "src/renderer/lib/usePage.ts": {
+      "bytes": 204,
+      "imports": [
+        {
+          "path": "node_modules/.pnpm/react-router-dom@6.18.0_react-dom@18.2.0_react@18.2.0/node_modules/react-router-dom/dist/main.js",
+          "kind": "import-statement",
+          "original": "react-router-dom"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/renderer/base/typing/Pagination.tsx": {
+      "bytes": 379,
+      "imports": [],
+      "format": "esm"
+    },
     "src/renderer/pages/OwnFolders.tsx": {
-      "bytes": 2567,
+      "bytes": 3405,
       "imports": [
         {
           "path": "node_modules/.pnpm/@tanstack+react-query@5.12.2_react@18.2.0/node_modules/@tanstack/react-query/build/modern/index.js",
@@ -22105,11 +22176,6 @@
           "path": "node_modules/.pnpm/react@18.2.0/node_modules/react/index.js",
           "kind": "import-statement",
           "original": "react"
-        },
-        {
-          "path": "src/renderer/lib/twiks.ts",
-          "kind": "import-statement",
-          "original": "../lib/twiks"
         },
         {
           "path": "src/renderer/base/components/Loading.tsx",
@@ -22140,12 +22206,32 @@
           "path": "src/renderer/base/constants/LocaleContext.ts",
           "kind": "import-statement",
           "original": "../base/constants/LocaleContext"
+        },
+        {
+          "path": "src/renderer/lib/usePage.ts",
+          "kind": "import-statement",
+          "original": "../lib/usePage"
+        },
+        {
+          "path": "src/renderer/base/typing/Pagination.tsx",
+          "kind": "import-statement",
+          "original": "../base/typing/Pagination"
+        },
+        {
+          "path": "src/renderer/base/components/List.tsx",
+          "kind": "import-statement",
+          "original": "../base/components/List"
+        },
+        {
+          "path": "src/renderer/lib/request.ts",
+          "kind": "import-statement",
+          "original": "../lib/request"
         }
       ],
       "format": "esm"
     },
     "src/renderer/pages/OwnBoards.tsx": {
-      "bytes": 1738,
+      "bytes": 2503,
       "imports": [
         {
           "path": "node_modules/.pnpm/react@18.2.0/node_modules/react/index.js",
@@ -22166,11 +22252,6 @@
           "path": "node_modules/.pnpm/@tanstack+react-query@5.12.2_react@18.2.0/node_modules/@tanstack/react-query/build/modern/index.js",
           "kind": "import-statement",
           "original": "@tanstack/react-query"
-        },
-        {
-          "path": "src/renderer/lib/twiks.ts",
-          "kind": "import-statement",
-          "original": "../lib/twiks"
         },
         {
           "path": "src/renderer/base/components/Loading.tsx",
@@ -22196,12 +22277,32 @@
           "path": "src/renderer/store/store.ts",
           "kind": "import-statement",
           "original": "../store/store"
+        },
+        {
+          "path": "src/renderer/base/typing/Pagination.tsx",
+          "kind": "import-statement",
+          "original": "../base/typing/Pagination"
+        },
+        {
+          "path": "src/renderer/base/components/List.tsx",
+          "kind": "import-statement",
+          "original": "../base/components/List"
+        },
+        {
+          "path": "src/renderer/lib/usePage.ts",
+          "kind": "import-statement",
+          "original": "../lib/usePage"
+        },
+        {
+          "path": "src/renderer/lib/request.ts",
+          "kind": "import-statement",
+          "original": "../lib/request"
         }
       ],
       "format": "esm"
     },
     "src/renderer/pages/Profile.tsx": {
-      "bytes": 4896,
+      "bytes": 4895,
       "imports": [
         {
           "path": "node_modules/.pnpm/@tanstack+react-query@5.12.2_react@18.2.0/node_modules/@tanstack/react-query/build/modern/index.js",
@@ -22217,11 +22318,6 @@
           "path": "node_modules/.pnpm/react-router@6.18.0_react@18.2.0/node_modules/react-router/dist/main.js",
           "kind": "import-statement",
           "original": "react-router"
-        },
-        {
-          "path": "src/renderer/lib/twiks.ts",
-          "kind": "import-statement",
-          "original": "../lib/twiks"
         },
         {
           "path": "node_modules/.pnpm/react-redux@8.1.3_@types+react-dom@18.2.15_@types+react@18.2.37_react-dom@18.2.0_react@18.2.0_redux@4.2.1/node_modules/react-redux/es/index.js",
@@ -22277,12 +22373,17 @@
           "path": "src/renderer/base/constants/LocaleContext.ts",
           "kind": "import-statement",
           "original": "../base/constants/LocaleContext"
+        },
+        {
+          "path": "src/renderer/lib/request.ts",
+          "kind": "import-statement",
+          "original": "../lib/request"
         }
       ],
       "format": "esm"
     },
     "src/entries/web.tsx": {
-      "bytes": 2070,
+      "bytes": 2083,
       "imports": [
         {
           "path": "node_modules/.pnpm/react-dom@18.2.0_react@18.2.0/node_modules/react-dom/client.js",
@@ -22398,7 +22499,7 @@
           "bytesInOutput": 51
         },
         "node_modules/.pnpm/react-dom@18.2.0_react@18.2.0/node_modules/react-dom/cjs/react-dom.production.min.js": {
-          "bytesInOutput": 130139
+          "bytesInOutput": 130189
         },
         "node_modules/.pnpm/react-dom@18.2.0_react@18.2.0/node_modules/react-dom/index.js": {
           "bytesInOutput": 253
@@ -23022,13 +23123,13 @@
           "bytesInOutput": 244
         },
         "src/entries/web.tsx": {
-          "bytesInOutput": 1416
+          "bytesInOutput": 1429
         },
         "node_modules/.pnpm/bootstrap@5.3.2_@popperjs+core@2.11.8/node_modules/bootstrap/dist/css/bootstrap.min.css": {
           "bytesInOutput": 0
         },
         "src/common/localization.ts": {
-          "bytesInOutput": 11359
+          "bytesInOutput": 12120
         },
         "src/common/getLocalizationCfg.ts": {
           "bytesInOutput": 351
@@ -23328,10 +23429,10 @@
           "bytesInOutput": 3629
         },
         "src/renderer/lib/EditManager.ts": {
-          "bytesInOutput": 1732
+          "bytesInOutput": 1866
         },
         "src/renderer/lib/twiks.ts": {
-          "bytesInOutput": 692
+          "bytesInOutput": 448
         },
         "node_modules/.pnpm/uuid@9.0.1/node_modules/uuid/dist/esm-browser/rng.js": {
           "bytesInOutput": 279
@@ -23795,6 +23896,12 @@
         "node_modules/.pnpm/react-bootstrap@2.9.1_@types+react@18.2.37_react-dom@18.2.0_react@18.2.0/node_modules/react-bootstrap/esm/NavbarText.js": {
           "bytesInOutput": 224
         },
+        "node_modules/.pnpm/react-bootstrap@2.9.1_@types+react@18.2.37_react-dom@18.2.0_react@18.2.0/node_modules/react-bootstrap/esm/PageItem.js": {
+          "bytesInOutput": 894
+        },
+        "node_modules/.pnpm/react-bootstrap@2.9.1_@types+react@18.2.37_react-dom@18.2.0_react@18.2.0/node_modules/react-bootstrap/esm/Pagination.js": {
+          "bytesInOutput": 316
+        },
         "node_modules/.pnpm/react-bootstrap@2.9.1_@types+react@18.2.37_react-dom@18.2.0_react@18.2.0/node_modules/react-bootstrap/esm/Row.js": {
           "bytesInOutput": 401
         },
@@ -23816,6 +23923,9 @@
         "src/renderer/lib/useResize.ts": {
           "bytesInOutput": 294
         },
+        "src/renderer/lib/request.ts": {
+          "bytesInOutput": 1115
+        },
         "src/renderer/board/canvas/share/getPrivateId.ts": {
           "bytesInOutput": 44
         },
@@ -23823,7 +23933,7 @@
           "bytesInOutput": 145
         },
         "src/renderer/board/canvas/share/joinRoom.ts": {
-          "bytesInOutput": 805
+          "bytesInOutput": 817
         },
         "src/renderer/base/constants/boardEvents.ts": {
           "bytesInOutput": 68
@@ -23871,13 +23981,13 @@
           "bytesInOutput": 225
         },
         "src/renderer/lib/BoardManager/BoardManager.ts": {
-          "bytesInOutput": 2461
+          "bytesInOutput": 2473
         },
         "src/renderer/board/canvas/native/handleBoardEvents.ts": {
           "bytesInOutput": 691
         },
         "src/renderer/board/canvas/native/writeToClipboard.ts": {
-          "bytesInOutput": 475
+          "bytesInOutput": 502
         },
         "src/renderer/board/canvas/image/layerToUrls.ts": {
           "bytesInOutput": 281
@@ -23892,16 +24002,16 @@
           "bytesInOutput": 1298
         },
         "src/renderer/board/canvas/native/paste.ts": {
-          "bytesInOutput": 514
+          "bytesInOutput": 501
         },
         "src/renderer/board/canvas/image/insertImage.ts": {
-          "bytesInOutput": 626
+          "bytesInOutput": 696
         },
         "src/renderer/board/canvas/native/openFile.ts": {
-          "bytesInOutput": 712
+          "bytesInOutput": 772
         },
         "src/renderer/board/canvas/native/runCommand.ts": {
-          "bytesInOutput": 1344
+          "bytesInOutput": 1397
         },
         "src/renderer/board/canvas/native/handleWebEvents.ts": {
           "bytesInOutput": 348
@@ -24636,7 +24746,7 @@
           "bytesInOutput": 575
         },
         "src/renderer/board/settings/SettingsModal.tsx": {
-          "bytesInOutput": 1509
+          "bytesInOutput": 1515
         },
         "src/renderer/base/components/Hr.tsx": {
           "bytesInOutput": 121
@@ -24660,7 +24770,10 @@
           "bytesInOutput": 515
         },
         "src/renderer/pages/Home.tsx": {
-          "bytesInOutput": 93
+          "bytesInOutput": 405
+        },
+        "build/board4you_home.png": {
+          "bytesInOutput": 41164
         },
         "src/renderer/base/components/Header.tsx": {
           "bytesInOutput": 1800
@@ -24669,22 +24782,22 @@
           "bytesInOutput": 9540
         },
         "src/renderer/lib/auth.ts": {
-          "bytesInOutput": 441
+          "bytesInOutput": 435
         },
         "src/renderer/pages/SignIn.tsx": {
-          "bytesInOutput": 1059
+          "bytesInOutput": 1065
         },
         "src/renderer/pages/SignUp.tsx": {
-          "bytesInOutput": 3342
+          "bytesInOutput": 3318
         },
         "src/renderer/pages/Folder.tsx": {
-          "bytesInOutput": 1941
+          "bytesInOutput": 2178
         },
         "node_modules/.pnpm/@tanstack+query-core@5.12.1/node_modules/@tanstack/query-core/build/modern/subscribable.js": {
           "bytesInOutput": 282
         },
         "node_modules/.pnpm/@tanstack+query-core@5.12.1/node_modules/@tanstack/query-core/build/modern/utils.js": {
-          "bytesInOutput": 2130
+          "bytesInOutput": 2154
         },
         "node_modules/.pnpm/@tanstack+query-core@5.12.1/node_modules/@tanstack/query-core/build/modern/focusManager.js": {
           "bytesInOutput": 671
@@ -24755,20 +24868,29 @@
         "src/renderer/board/folder/Board.tsx": {
           "bytesInOutput": 675
         },
+        "src/renderer/base/components/List.tsx": {
+          "bytesInOutput": 771
+        },
         "src/renderer/pages/OwnFolders.tsx": {
-          "bytesInOutput": 1340
+          "bytesInOutput": 1662
         },
         "src/renderer/board/folder/Folder.tsx": {
-          "bytesInOutput": 567
+          "bytesInOutput": 574
+        },
+        "src/renderer/lib/usePage.ts": {
+          "bytesInOutput": 106
+        },
+        "src/renderer/base/typing/Pagination.tsx": {
+          "bytesInOutput": 46
         },
         "src/renderer/pages/OwnBoards.tsx": {
-          "bytesInOutput": 901
+          "bytesInOutput": 1181
         },
         "src/renderer/pages/Profile.tsx": {
-          "bytesInOutput": 2784
+          "bytesInOutput": 2802
         }
       },
-      "bytes": 930488
+      "bytes": 977017
     },
     "public/web.css": {
       "imports": [
