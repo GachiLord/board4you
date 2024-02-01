@@ -22,8 +22,8 @@ RUN USER=root cargo new --bin board4you-build
 WORKDIR /board4you-build
 COPY ./server/Cargo.toml ./Cargo.toml
 COPY ./server/src ./src
-RUN cargo generate-lockfile
-RUN cargo build --release
+RUN USER=root cargo generate-lockfile
+RUN USER=root cargo build --release
 
 # configure and run app
 FROM alpine:latest
