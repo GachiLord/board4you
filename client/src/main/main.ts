@@ -178,7 +178,7 @@ app.whenReady().then(() => {
 
 
 app.on('window-all-closed', () => {
-  if (isMac) {
+  if (!isMac) {
     app.quit()
   }
 })
