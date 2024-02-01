@@ -45,7 +45,9 @@
         "public/main.js",
         "public/preload.js",
         "public/desktop.js",
-        "public/desktop.css"
+        "public/desktop.css",
+        "public/pdf.worker.js",
+        "public/data"
       ],
       "target": "nsis"
     },
@@ -55,7 +57,9 @@
         "public/main.js",
         "public/preload.js",
         "public/desktop.js",
-        "public/desktop.css"
+        "public/desktop.css",
+        "public/pdf.worker.js",
+        "public/data"
       ],
       "target": "AppImage"
     }

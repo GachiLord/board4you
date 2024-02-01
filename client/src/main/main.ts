@@ -155,7 +155,8 @@ app.whenReady().then(() => {
       if (currentFilePath) currentFilePath = await ElectronFileManager.saveBase64(data, currentFilePath)
       else currentFilePath = await ElectronFileManager.saveBase64As(data)
     }
-    catch {
+    catch (e) {
+      console.log(e)
       dialog.showErrorBox(localizationCfg.unexpectedError, localizationCfg.fileIsLocked)
     }
     finally {
