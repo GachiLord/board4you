@@ -1,14 +1,13 @@
 services:
   web:
     container_name: board4you-server
+    image: ghcr.io/gachilord/board4you-server:1.0.0
     restart: always
-    build: .
     command: ./server 
     environment:
       DB_HOST: db
       DB_PORT: "5432"
       DB_USER: "board4you"
-      LOG_PATH: "./log"
     ports:
       - "3000:3000"
     secrets:
