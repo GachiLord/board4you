@@ -22,5 +22,6 @@ pub async fn monitor(
             "Amount of banned users: {}",
             banned_users.read().await.len()
         );
+        info!("===========");
     }
 }
