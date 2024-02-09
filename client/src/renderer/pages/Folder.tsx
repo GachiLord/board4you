@@ -38,15 +38,6 @@ export default function Folder() {
   const [title, setTitle] = useState("")
   const [contents, setContents] = useState<BoardInfo[]>([])
   const [isLoading, setLoading] = useState(false)
-  const boardsQuery = useQuery({
-    queryKey: ['room', 'own', page],
-    placeholderData: keepPreviousData,
-    queryFn: async () => {
-      if (!folderId) throw new Error('no such folder')
-      const boards: Paginated<BoardInfo> = await request(`room/own/${page}`).get().body()
-      return boards
-    }
-  })
   const folderQuery = useQuery({
     queryKey: ['folder', folderId],
     queryFn: async () => {
@@ -56,6 +47,17 @@ export default function Folder() {
       setContents(folder.contents)
       return folder
     }
+  })
+  const boardsQuery = useQuery({
+    queryKey: ['room', 'own', page],
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      if (!folderId) throw new Error('no such folder')
+      if (!folderQuery.data?.is_owned) return { content: [], current_page: 1, max_page: 1 } as Paginated<BoardInfo>
+      const boards: Paginated<BoardInfo> = await request(`room/own/${page}`).get().body()
+      return boards
+    },
+    enabled: folderQuery.data?.is_owned !== undefined
   })
   // handle save
   const handleSave = async () => {
