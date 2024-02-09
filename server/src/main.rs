@@ -72,10 +72,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let banned_users_4 = banned_users.clone();
     let (ban_manager_tx, ban_manager_rx) = mpsc::unbounded_channel();
     let ban_manager_tx_1 = ban_manager_tx.clone();
-    // create ban manager task
-    tokio::spawn(async move {
-        ban_manager(ban_manager_rx, banned_users).await;
-    });
+    // create ban manager task if we need flood protection
+    let no_flood_guard = &env::var("NO_FLOOD_GUARD");
+    if no_flood_guard.is_err() {
+        tokio::spawn(async move {
+            ban_manager(ban_manager_rx, banned_users).await;
+        });
+    }
     // filters for Rc
     // ws route
     let board = warp::path("board")

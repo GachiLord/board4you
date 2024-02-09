@@ -43,5 +43,8 @@ pub async fn cleanup(
             "{} unused banned user(s) have been deleted",
             initial_len - banned_users.len()
         );
+        info!("===========");
+        // shrink capacity
+        rooms.shrink_to(20);
     }
 }
