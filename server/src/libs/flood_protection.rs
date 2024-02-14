@@ -122,7 +122,9 @@ pub async fn ban_manager(mut rx: UnboundedReceiver<ManagerCommand>, mut banned_u
     while let Some(cmd) = rx.recv().await {
         match cmd {
             ManagerCommand::Action(action) => {
-                if recent_visitors.len() > CRITICAL_BAN_COUNT {
+                // check capacity instead of length,
+                // because it is more relevant for memory
+                if recent_visitors.capacity() > CRITICAL_BAN_COUNT {
                     clean_up_recent_visitors(&mut recent_visitors);
                 }
                 visitor_handler(&mut banned_users, &mut recent_visitors, action).await;
@@ -224,5 +226,6 @@ fn clean_up_recent_visitors(visitors: &mut RecentVisitors) {
             .duration_since(cmp::max(visitor.last_request, visitor.last_message))
             .unwrap_or(Duration::ZERO);
         diff > MEASURE_RATE
-    })
+    });
+    visitors.shrink_to_fit();
 }
