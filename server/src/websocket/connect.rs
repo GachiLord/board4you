@@ -1,9 +1,7 @@
-use crate::libs::flood_protection::{BannedUsers, ManagerCommand, UserAction};
 use futures_util::{SinkExt, StreamExt, TryFutureExt};
 use log::{debug, error, warn};
-use std::net::SocketAddr;
 use std::sync::Arc;
-use tokio::sync::mpsc::{self, UnboundedSender};
+use tokio::sync::mpsc;
 use tokio_postgres::Client;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::WebSocket;
@@ -13,22 +11,11 @@ use crate::websocket::message::user_message;
 
 pub async fn user_connected(
     user_id: usize,
-    addr: Option<SocketAddr>,
-    ban_manager_channel: UnboundedSender<ManagerCommand>,
-    banned_users: BannedUsers,
     db_client: Arc<Client>,
     ws: WebSocket,
     users: WSUsers,
     rooms: Rooms,
 ) {
-    // close the websocket if there is no ip addr
-    let addr = match addr {
-        Some(addr) => addr.ip(),
-        None => {
-            let _ = ws.close();
-            return;
-        }
-    };
     // log new user
     debug!("new board user: {}", user_id);
     // create user_id Arc pointer
@@ -69,20 +56,6 @@ pub async fn user_connected(
                 break;
             }
         };
-        // check if user is banned
-        if let Some(banned_user) = banned_users.read().await.get(&addr) {
-            debug!("banned websocket user with ip: {}", addr);
-            // if not, close socket connection
-            if !banned_user.ban_is_over() {
-                break;
-            }
-            debug!("unban websocket user");
-            // otherwise complete the message and send unban message
-            let _ = &ban_manager_channel.send(ManagerCommand::UnbanUser(addr));
-        } else {
-            // if user wasn't banned, send a message
-            let _ = ban_manager_channel.send(ManagerCommand::Action(UserAction::Message(addr)));
-        }
         // proccess message
         let users = users.clone();
         let rooms = rooms.clone();

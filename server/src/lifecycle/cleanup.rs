@@ -1,5 +1,5 @@
+use crate::entities::board::save;
 use crate::libs::state::Rooms;
-use crate::{entities::board::save, libs::flood_protection::BannedUsers};
 use log::info;
 use std::{mem::take, sync::Arc};
 use tokio::time::{self, Duration};
@@ -7,12 +7,7 @@ use tokio_postgres::Client;
 
 /// Creates an infinite loop which scans for rooms without users and saves them to db.
 /// The function waites for provided duration intil start of a new cycle
-pub async fn cleanup(
-    client: &Arc<Client>,
-    rooms: Rooms,
-    banned_users: BannedUsers,
-    duration: Duration,
-) {
+pub async fn cleanup(client: &Arc<Client>, rooms: Rooms, duration: Duration) {
     let mut interval = time::interval(duration);
     loop {
         // wait for duration
@@ -35,14 +30,6 @@ pub async fn cleanup(
         }
         // cleanup log
         info!("{} unused room(s) have been deleted", expired_rooms.len());
-        // remove unused banned users
-        let mut banned_users = banned_users.write().await;
-        let initial_len = banned_users.len();
-        banned_users.retain(|_, user| !user.ban_is_over());
-        info!(
-            "{} unused banned user(s) have been deleted",
-            initial_len - banned_users.len()
-        );
         info!("===========");
         // shrink capacity
         rooms.shrink_to(20);
