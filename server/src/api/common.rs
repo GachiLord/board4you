@@ -1,5 +1,4 @@
 use crate::libs::auth::{verify_access_token, verify_refresh_token, UserData};
-use crate::libs::flood_protection::RateLimit;
 use crate::libs::state::{DbClient, JwtKey};
 use crate::{with_db_client, with_jwt_key};
 use serde::{Deserialize, Serialize};
@@ -138,9 +137,6 @@ pub async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, 
     if err.is_not_found() {
         code = StatusCode::NOT_FOUND;
         message = "NOT_FOUND";
-    } else if let Some(_) = err.find::<RateLimit>() {
-        code = StatusCode::IM_A_TEAPOT;
-        message = "I'm a teapot";
     } else if let Some(_) = err.find::<warp::filters::body::BodyDeserializeError>() {
         // This error happens if the body could not be deserialized correctly
         // We can use the cause to analyze the error and customize the error message
