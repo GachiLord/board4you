@@ -3356,7 +3356,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/mouse/events/mouseUpLeave.ts": {
-      "bytes": 5134,
+      "bytes": 5145,
       "imports": [
         {
           "path": "src/renderer/lib/CanvasUtils.ts",
@@ -12743,7 +12743,7 @@
       "format": "esm"
     },
     "src/renderer/lib/BoardManager/BoardManager.ts": {
-      "bytes": 5310,
+      "bytes": 5285,
       "imports": [
         {
           "path": "node_modules/.pnpm/websocket-ts@2.1.5/node_modules/websocket-ts/dist/esm/src/index.js",
@@ -23451,7 +23451,7 @@
           "bytesInOutput": 200
         },
         "src/renderer/board/canvas/mouse/events/mouseUpLeave.ts": {
-          "bytesInOutput": 1752
+          "bytesInOutput": 1758
         },
         "src/renderer/board/canvas/mouse/events/mouseEnter.ts": {
           "bytesInOutput": 44
@@ -23961,7 +23961,7 @@
           "bytesInOutput": 225
         },
         "src/renderer/lib/BoardManager/BoardManager.ts": {
-          "bytesInOutput": 2473
+          "bytesInOutput": 2450
         },
         "src/renderer/board/canvas/native/handleBoardEvents.ts": {
           "bytesInOutput": 691
@@ -24870,7 +24870,7 @@
           "bytesInOutput": 2802
         }
       },
-      "bytes": 977100
+      "bytes": 977083
     },
     "public/web.css": {
       "imports": [
