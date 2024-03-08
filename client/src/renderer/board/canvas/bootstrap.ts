@@ -2,18 +2,14 @@ import Konva from "konva"
 import EditManager from "../../lib/EditManager"
 import BoardManager from "../../lib/BoardManager/BoardManager"
 import store from "../../store/store"
-import { setInviteId, setMode, setRoomId, setShareInfo } from "../../features/board"
+import { setMode } from "../../features/board"
 import joinRoom from "./share/joinRoom"
 import handleMessage from "./share/handleMessage"
 import handleBoardEvents from "./native/handleBoardEvents"
 import handleWebEvents from "./native/handleWebEvents"
 import HandleNativeEvents from "./native/handleNativeEvents"
-import { deleteRoom, setRoom } from "../../features/rooms"
-import { doRequest } from "../../lib/twiks"
 import getPrivateId from "./share/getPrivateId"
-import { set } from "../../features/tool"
 import { Mode } from "original-fs"
-import handleModeChange from "./share/handleModeChange"
 
 interface Editor {
   stage: Konva.Stage,
@@ -31,7 +27,6 @@ interface Editor {
 export default function bootstrap({
   stage,
   boardManager,
-  mode,
   roomId,
   inviteId,
   setLoading,

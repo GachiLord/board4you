@@ -13244,7 +13244,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/native/handleNativeEvents.ts": {
-      "bytes": 981,
+      "bytes": 945,
       "imports": [
         {
           "path": "node_modules/.pnpm/tinykeys@2.1.0/node_modules/tinykeys/dist/tinykeys.module.js",
@@ -13275,7 +13275,7 @@
       "format": "esm"
     },
     "src/renderer/board/canvas/bootstrap.ts": {
-      "bytes": 3050,
+      "bytes": 2803,
       "imports": [
         {
           "path": "konva",
@@ -13328,32 +13328,12 @@
           "original": "./native/handleNativeEvents"
         },
         {
-          "path": "../../features/rooms",
-          "kind": "import-statement",
-          "external": true
-        },
-        {
-          "path": "../../lib/twiks",
-          "kind": "import-statement",
-          "external": true
-        },
-        {
           "path": "src/renderer/board/canvas/share/getPrivateId.ts",
           "kind": "import-statement",
           "original": "./share/getPrivateId"
         },
         {
-          "path": "../../features/tool",
-          "kind": "import-statement",
-          "external": true
-        },
-        {
           "path": "original-fs",
-          "kind": "import-statement",
-          "external": true
-        },
-        {
-          "path": "./share/handleModeChange",
           "kind": "import-statement",
           "external": true
         }
@@ -22047,7 +22027,7 @@
       "format": "esm"
     },
     "src/renderer/pages/Folder.tsx": {
-      "bytes": 4520,
+      "bytes": 4691,
       "imports": [
         {
           "path": "node_modules/.pnpm/react@18.2.0/node_modules/react/index.js",
@@ -24023,7 +24003,7 @@
           "bytesInOutput": 317
         },
         "src/renderer/board/canvas/bootstrap.ts": {
-          "bytesInOutput": 811
+          "bytesInOutput": 804
         },
         "src/renderer/board/toolPanel/ToolPanel.tsx": {
           "bytesInOutput": 1250
@@ -24791,7 +24771,7 @@
           "bytesInOutput": 3318
         },
         "src/renderer/pages/Folder.tsx": {
-          "bytesInOutput": 2178
+          "bytesInOutput": 2268
         },
         "node_modules/.pnpm/@tanstack+query-core@5.12.1/node_modules/@tanstack/query-core/build/modern/subscribable.js": {
           "bytesInOutput": 282
@@ -24890,7 +24870,7 @@
           "bytesInOutput": 2802
         }
       },
-      "bytes": 977017
+      "bytes": 977100
     },
     "public/web.css": {
       "imports": [
