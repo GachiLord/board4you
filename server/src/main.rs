@@ -139,10 +139,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // cleanup task
     let rooms_clean_up = rooms.clone();
     let rooms_to_monitor = rooms.clone();
-    let client_for_cleanup = client.clone();
     tokio::spawn(async move {
         cleanup(
-            &client_for_cleanup,
             rooms_clean_up,
             time::Duration::from_secs(cleanup_interval * 60),
         )
@@ -173,11 +171,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // wait for a signal
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
-            on_shutdown(&client, rooms.clone()).await;
+            on_shutdown(rooms.clone()).await;
             tx.send(()).unwrap();
         },
         _ = stream.recv() => {
-            on_shutdown(&client, rooms).await;
+            on_shutdown(rooms).await;
             tx.send(()).unwrap();
         }
     }

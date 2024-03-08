@@ -1,12 +1,13 @@
-use crate::{
-    entities::board::save,
-    libs::state::{DbClient, Rooms},
-};
+use tokio::sync::oneshot;
 
-pub async fn on_shutdown(db_client: &DbClient, rooms: Rooms) {
+use crate::libs::{room::UserMessage, state::Rooms};
+
+pub async fn on_shutdown(rooms: Rooms) {
     // save rooms
     let rooms = rooms.read().await;
     for (_, room) in rooms.iter() {
-        let _ = save(db_client, &room).await;
+        let (tx, rx) = oneshot::channel();
+        let _ = room.send(UserMessage::Expire(tx));
+        let _ = rx.await;
     }
 }

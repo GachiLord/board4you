@@ -1,3 +1,4 @@
+use super::room::UserMessage;
 use data_encoding::BASE64URL;
 use jwt_simple::algorithms::HS256Key;
 use serde::{Deserialize, Serialize};
@@ -138,14 +139,12 @@ pub struct PullData {
 #[derive(Debug)]
 pub enum PushError {
     WrongValue(&'static str),
-    ParseError(String),
 }
 
 impl ToString for PushError {
     fn to_string(&self) -> String {
         match self {
             Self::WrongValue(msg) => msg.to_string(),
-            Self::ParseError(msg) => msg.to_string(),
         }
     }
 }
@@ -382,12 +381,12 @@ pub struct Room {
 
 impl Room {
     /// Adds user to the room
-    pub fn add_user(&mut self, id: Arc<usize>) {
+    pub fn add_user(&mut self, id: UserId) {
         self.users.insert(id);
     }
 
     /// Removes user from the room
-    pub fn remove_user(&mut self, id: Arc<usize>) {
+    pub fn remove_user(&mut self, id: UserId) {
         self.users.remove(&id);
     }
 
@@ -399,7 +398,8 @@ impl Room {
     }
 }
 
-pub type Rooms = Arc<RwLock<HashMap<String, Room>>>;
+pub type Rooms = Arc<RwLock<HashMap<String, mpsc::UnboundedSender<UserMessage>>>>;
 pub type WSUsers = Arc<RwLock<HashMap<Arc<usize>, mpsc::UnboundedSender<Message>>>>;
 pub type JwtKey = Arc<HS256Key>;
 pub type DbClient = Arc<Client>;
+pub type UserId = Arc<usize>;

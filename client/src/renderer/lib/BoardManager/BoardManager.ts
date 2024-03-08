@@ -102,7 +102,7 @@ export default class BoardManager {
         const response = JSON.parse(e.data)
         if (response.Info && response.Info.status === "ok" && response.Info.action === 'Join') {
           // add status
-          this.status.roomId = response.Info.payload.public_id
+          this.status.roomId = roomId
           // clear listeners
           clearTimeout(timeout)
           this.rws?.removeEventListener(WebsocketEvent.message, waiter)
