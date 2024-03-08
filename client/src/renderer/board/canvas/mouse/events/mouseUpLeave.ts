@@ -51,7 +51,10 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
     const isMouseLeave = e.type === 'mouseleave'
 
     if (isMouseLeave) setCursor(stage)
-    if (isRightClick) return
+    if (isRightClick || stage.isDragging()) {
+      stage.stopDrag()
+      return
+    }
     run(api => {
       if (!itemIn(tool, 'move', 'select') && !isMouseLeave) api.handleFileChange()
     })
