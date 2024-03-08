@@ -102,24 +102,24 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
         clientRect.height = Math.abs(clientRect.height)
       }
 
-      const selected: Konva.Shape[] = []
+      const selected: Set<Konva.Shape> = new Set()
       let resizable: boolean = null
       // find shapes which have interception with clientRect
       shapes.forEach(shape => {
         if (Konva.Util.haveIntersection(clientRect, shape.getClientRect())) {
           resizable = shape.attrs.connected.size === 0 && resizable !== false
 
-          if (shape instanceof Konva.Shape) selected.push(shape)
+          if (shape instanceof Konva.Shape) selected.add(shape)
           shapes.forEach(i => {
             if (i.attrs.connected.has(shape.attrs.shape_id) && i instanceof Konva.Shape) {
-              selected.push(i)
+              selected.add(i)
             }
           })
         }
       })
       // create transformer for them
-      if (selected.length !== 0) {
-        Selection.create(selected, boardManager)
+      if (selected.size !== 0) {
+        Selection.create([...selected], boardManager)
       }
       box.destroy()
     }
