@@ -1,0 +1,1 @@
+{"PushSegment":{"public_id":"{{ public_id }}","private_id":"{{ private_id }}","action_type":"Start","data":"{\"tool\":\"pen\",\"points\":[340,464],\"shape_type\":\"line\",\"color\":\"#000000\",\"shape_id\":\"ea889917-436e-4ccd-b042-e52abe216fb1\",\"x\":0,\"y\":0,\"line_size\":2,\"line_type\":\"general\",\"connected\":[]}"}}

@@ -68,7 +68,7 @@ pub enum UserMessage {
         token: String,
         sender: oneshot::Sender<bool>,
     },
-    HasUsers(oneshot::Sender<bool>),
+    HasUsers(oneshot::Sender<bool>, bool),
     DeleteRoom {
         deleted: oneshot::Sender<bool>,
         private_id: String,
@@ -228,30 +228,48 @@ pub async fn task(
                     continue;
                 }
                 // save changes and validate data
-                for edit in data.to_owned().into_iter() {
-                    match room.board.push(edit) {
-                        Ok(()) => (),
-                        Err(e) => {
-                            send_to_user_by_id(
-                                ws_users,
-                                &user_id,
-                                &RoomMessage::Info {
-                                    status: "bad",
-                                    action: "Push",
-                                    payload: &e.to_string(),
-                                },
-                            )
-                            .await
+                if silent {
+                    for edit in data.into_iter() {
+                        match room.board.push(edit) {
+                            Ok(()) => (),
+                            Err(e) => {
+                                send_to_user_by_id(
+                                    ws_users,
+                                    &user_id,
+                                    &RoomMessage::Info {
+                                        status: "bad",
+                                        action: "Push",
+                                        payload: &e.to_string(),
+                                    },
+                                )
+                                .await
+                            }
                         }
                     }
-                }
-                // form data
-                let push_data = RoomMessage::PushData {
-                    action: "Push",
-                    data: mem::take(&mut data),
-                };
-                // send
-                if !silent {
+                } else {
+                    for edit in data.to_owned().into_iter() {
+                        match room.board.push(edit) {
+                            Ok(()) => (),
+                            Err(e) => {
+                                send_to_user_by_id(
+                                    ws_users,
+                                    &user_id,
+                                    &RoomMessage::Info {
+                                        status: "bad",
+                                        action: "Push",
+                                        payload: &e.to_string(),
+                                    },
+                                )
+                                .await
+                            }
+                        }
+                    }
+                    // form data
+                    let push_data = RoomMessage::PushData {
+                        action: "Push",
+                        data: mem::take(&mut data),
+                    };
+                    // send
                     send_all_except_sender(ws_users, &room, Some(&user_id), &push_data).await;
                 }
             }
@@ -487,12 +505,14 @@ pub async fn task(
                 let pull_data = RoomMessage::PullData(room.board.pull(current, undone));
                 send_to_user_by_id(ws_users, &user_id, &pull_data).await;
             }
-            UserMessage::HasUsers(sender) => {
+            UserMessage::HasUsers(sender, no_persist) => {
                 room.users.remove_expired();
                 let _ = sender.send(room.users.len() > 0);
                 // if room has no users, stop task execution
                 if room.users.len() == 0 {
-                    let _ = save(&db_client, &room).await;
+                    if !no_persist {
+                        let _ = save(&db_client, &room).await;
+                    }
                     break;
                 }
             }

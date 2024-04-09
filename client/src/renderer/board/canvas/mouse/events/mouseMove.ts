@@ -19,13 +19,16 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
   const private_id = state.rooms[boardManager.status.roomId]
 
   const share = (data: ShareData) => {
-    if (canDraw)
-      boardManager.send('PushSegment', {
-        public_id: boardManager.status.roomId,
-        private_id: private_id,
-        action_type: 'Update',
-        data: JSON.stringify(data)
-      })
+    // TODO: This part is currently disabled due to the ineffective way used to send websocket messages.
+    // Uncomment this, when or if it is improved
+    //
+    //if (canDraw)
+    //  boardManager.send('PushSegment', {
+    //    public_id: boardManager.status.roomId,
+    //    private_id: private_id,
+    //    action_type: 'Update',
+    //    data: JSON.stringify(data)
+    //  })
   }
   whenDraw(e, boardManager, ({ stage, pos, canvas, temporary, isRightClick }) => {
     // do nothing if right mouse clicked

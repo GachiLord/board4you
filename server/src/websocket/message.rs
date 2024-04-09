@@ -195,23 +195,28 @@ pub async fn user_message(
         }
 
         BoardMessage::PushSegment {
-            public_id,
-            private_id,
-            action_type,
-            data,
-        } => match rooms.read().await.get(&public_id) {
-            Some(r) => {
-                let _ = r.send(UserMessage::PushSegment {
-                    user_id,
-                    private_id,
-                    action_type,
-                    data,
-                });
-            }
-            None => {
-                send_to_user_by_id(ws_users, &user_id, &no_such_room("PushSegment")).await;
-            }
-        },
+            public_id: _,
+            private_id: _,
+            action_type: _,
+            data: _,
+        } => {
+            // TODO: This part is currently disabled due to the ineffective way used to send websocket messages.
+            // Uncomment this, when or if it is improved
+            //
+            //match rooms.read().await.get(&public_id) {
+            //    Some(r) => {
+            //        let _ = r.send(UserMessage::PushSegment {
+            //            user_id,
+            //            private_id,
+            //            action_type,
+            //            data,
+            //        });
+            //    }
+            //    None => {
+            //        //send_to_user_by_id(ws_users, &user_id, &no_such_room("PushSegment")).await;
+            //    }
+            //}
+        }
 
         BoardMessage::UndoRedo {
             private_id,

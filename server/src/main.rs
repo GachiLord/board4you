@@ -31,6 +31,8 @@ static NEXT_USER_ID: AtomicUsize = AtomicUsize::new(1);
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    // no persist flag
+    let no_persist = &env::var("NO_PERSIST").unwrap_or("0".to_owned()) == "1";
     // initialize logging system
     fast_log::init(Config::new().console()).unwrap();
     // Connect to the database.
@@ -143,6 +145,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         cleanup(
             rooms_clean_up,
             time::Duration::from_secs(cleanup_interval * 60),
+            no_persist,
         )
         .await;
     });
@@ -171,11 +174,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // wait for a signal
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
-            on_shutdown(rooms.clone()).await;
+            if !no_persist {
+                on_shutdown(rooms.clone()).await;
+            }
             tx.send(()).unwrap();
         },
         _ = stream.recv() => {
-            on_shutdown(rooms).await;
+            if !no_persist {
+                on_shutdown(rooms.clone()).await;
+            }
             tx.send(()).unwrap();
         }
     }

@@ -1,12 +1,22 @@
 [package]
 name = "server"
-version = "1.0.5"
+version = "1.0.6"
 edition = "2021"
+default-run = "server"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "server"
+path = "src/main.rs"
+
+[[bin]]
+name = "stress-test"
+path = "src/stress_test/main.rs"
+
+
 [dependencies]
-tokio = { version = "1", features = ["full", "time", "net"] }
+tokio = { version = "1", features = ["signal", "rt-multi-thread", "time", "net"] }
 tokio-stream = "0.1"
 warp = { version = "0.3", features = ["tls"] } 
 futures-util = { version = "0.3", default-features = false, features = ["sink"] }
@@ -20,3 +30,16 @@ tokio-postgres = { version = "0.7.10", features = ["runtime", "with-serde_json-1
 argon2 = "0.5.2"
 fast_log = { version = "1.6", features = ["lz4"]}
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_info"] }
+reqwest = { version = "0.12.3", features = ["json"] }
+handlebars = "3"
+tokio-tungstenite = "*"
+lazy_static = "1.4.0"
+clap = { version = "4.5.4", features = ["derive"] }
+datasize = "0.2.15"
+console-subscriber = "0.2.0"
+[dev-dependencies]
+criterion = { version = "0.4", features = ["html_reports"] }
+
+#[[bench]]
+#name = "stress-test"
+#harness = false
