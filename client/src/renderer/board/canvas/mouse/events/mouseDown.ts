@@ -28,13 +28,16 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
 
   whenDraw(e, boardManager, ({ stage, pos, canvas, temporary, isRightClick }) => {
     const share = (edit: IShape) => {
-      if (canDraw)
-        boardManager.send('PushSegment', {
-          public_id: boardManager.status.roomId,
-          private_id: private_id,
-          action_type: 'Start',
-          data: JSON.stringify(edit)
-        })
+      // TODO: This part is currently disabled due to the ineffective way used to send websocket messages.
+      // Uncomment this, when or if it is improved
+      //
+      //if (canDraw)
+      //  boardManager.send('PushSegment', {
+      //    public_id: boardManager.status.roomId,
+      //    private_id: private_id,
+      //    action_type: 'Start',
+      //    data: JSON.stringify(edit)
+      //  })
     }
 
     const undone = store.getState().history.undone.at(-1)

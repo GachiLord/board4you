@@ -30,21 +30,27 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
     // if right mouse clicked set cursor according tool
     // share fun
     const shareSegment = (shapeId: string) => {
-      if (canDraw)
-        boardManager.send('PushSegment', {
-          public_id: boardManager.status.roomId,
-          private_id: private_id,
-          action_type: 'End',
-          data: shapeId
-        })
+      // TODO: This part is currently disabled due to the ineffective way used to send websocket messages.
+      // Uncomment this, when or if it is improved
+      //
+      //if (canDraw)
+      //  boardManager.send('PushSegment', {
+      //    public_id: boardManager.status.roomId,
+      //    private_id: private_id,
+      //    action_type: 'End',
+      //    data: shapeId
+      //  })
     }
     const share = (edit: Edit) => {
+      // TODO: This part is currently changed to send only already drawn edits. This improves perfomance when app has many users.
+      // Set 'silent' to true, when or if app is ready to process so many messages.
+      //
       if (canDraw)
         boardManager.send('Push', {
           public_id: boardManager.status.roomId,
           private_id: private_id,
           data: ([convertToEnum(edit)]),
-          silent: true
+          silent: false // true
         })
     }
     // type of event

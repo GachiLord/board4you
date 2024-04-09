@@ -1,5 +1,5 @@
 use futures_util::{SinkExt, StreamExt, TryFutureExt};
-use log::{debug, error, warn};
+use log::{debug, warn};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio_postgres::Client;
@@ -61,14 +61,7 @@ pub async fn user_connected(
         let rooms = rooms.clone();
         let user_id_arc = user_id_arc.clone();
         let db_client = db_client.clone();
-        let user_message_task = tokio::spawn(async move {
-            user_message(user_id_arc, msg, &db_client, &users, &rooms).await;
-        });
-        // disconnect user if there is a server error
-        if user_message_task.await.is_err() {
-            error!("disconnect user(uid={user_id}) because of an error");
-            break;
-        }
+        user_message(user_id_arc, msg, &db_client, &users, &rooms).await;
     }
 
     // user_ws_rx stream will keep processing as long as the user stays

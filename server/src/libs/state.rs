@@ -1,9 +1,11 @@
 use super::room::UserMessage;
 use data_encoding::BASE64URL;
+use datasize::DataSize;
 use jwt_simple::algorithms::HS256Key;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
+    mem::size_of_val,
     sync::{Arc, Weak},
 };
 use tokio::sync::{mpsc, RwLock};
@@ -16,7 +18,7 @@ use weak_table::WeakHashSet;
 /// size - canvas size
 /// title - board's title
 /// co_editor_private_id - token for co-editors, may change if author asks
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[derive(Debug, Default, Deserialize, Serialize, Clone, DataSize)]
 pub struct Board {
     pub current: Vec<Edit>,
     pub undone: Vec<Edit>,
@@ -25,7 +27,7 @@ pub struct Board {
     pub co_editor_private_id: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, DataSize)]
 pub struct BoardSize {
     pub height: u16,
     pub width: u16,
@@ -40,7 +42,7 @@ const SHAPE_TYPES: [&'static str; 5] = ["line", "arrow", "rect", "ellipse", "img
 const MAX_DIMENSION_SIZE: f32 = 10_000_f32;
 const MAX_IMAGE_LENGTH: u16 = 60_000;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, DataSize)]
 struct Shape {
     x: f32,
     y: f32,
@@ -66,21 +68,21 @@ struct Shape {
 
 // edits
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, DataSize)]
 pub struct Add {
     id: String,
     edit_type: String,
     shape: Shape,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, DataSize)]
 pub struct Remove {
     id: String,
     edit_type: String,
     shapes: Vec<Shape>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, DataSize)]
 pub struct Modify {
     id: String,
     edit_type: String,
@@ -88,7 +90,7 @@ pub struct Modify {
     initial: Vec<Shape>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, DataSize)]
 pub enum Edit {
     Add(Add),
     Remove(Remove),
@@ -370,13 +372,19 @@ impl Default for BoardSize {
 /// users - room's connected users
 /// board - state of the room
 /// onwer_id - id of the creator, is_some if the author was authed
-#[derive(Debug, Default)]
+#[derive(Debug, Default, DataSize)]
 pub struct Room {
     pub public_id: String,
     pub private_id: String,
+    #[data_size(with = estimate_weak)]
     pub users: WeakHashSet<Weak<usize>>,
     pub board: Board,
     pub owner_id: Option<i32>,
+}
+
+fn estimate_weak(value: &WeakHashSet<Weak<usize>>) -> usize {
+    // We assume every item is 512 bytes in heap size.
+    value.len() * size_of_val(&usize::MAX)
 }
 
 impl Room {
