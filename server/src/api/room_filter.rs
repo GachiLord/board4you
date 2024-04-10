@@ -98,12 +98,12 @@ struct RoomInitials {
     current: Vec<Edit>,
     undone: Vec<Edit>,
     size: BoardSize,
-    title: String,
+    title: Box<str>,
 }
 #[derive(Deserialize, Serialize)]
 struct RoomCredentials {
-    public_id: String,
-    private_id: String,
+    public_id: Box<str>,
+    private_id: Box<str>,
 }
 
 async fn create_room(
@@ -124,9 +124,12 @@ async fn create_room(
         }
     };
     // ids
-    let public_id = Uuid::new_v4().to_string();
-    let private_id = BASE64URL.encode(&HS256Key::generate().to_bytes());
-    let co_editor_private_id = BASE64URL.encode(&HS256Key::generate().to_bytes()) + "_co_editor";
+    let public_id = Uuid::new_v4().to_string().into_boxed_str();
+    let private_id = BASE64URL
+        .encode(&HS256Key::generate().to_bytes())
+        .into_boxed_str();
+    let co_editor_private_id =
+        (BASE64URL.encode(&HS256Key::generate().to_bytes()) + "_co_editor").into_boxed_str();
     // owner info
     let mut owner_id: Option<i32> = None;
     // add owner if user is authed
@@ -194,8 +197,8 @@ async fn read_own_list(
 
 #[derive(Deserialize, Serialize)]
 struct RoomInfo {
-    pub public_id: String,
-    pub private_id: String,
+    pub public_id: Box<str>,
+    pub private_id: Box<str>,
 }
 
 async fn delete_room(
@@ -341,8 +344,8 @@ async fn read_co_editors(
 
 #[derive(Deserialize)]
 struct CheckInfo {
-    public_id: String,
-    co_editor_private_id: String,
+    public_id: Box<str>,
+    co_editor_private_id: Box<str>,
 }
 
 async fn check_co_editor(

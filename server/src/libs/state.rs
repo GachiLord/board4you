@@ -23,8 +23,8 @@ pub struct Board {
     pub current: Vec<Edit>,
     pub undone: Vec<Edit>,
     pub size: BoardSize,
-    pub title: String,
-    pub co_editor_private_id: String,
+    pub title: Box<str>,
+    pub co_editor_private_id: Box<str>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, DataSize)]
@@ -46,12 +46,12 @@ const MAX_IMAGE_LENGTH: u16 = 60_000;
 struct Shape {
     x: f32,
     y: f32,
-    tool: String,
-    shape_type: String,
-    shape_id: String,
-    color: Option<String>,
+    tool: Box<str>,
+    shape_type: Box<str>,
+    shape_id: Box<str>,
+    color: Option<Box<str>>,
     line_size: Option<u16>,
-    line_type: Option<String>,
+    line_type: Option<Box<str>>,
     height: Option<f32>,
     width: Option<f32>,
     radius_x: Option<f32>,
@@ -62,30 +62,30 @@ struct Shape {
     skew_x: Option<f32>,
     skew_y: Option<f32>,
     points: Option<Vec<u16>>,
-    connected: Option<Vec<String>>,
-    url: Option<String>,
+    connected: Option<Vec<Box<str>>>,
+    url: Option<Box<str>>,
 }
 
 // edits
 
 #[derive(Serialize, Deserialize, Debug, Clone, DataSize)]
 pub struct Add {
-    id: String,
-    edit_type: String,
+    id: Box<str>,
+    edit_type: Box<str>,
     shape: Shape,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, DataSize)]
 pub struct Remove {
-    id: String,
-    edit_type: String,
+    id: Box<str>,
+    edit_type: Box<str>,
     shapes: Vec<Shape>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, DataSize)]
 pub struct Modify {
-    id: String,
-    edit_type: String,
+    id: Box<str>,
+    edit_type: Box<str>,
     current: Vec<Shape>,
     initial: Vec<Shape>,
 }
@@ -118,7 +118,7 @@ impl Edit {
 
 pub struct Command {
     pub name: CommandName,
-    pub id: String,
+    pub id: Box<str>,
 }
 
 #[derive(Debug)]
@@ -130,7 +130,7 @@ pub enum CommandName {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct EditData {
     should_be_created_edits: Vec<Edit>,
-    should_be_deleted_ids: Vec<String>,
+    should_be_deleted_ids: Vec<Box<str>>,
 }
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct PullData {
@@ -157,7 +157,7 @@ impl Board {
     /// # Panics
     ///
     /// Panics if there is an edit without id property
-    pub fn pull(&self, user_current: Vec<String>, user_undone: Vec<String>) -> PullData {
+    pub fn pull(&self, user_current: Vec<Box<str>>, user_undone: Vec<Box<str>>) -> PullData {
         // convert Vectors to HashSets
         let current: HashSet<&str> = HashSet::from_iter(
             self.current
@@ -175,32 +175,32 @@ impl Board {
             HashSet::from_iter(user_current.iter().map(|e| e.as_ref()));
         let user_undone: HashSet<&str> = HashSet::from_iter(user_undone.iter().map(|e| e.as_ref()));
         // check current
-        let current_create: HashSet<String> = current
+        let current_create: HashSet<Box<str>> = current
             .iter()
             .filter_map(|e| match !user_current.contains(*e) {
-                true => return Some(e.to_string()),
+                true => return Some(e.to_string().into_boxed_str()),
                 false => return None,
             })
             .collect();
-        let current_delete: HashSet<String> = user_current
+        let current_delete: HashSet<Box<str>> = user_current
             .iter()
             .filter_map(|e| match !user_current.contains(*e) {
-                true => return Some(e.to_string()),
+                true => return Some(e.to_string().into_boxed_str()),
                 false => return None,
             })
             .collect();
         // check undone
-        let undone_create: HashSet<String> = undone
+        let undone_create: HashSet<Box<str>> = undone
             .iter()
             .filter_map(|e| match !user_undone.contains(*e) {
-                true => return Some(e.to_string()),
+                true => return Some(e.to_string().into_boxed_str()),
                 false => return None,
             })
             .collect();
-        let undone_delete: HashSet<String> = user_undone
+        let undone_delete: HashSet<Box<str>> = user_undone
             .iter()
             .filter_map(|e| match !undone.contains(*e) {
-                true => return Some(e.to_string()),
+                true => return Some(e.to_string().into_boxed_str()),
                 false => return None,
             })
             .collect();
@@ -211,7 +211,9 @@ impl Board {
                     .current
                     .clone()
                     .into_iter()
-                    .filter(|e| current_create.contains::<String>(&e.id().to_string()))
+                    .filter(|e| {
+                        current_create.contains::<Box<str>>(&e.id().to_string().into_boxed_str())
+                    })
                     .collect(),
                 should_be_deleted_ids: Vec::from_iter(
                     current_delete.into_iter().map(|v| v.to_owned()),
@@ -222,7 +224,9 @@ impl Board {
                     .undone
                     .clone()
                     .into_iter()
-                    .filter(|e| undone_create.contains::<String>(&e.id().to_string()))
+                    .filter(|e| {
+                        undone_create.contains::<Box<str>>(&e.id().to_string().into_boxed_str())
+                    })
                     .collect(),
                 should_be_deleted_ids: Vec::from_iter(
                     undone_delete.into_iter().map(|v| v.to_owned()),
@@ -272,10 +276,10 @@ impl Board {
     }
 
     fn validate_shape(shape: &Shape) -> Result<(), PushError> {
-        if !TOOL_NAMES.contains(&shape.tool.as_str()) {
+        if !TOOL_NAMES.contains(&shape.tool.as_ref()) {
             return Err(PushError::WrongValue("no such tool"));
         }
-        if !SHAPE_TYPES.contains(&shape.shape_type.as_str()) {
+        if !SHAPE_TYPES.contains(&shape.shape_type.as_ref()) {
             return Err(PushError::WrongValue("no such shape_type"));
         }
         if shape.line_size.unwrap_or(0) > MAX_DIMENSION_SIZE as u16 {
@@ -316,7 +320,10 @@ impl Board {
     pub fn exec_command(&mut self, command: Command) -> Result<(), &'static str> {
         match command.name {
             CommandName::Undo => {
-                let edit_index = self.current.iter().position(|e| e.id() == command.id);
+                let edit_index = self
+                    .current
+                    .iter()
+                    .position(|e| e.id() == command.id.as_ref());
                 let edit_index = match edit_index {
                     Some(id) => id,
                     None => return Err("no sush id"),
@@ -325,7 +332,10 @@ impl Board {
                 self.undone.push(edit);
             }
             CommandName::Redo => {
-                let edit_index = self.undone.iter().position(|e| e.id() == command.id);
+                let edit_index = self
+                    .undone
+                    .iter()
+                    .position(|e| e.id() == command.id.as_ref());
                 let edit_index = match edit_index {
                     Some(id) => id,
                     None => return Err("no sush id"),
@@ -374,8 +384,8 @@ impl Default for BoardSize {
 /// onwer_id - id of the creator, is_some if the author was authed
 #[derive(Debug, Default, DataSize)]
 pub struct Room {
-    pub public_id: String,
-    pub private_id: String,
+    pub public_id: Box<str>,
+    pub private_id: Box<str>,
     #[data_size(with = estimate_weak)]
     pub users: WeakHashSet<Weak<usize>>,
     pub board: Board,
@@ -399,14 +409,15 @@ impl Room {
     }
 
     /// Updates self.co_editor_private_id and returns new one
-    pub fn update_editor_private_id(&mut self) -> String {
-        let editor_private_id = BASE64URL.encode(&HS256Key::generate().to_bytes()) + "_co_editor";
-        self.board.co_editor_private_id = editor_private_id.to_owned();
-        editor_private_id
+    pub fn update_editor_private_id(&mut self) -> Box<str> {
+        let id =
+            (BASE64URL.encode(&HS256Key::generate().to_bytes()) + "_co_editor").into_boxed_str();
+        self.board.co_editor_private_id = id.to_owned();
+        id
     }
 }
 
-pub type Rooms = Arc<RwLock<HashMap<String, mpsc::UnboundedSender<UserMessage>>>>;
+pub type Rooms = Arc<RwLock<HashMap<Box<str>, mpsc::UnboundedSender<UserMessage>>>>;
 pub type WSUsers = Arc<RwLock<HashMap<Arc<usize>, mpsc::UnboundedSender<Message>>>>;
 pub type JwtKey = Arc<HS256Key>;
 pub type DbClient = Arc<Client>;

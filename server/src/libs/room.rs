@@ -16,62 +16,62 @@ pub enum UserMessage {
     Quit(UserId),
     SetTitle {
         user_id: UserId,
-        private_id: String,
-        title: String,
+        private_id: Box<str>,
+        title: Box<str>,
     },
     UndoRedo {
         user_id: UserId,
-        private_id: String,
-        action_type: String,
-        action_id: String,
+        private_id: Box<str>,
+        action_type: Box<str>,
+        action_id: Box<str>,
     },
     Empty {
         user_id: UserId,
-        private_id: String,
-        action_type: String,
+        private_id: Box<str>,
+        action_type: Box<str>,
     },
     Push {
         user_id: UserId,
-        private_id: String,
+        private_id: Box<str>,
         data: Vec<Edit>,
         silent: bool,
     },
     PushSegment {
         user_id: UserId,
-        private_id: String,
-        action_type: String,
-        data: String,
+        private_id: Box<str>,
+        action_type: Box<str>,
+        data: Box<str>,
     },
     SetSize {
         user_id: UserId,
-        private_id: String,
+        private_id: Box<str>,
         data: BoardSize,
     },
     Pull {
         user_id: UserId,
-        current: Vec<String>,
-        undone: Vec<String>,
+        current: Vec<Box<str>>,
+        undone: Vec<Box<str>>,
     },
     UpdateCoEditor {
         user_id: UserId,
-        private_id: String,
+        private_id: Box<str>,
     },
     GetCoEditorToken {
-        private_id: String,
-        sender: oneshot::Sender<Result<String, ()>>,
+        private_id: Box<str>,
+        sender: oneshot::Sender<Result<Box<str>, ()>>,
     },
     GetUpdatedCoEditorToken {
-        private_id: String,
-        sender: oneshot::Sender<Result<String, ()>>,
+        private_id: Box<str>,
+        sender: oneshot::Sender<Result<Box<str>, ()>>,
     },
     VerifyCoEditorToken {
-        token: String,
+        token: Box<str>,
         sender: oneshot::Sender<bool>,
     },
     HasUsers(oneshot::Sender<bool>, bool),
     DeleteRoom {
         deleted: oneshot::Sender<bool>,
-        private_id: String,
+        private_id: Box<str>,
     },
     Expire(oneshot::Sender<()>),
 }
@@ -114,7 +114,7 @@ pub enum RoomMessage<'a> {
 }
 
 pub async fn task(
-    public_id: String,
+    public_id: Box<str>,
     mut room: Room,
     ws_users: &WSUsers,
     db_client: &DbClient,
@@ -326,7 +326,7 @@ pub async fn task(
                     continue;
                 }
                 // determine command name
-                let command_name = if action_type == "Undo" {
+                let command_name = if action_type.as_ref() == "Undo" {
                     CommandName::Undo
                 } else {
                     CommandName::Redo
@@ -384,7 +384,7 @@ pub async fn task(
                     continue;
                 }
                 // save changes
-                if action_type == "current" {
+                if action_type.as_ref() == "current" {
                     room.board.empty_current();
                 } else {
                     room.board.empty_undone();

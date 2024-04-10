@@ -56,7 +56,7 @@ pub async fn save(client: &Arc<Client>, room: &Room) -> Result<SaveAction, Box<d
 pub async fn get(
     client: &Client,
     public_id: &str,
-) -> Result<(String, Board), tokio_postgres::Error> {
+) -> Result<(Box<str>, Board), tokio_postgres::Error> {
     let sql_res = client
         .query_one("SELECT * FROM boards WHERE public_id = $1", &[&public_id])
         .await?;
@@ -72,8 +72,8 @@ pub async fn get(
 #[derive(Debug, Serialize)]
 pub struct BoardInfo {
     pub id: i32,
-    pub title: String,
-    pub public_id: String,
+    pub title: Box<str>,
+    pub public_id: Box<str>,
 }
 
 pub async fn get_by_owner(

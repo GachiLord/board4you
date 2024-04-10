@@ -12,52 +12,52 @@ use weak_table::WeakHashSet;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 enum BoardMessage {
     Join {
-        public_id: String,
+        public_id: Box<str>,
     },
     Quit {
-        public_id: String,
+        public_id: Box<str>,
     },
     SetTitle {
-        private_id: String,
-        public_id: String,
-        title: String,
+        private_id: Box<str>,
+        public_id: Box<str>,
+        title: Box<str>,
     },
     UndoRedo {
-        private_id: String,
-        public_id: String,
-        action_type: String,
-        action_id: String,
+        private_id: Box<str>,
+        public_id: Box<str>,
+        action_type: Box<str>,
+        action_id: Box<str>,
     },
     Empty {
-        private_id: String,
-        public_id: String,
-        action_type: String,
+        private_id: Box<str>,
+        public_id: Box<str>,
+        action_type: Box<str>,
     },
     Push {
-        public_id: String,
-        private_id: String,
+        public_id: Box<str>,
+        private_id: Box<str>,
         data: Vec<Edit>,
         silent: bool,
     },
     PushSegment {
-        public_id: String,
-        private_id: String,
-        action_type: String,
-        data: String,
+        public_id: Box<str>,
+        private_id: Box<str>,
+        action_type: Box<str>,
+        data: Box<str>,
     },
     SetSize {
-        public_id: String,
-        private_id: String,
+        public_id: Box<str>,
+        private_id: Box<str>,
         data: BoardSize,
     },
     Pull {
-        public_id: String,
-        current: Vec<String>,
-        undone: Vec<String>,
+        public_id: Box<str>,
+        current: Vec<Box<str>>,
+        undone: Vec<Box<str>>,
     },
     UpdateCoEditor {
-        public_id: String,
-        private_id: String,
+        public_id: Box<str>,
+        private_id: Box<str>,
     },
 }
 
