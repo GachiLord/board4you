@@ -131,22 +131,26 @@ async fn editor_task(msgs: &Messages, room_data: &StaticRoomData) {
     let _ = write.send(Message::Text(msgs.pull(room_data))).await;
     // send a new shape periodically
     loop {
-        // send push start
-        let _ = write
-            .send(Message::Text(msgs.push_segment_start(room_data)))
-            .await;
-        // send segments of the line every 200ms
-        for _ in 0..20 {
-            let _ = write
-                .send(Message::Text(msgs.push_segment_update(room_data)))
-                .await;
-            time::sleep(time::Duration::from_millis(100)).await;
-        }
-        // finish drawing the line
-        let _ = write
-            .send(Message::Text(msgs.push_segment_end(room_data)))
-            .await;
-        // send a silent push
+        // TODO: This part is currently disabled due to the ineffective way used to send websocket messages.
+        // Uncomment this, when or if it is improved
+        //
+        //// send push start
+        //let _ = write
+        //    .send(Message::Text(msgs.push_segment_start(room_data)))
+        //    .await;
+        //// send segments of the line every 200ms
+        //for _ in 0..20 {
+        //    let _ = write
+        //        .send(Message::Text(msgs.push_segment_update(room_data)))
+        //        .await;
+        //    time::sleep(time::Duration::from_millis(100)).await;
+        //}
+        //// finish drawing the line
+        //let _ = write
+        //    .send(Message::Text(msgs.push_segment_end(room_data)))
+        //    .await;
+        //
+        // send a push
         let _ = write.send(Message::Text(msgs.push(room_data))).await;
         // await a second
         time::sleep(time::Duration::from_secs(1)).await;
