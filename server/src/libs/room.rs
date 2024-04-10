@@ -555,6 +555,7 @@ pub async fn send_all_except_sender(
     let sender_id = sender_id.unwrap_or(&default_id);
     let ws_users = ws_users.read().await;
     let msg = serde_json::to_string(&msg).unwrap();
+
     room.users.iter().for_each(|u| {
         if sender_is_none || &u != sender_id {
             let user = ws_users.get(&u);

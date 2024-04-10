@@ -28,7 +28,7 @@ pub async fn cleanup(rooms: Rooms, duration: Duration, no_persist: bool) {
                 }
             }
         }
-        rooms_p.retain(|id, _| expired_rooms.contains(id));
+        rooms_p.retain(|id, _| !expired_rooms.contains(id));
         // cleanup log
         info!("{} unused room(s) have been deleted", expired_rooms.len());
         info!("===========");
