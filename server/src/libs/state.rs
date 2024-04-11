@@ -10,7 +10,6 @@ use std::{
 };
 use tokio::sync::{mpsc, RwLock};
 use tokio_postgres::Client;
-use warp::ws::Message;
 use weak_table::WeakHashSet;
 
 /// current - edits that are accepted
@@ -418,7 +417,6 @@ impl Room {
 }
 
 pub type Rooms = Arc<RwLock<HashMap<Box<str>, mpsc::UnboundedSender<UserMessage>>>>;
-pub type WSUsers = Arc<RwLock<HashMap<Arc<usize>, mpsc::UnboundedSender<Message>>>>;
 pub type JwtKey = Arc<HS256Key>;
 pub type DbClient = Arc<Client>;
 pub type UserId = Arc<usize>;
