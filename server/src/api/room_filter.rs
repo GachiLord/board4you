@@ -228,14 +228,7 @@ async fn delete_room(
             });
             // check if operation was successful
             if let Ok(res) = rx.await {
-                if res {
-                    return Ok(warp::reply::with_status(
-                        json(&Reply {
-                            message: "deleted".to_string(),
-                        }),
-                        StatusCode::OK,
-                    ));
-                } else {
+                if !res {
                     return Ok(warp::reply::with_status(
                         json(&Reply {
                             message: "private_id is invalid".to_string(),
