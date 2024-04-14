@@ -4,9 +4,6 @@ use jwt_simple::prelude::*;
 use jwt_simple::{algorithms::HS256Key, claims::Claims, reexports::coarsetime::Duration};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use warp::http::header::{HeaderMap, HeaderValue, SET_COOKIE};
-use warp::reply::Response;
-use warp::Reply;
 
 // consts
 
@@ -24,30 +21,6 @@ pub struct UserData {
 }
 
 // funs
-
-/// Adds cookie headers with provided access_token and refresh_token values
-/// to the reply
-pub fn set_jwt_token_response(
-    reply: impl Reply,
-    access_token: String,
-    refresh_token: String,
-) -> Response {
-    // set cookies
-    let mut cookies = HeaderMap::new();
-    cookies.append(
-        SET_COOKIE,
-        HeaderValue::from_str(&get_access_token_cookie(access_token, None)).unwrap(),
-    );
-    cookies.append(
-        SET_COOKIE,
-        HeaderValue::from_str(&get_refresh_token_cookie(refresh_token, None)).unwrap(),
-    );
-    let mut response = reply.into_response();
-    let headers = response.headers_mut();
-    headers.extend(cookies);
-    // send cookies
-    return response;
-}
 
 /// Accepts access_token and returns cookie value with it.
 /// If max_age is None, sets it to ACCESS_TOKEN_MAX_AGE

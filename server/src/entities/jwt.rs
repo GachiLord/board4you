@@ -1,6 +1,5 @@
-use tokio_postgres::Error;
-
 use crate::libs::state::DbClient;
+use tokio_postgres::Error;
 
 pub async fn exists(client: &DbClient, token: &str) -> bool {
     let key_count = client

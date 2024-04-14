@@ -1,10 +1,7 @@
-use crate::libs::state::{Board, Room};
+use super::{get_page_query_params, Paginated};
+use crate::libs::state::{Board, DbClient, Room};
 use serde::Serialize;
 use std::error::Error;
-use std::sync::Arc;
-use tokio_postgres::Client;
-
-use super::{get_page_query_params, Paginated};
 
 pub enum SaveAction {
     Created,
@@ -22,7 +19,7 @@ pub enum SaveAction {
 /// This function will return an error if:
 /// - failed to insert new row
 /// - failed to update existing row
-pub async fn save(client: &Arc<Client>, room: &Room) -> Result<SaveAction, Box<dyn Error>> {
+pub async fn save(client: DbClient, room: &Room) -> Result<SaveAction, Box<dyn Error>> {
     let board_state = serde_json::to_value(&room.board).expect("failed to serealize room.board");
     match client
         .query(
@@ -54,7 +51,7 @@ pub async fn save(client: &Arc<Client>, room: &Room) -> Result<SaveAction, Box<d
 }
 
 pub async fn get(
-    client: &Client,
+    client: DbClient,
     public_id: &str,
 ) -> Result<(Box<str>, Board), tokio_postgres::Error> {
     let sql_res = client
@@ -77,7 +74,7 @@ pub struct BoardInfo {
 }
 
 pub async fn get_by_owner(
-    client: &Client,
+    client: DbClient,
     page: i64,
     owner_id: i32,
 ) -> Result<Paginated<Vec<BoardInfo>>, tokio_postgres::Error> {
@@ -111,7 +108,7 @@ pub async fn get_by_owner(
 }
 
 pub async fn delete(
-    client: &Client,
+    client: DbClient,
     public_id: &str,
     private_id: &str,
 ) -> Result<u64, tokio_postgres::Error> {

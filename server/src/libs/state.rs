@@ -1,4 +1,4 @@
-use super::room::UserMessage;
+use super::room::{UserChannel, UserMessage};
 use data_encoding::BASE64URL;
 use datasize::DataSize;
 use jwt_simple::algorithms::HS256Key;
@@ -10,7 +10,7 @@ use std::{
 };
 use tokio::sync::{mpsc, RwLock};
 use tokio_postgres::Client;
-use weak_table::WeakHashSet;
+use weak_table::WeakKeyHashMap;
 
 /// current - edits that are accepted
 /// undone - edits that are not accepted
@@ -386,20 +386,20 @@ pub struct Room {
     pub public_id: Box<str>,
     pub private_id: Box<str>,
     #[data_size(with = estimate_weak)]
-    pub users: WeakHashSet<Weak<usize>>,
+    pub users: WeakKeyHashMap<Weak<usize>, UserChannel>,
     pub board: Board,
     pub owner_id: Option<i32>,
 }
 
-fn estimate_weak(value: &WeakHashSet<Weak<usize>>) -> usize {
+fn estimate_weak(value: &WeakKeyHashMap<Weak<usize>, UserChannel>) -> usize {
     // We assume every item is 512 bytes in heap size.
     value.len() * size_of_val(&usize::MAX)
 }
 
 impl Room {
     /// Adds user to the room
-    pub fn add_user(&mut self, id: UserId) {
-        self.users.insert(id);
+    pub fn add_user(&mut self, id: UserId, chan: UserChannel) {
+        self.users.insert(id, chan);
     }
 
     /// Removes user from the room
@@ -418,5 +418,5 @@ impl Room {
 
 pub type Rooms = Arc<RwLock<HashMap<Box<str>, mpsc::UnboundedSender<UserMessage>>>>;
 pub type JwtKey = Arc<HS256Key>;
-pub type DbClient = Arc<Client>;
+pub type DbClient = &'static Client;
 pub type UserId = Arc<usize>;

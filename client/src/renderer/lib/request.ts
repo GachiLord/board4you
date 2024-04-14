@@ -1,5 +1,9 @@
 export class RequestBuilder {
-  public request: RequestInit = {}
+  public request: RequestInit = {
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  }
   public input: RequestInfo | URL;
 
 
@@ -43,7 +47,7 @@ export class RequestBuilder {
   }
 
   headers(headers?: HeadersInit) {
-    this.request.headers = headers
+    this.request.headers = { ...headers }
     return this
   }
 

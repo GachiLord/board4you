@@ -1,33 +1,28 @@
 // libs
-use axum::{
-    body::Body,
-    extract::State,
-    http::{Request, Response, StatusCode, Uri},
-    routing::get,
-    Router,
-};
+use axum::{routing::get, Router};
 use fast_log::config::Config;
 use jwt_simple::prelude::*;
 use lazy_static::lazy_static;
 use log::error;
-use std::{env, fs, path::PathBuf};
+use std::{env, fs, path::PathBuf, sync::atomic::AtomicUsize};
 use std::{error::Error, path::Path};
 use tokio::signal::unix::signal;
 use tokio::sync::oneshot;
 use tokio_postgres::{Client, NoTls};
-use tower::ServiceExt;
 use tower_http::services::{ServeDir, ServeFile};
 
 use libs::state::Rooms;
 use lifecycle::on_shutdown;
 use lifecycle::{cleanup, monitor};
 
+use crate::websocket::ws_handler;
+
 // modules
-//mod api;
-//mod entities;
+mod api;
+mod entities;
 mod libs;
 mod lifecycle;
-//mod websocket;
+mod websocket;
 
 // env vars
 
@@ -69,6 +64,8 @@ struct AppState {
     rooms: Rooms,
 }
 
+pub static NEXT_USER_ID: AtomicUsize = AtomicUsize::new(1);
+
 // app
 
 #[tokio::main]
@@ -102,13 +99,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     client.batch_execute(&init_sql).await?;
     // create state of the app
     let rooms = Rooms::default();
-    let state = AppState { client, rooms };
+    let state = AppState {
+        client,
+        rooms: rooms.clone(),
+    };
     // routes
     let mut routes = Router::new();
     // apis
-    // TODO
+    routes = routes.nest("/api", api::api());
     // ws route
-    // TODO
+    routes = routes.route("/ws/board/:public_id", get(ws_handler));
     // static paths
     let mut index_path = PathBuf::new();
     index_path.push(*PUBLIC_PATH);
@@ -138,20 +138,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let (tx, rx) = oneshot::channel();
     // spawn server task
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, routes.into_make_service())
+    axum::serve(listener, routes.with_state(state))
+        .with_graceful_shutdown(async { rx.await.unwrap() })
         .await
         .unwrap();
     // wait for a signal
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
-            //on_shutdown(rooms.clone()).await;
+            if !*NO_PERSIST {
+                on_shutdown(rooms.clone()).await
+            };
             tx.send(()).unwrap();
         },
         _ = stream.recv() => {
-            //on_shutdown(rooms.clone()).await;
+            if !*NO_PERSIST {
+                on_shutdown(rooms.clone()).await
+            };
             tx.send(()).unwrap();
         }
     }
-    // return ok
     Ok(())
 }

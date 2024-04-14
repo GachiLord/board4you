@@ -1,59 +1,62 @@
 use crate::entities::board::{delete, save};
 
-use super::state::{
-    BoardSize, Command, CommandName, DbClient, Edit, PullData, Room, UserId, WSUsers,
-};
+use super::state::{BoardSize, Command, CommandName, DbClient, Edit, PullData, Room};
+use axum::body::Bytes;
 use serde::Serialize;
 use std::{mem, sync::Arc};
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
     oneshot,
 };
-use warp::filters::ws::Message;
+
+pub type UserChannel = UnboundedSender<Bytes>;
+pub type RoomChannel = UnboundedSender<UserMessage>;
 
 pub enum UserMessage {
-    Join(UserId),
-    Quit(UserId),
+    Join {
+        user_id: Arc<usize>,
+        chan: UserChannel,
+    },
     SetTitle {
-        user_id: UserId,
+        user_id: Arc<usize>,
         private_id: Box<str>,
         title: Box<str>,
     },
     UndoRedo {
-        user_id: UserId,
+        user_id: Arc<usize>,
         private_id: Box<str>,
         action_type: Box<str>,
         action_id: Box<str>,
     },
     Empty {
-        user_id: UserId,
+        user_id: Arc<usize>,
         private_id: Box<str>,
         action_type: Box<str>,
     },
     Push {
-        user_id: UserId,
+        user_id: Arc<usize>,
         private_id: Box<str>,
         data: Vec<Edit>,
         silent: bool,
     },
     PushSegment {
-        user_id: UserId,
+        user_id: Arc<usize>,
         private_id: Box<str>,
         action_type: Box<str>,
         data: Box<str>,
     },
     SetSize {
-        user_id: UserId,
+        user_id: Arc<usize>,
         private_id: Box<str>,
         data: BoardSize,
     },
     Pull {
-        user_id: UserId,
+        user_id: Arc<usize>,
         current: Vec<Box<str>>,
         undone: Vec<Box<str>>,
     },
     UpdateCoEditor {
-        user_id: UserId,
+        user_id: Arc<usize>,
         private_id: Box<str>,
     },
     GetCoEditorToken {
@@ -113,54 +116,24 @@ pub enum RoomMessage<'a> {
     },
 }
 
+impl RoomMessage<'_> {
+    pub fn as_bytes(&self) -> Bytes {
+        let msg = serde_json::to_string(&self).unwrap();
+        return Bytes::from(msg);
+    }
+}
+
 pub async fn task(
     public_id: Box<str>,
     mut room: Room,
-    ws_users: &WSUsers,
-    db_client: &DbClient,
+    db_client: DbClient,
     mut message_receiver: UnboundedReceiver<UserMessage>,
 ) {
     // handle room events
     while let Some(msg) = message_receiver.recv().await {
         match msg {
-            UserMessage::Join(id) => {
-                let ws_users = ws_users.read().await;
-                if let Some(user) = ws_users.get(&id) {
-                    send_to_user(
-                        user,
-                        &RoomMessage::Info {
-                            status: "ok",
-                            action: "Join",
-                            payload: "joined",
-                        },
-                    );
-                    send_to_user(
-                        user,
-                        &RoomMessage::SizeData {
-                            data: room.board.size,
-                        },
-                    );
-                    send_to_user(
-                        user,
-                        &RoomMessage::TitleData {
-                            title: &room.board.title,
-                        },
-                    );
-                }
-                room.add_user(id);
-            }
-            UserMessage::Quit(id) => {
-                send_to_user_by_id(
-                    ws_users,
-                    &id,
-                    &RoomMessage::Info {
-                        status: "ok",
-                        action: "Quit",
-                        payload: "disconnected from the room",
-                    },
-                )
-                .await;
-                room.remove_user(id);
+            UserMessage::Join { user_id, chan } => {
+                room.add_user(user_id, chan);
             }
             UserMessage::SetTitle {
                 user_id,
@@ -169,36 +142,37 @@ pub async fn task(
             } => {
                 // skip if private_key is not valid
                 if room.private_id != private_id && room.board.co_editor_private_id != private_id {
-                    send_to_user_by_id(
-                        ws_users,
-                        &user_id,
+                    send_by_id(
+                        &room,
+                        *user_id,
                         &RoomMessage::Info {
                             status: "bad",
                             action: "SetTitle",
                             payload: "private_id is invalid",
                         },
-                    )
-                    .await;
+                    );
                     continue;
                 }
                 if title.len() > 36 {
-                    send_to_user_by_id(
-                        ws_users,
-                        &user_id,
+                    send_by_id(
+                        &room,
+                        *user_id,
                         &RoomMessage::Info {
                             status: "bad",
                             action: "SetTitle",
                             payload: "title is too long",
                         },
-                    )
-                    .await;
+                    );
                     continue;
                 }
                 // changes
                 room.board.title = title.clone();
-                let title_msg = RoomMessage::TitleData { title: &title };
                 // send changes
-                send_all_except_sender(ws_users, &room, Some(&user_id), &title_msg).await;
+                send_to_everyone(
+                    &room,
+                    Some(*user_id),
+                    &RoomMessage::TitleData { title: &title },
+                );
                 // update title in db
                 let _ = db_client
                     .execute(
@@ -215,16 +189,15 @@ pub async fn task(
             } => {
                 // skip if private_key is not valid
                 if room.private_id != private_id && room.board.co_editor_private_id != private_id {
-                    send_to_user_by_id(
-                        ws_users,
-                        &user_id,
+                    send_to_everyone(
+                        &room,
+                        Some(*user_id),
                         &RoomMessage::Info {
                             status: "bad",
                             action: "Push",
                             payload: "private_id is invalid",
                         },
-                    )
-                    .await;
+                    );
                     continue;
                 }
                 // save changes and validate data
@@ -232,36 +205,30 @@ pub async fn task(
                     for edit in data.into_iter() {
                         match room.board.push(edit) {
                             Ok(()) => (),
-                            Err(e) => {
-                                send_to_user_by_id(
-                                    ws_users,
-                                    &user_id,
-                                    &RoomMessage::Info {
-                                        status: "bad",
-                                        action: "Push",
-                                        payload: &e.to_string(),
-                                    },
-                                )
-                                .await
-                            }
+                            Err(e) => send_to_everyone(
+                                &room,
+                                Some(*user_id),
+                                &RoomMessage::Info {
+                                    status: "bad",
+                                    action: "Push",
+                                    payload: &e.to_string(),
+                                },
+                            ),
                         }
                     }
                 } else {
                     for edit in data.to_owned().into_iter() {
                         match room.board.push(edit) {
                             Ok(()) => (),
-                            Err(e) => {
-                                send_to_user_by_id(
-                                    ws_users,
-                                    &user_id,
-                                    &RoomMessage::Info {
-                                        status: "bad",
-                                        action: "Push",
-                                        payload: &e.to_string(),
-                                    },
-                                )
-                                .await
-                            }
+                            Err(e) => send_to_everyone(
+                                &room,
+                                Some(*user_id),
+                                &RoomMessage::Info {
+                                    status: "bad",
+                                    action: "Push",
+                                    payload: &e.to_string(),
+                                },
+                            ),
                         }
                     }
                     // form data
@@ -270,7 +237,7 @@ pub async fn task(
                         data: mem::take(&mut data),
                     };
                     // send
-                    send_all_except_sender(ws_users, &room, Some(&user_id), &push_data).await;
+                    send_to_everyone(&room, Some(*user_id), &push_data);
                 }
             }
             UserMessage::PushSegment {
@@ -281,29 +248,26 @@ pub async fn task(
             } => {
                 // skip if private_key is not valid
                 if room.private_id != private_id && room.board.co_editor_private_id != private_id {
-                    send_to_user_by_id(
-                        ws_users,
-                        &user_id,
+                    send_by_id(
+                        &room,
+                        *user_id,
                         &RoomMessage::Info {
                             status: "bad",
                             action: "PushSegment",
                             payload: "private_id is invalid",
                         },
-                    )
-                    .await;
+                    );
                     continue;
                 }
                 // send
-                send_all_except_sender(
-                    ws_users,
+                send_to_everyone(
                     &room,
-                    Some(&user_id),
+                    Some(*user_id),
                     &RoomMessage::PushSegmentData {
                         action_type: &action_type,
                         data: &data,
                     },
                 )
-                .await;
             }
             UserMessage::UndoRedo {
                 user_id,
@@ -313,16 +277,15 @@ pub async fn task(
             } => {
                 // skip if private_key is not valid
                 if room.private_id != private_id && room.board.co_editor_private_id != private_id {
-                    send_to_user_by_id(
-                        ws_users,
-                        &user_id,
+                    send_by_id(
+                        &room,
+                        *user_id,
                         &RoomMessage::Info {
                             status: "bad",
                             action: "UndoRedo",
                             payload: "private_id is invalid",
                         },
-                    )
-                    .await;
+                    );
                     continue;
                 }
                 // determine command name
@@ -338,30 +301,23 @@ pub async fn task(
                 });
                 // handle command result
                 match exec_command {
-                    Ok(()) => {
-                        send_all_except_sender(
-                            ws_users,
-                            &room,
-                            Some(&user_id),
-                            &RoomMessage::UndoRedoData {
-                                action_type: &action_type,
-                                action_id: &action_id,
-                            },
-                        )
-                        .await;
-                    }
-                    Err(e) => {
-                        send_to_user_by_id(
-                            ws_users,
-                            &user_id,
-                            &RoomMessage::Info {
-                                status: "bad",
-                                action: "UndoRedo",
-                                payload: e,
-                            },
-                        )
-                        .await
-                    }
+                    Ok(()) => send_to_everyone(
+                        &room,
+                        Some(*user_id),
+                        &RoomMessage::UndoRedoData {
+                            action_type: &action_type,
+                            action_id: &action_id,
+                        },
+                    ),
+                    Err(e) => send_by_id(
+                        &room,
+                        *user_id,
+                        &RoomMessage::Info {
+                            status: "bad",
+                            action: "UndoRedo",
+                            payload: e,
+                        },
+                    ),
                 }
             }
             UserMessage::Empty {
@@ -371,16 +327,15 @@ pub async fn task(
             } => {
                 // skip if private_key is not valid
                 if room.private_id != private_id && room.board.co_editor_private_id != private_id {
-                    send_to_user_by_id(
-                        ws_users,
-                        &user_id,
+                    send_by_id(
+                        &room,
+                        *user_id,
                         &RoomMessage::Info {
                             status: "bad",
                             action: "Empty",
                             payload: "private_id is invalid",
                         },
-                    )
-                    .await;
+                    );
                     continue;
                 }
                 // save changes
@@ -390,15 +345,13 @@ pub async fn task(
                     room.board.empty_undone();
                 }
                 // send
-                send_all_except_sender(
-                    ws_users,
+                send_to_everyone(
                     &room,
-                    Some(&user_id),
+                    Some(*user_id),
                     &RoomMessage::EmptyData {
                         action_type: &action_type,
                     },
                 )
-                .await;
             }
             UserMessage::SetSize {
                 user_id,
@@ -407,40 +360,32 @@ pub async fn task(
             } => {
                 // skip if private_key is not valid
                 if room.private_id != private_id && room.board.co_editor_private_id != private_id {
-                    send_to_user_by_id(
-                        ws_users,
-                        &user_id,
+                    send_by_id(
+                        &room,
+                        *user_id,
                         &RoomMessage::Info {
                             status: "bad",
                             action: "SetSize",
                             payload: "private_id is invalid",
                         },
-                    )
-                    .await;
+                    );
                     continue;
                 }
                 // update board state
                 if let Err(e) = room.board.set_size(data.height, data.width) {
                     // if size is invalid do nothing
-                    send_to_user_by_id(
-                        ws_users,
-                        &user_id,
+                    send_by_id(
+                        &room,
+                        *user_id,
                         &RoomMessage::Info {
                             status: "bad",
                             action: "SetSize",
                             payload: e.to_string().as_str(),
                         },
-                    )
-                    .await;
+                    );
                     continue;
                 }
-                send_all_except_sender(
-                    ws_users,
-                    &room,
-                    Some(&user_id),
-                    &RoomMessage::SizeData { data },
-                )
-                .await;
+                send_to_everyone(&room, Some(*user_id), &RoomMessage::SizeData { data });
             }
             UserMessage::UpdateCoEditor {
                 user_id,
@@ -448,28 +393,25 @@ pub async fn task(
             } => {
                 // skip if private_key is not valid
                 if room.private_id != private_id && room.board.co_editor_private_id != private_id {
-                    send_to_user_by_id(
-                        ws_users,
-                        &user_id,
+                    send_by_id(
+                        &room,
+                        *user_id,
                         &RoomMessage::Info {
                             status: "bad",
                             action: "UpdateCoEditor",
                             payload: "private_id is invalid",
                         },
-                    )
-                    .await;
+                    );
                     continue;
                 }
                 // update co-editor token
                 room.update_editor_private_id();
                 // send message
-                send_all_except_sender(
-                    ws_users,
+                send_to_everyone(
                     &room,
-                    Some(&user_id),
+                    Some(*user_id),
                     &RoomMessage::UpdateCoEditorData { payload: "updated" },
                 )
-                .await
             }
             UserMessage::GetUpdatedCoEditorToken { private_id, sender } => {
                 if room.private_id != private_id && room.board.co_editor_private_id != private_id {
@@ -479,13 +421,11 @@ pub async fn task(
                 // update co-editor token
                 let _ = sender.send(Ok(room.update_editor_private_id()));
                 // send message
-                send_all_except_sender(
-                    ws_users,
+                send_to_everyone(
                     &room,
                     None,
                     &RoomMessage::UpdateCoEditorData { payload: "updated" },
                 )
-                .await
             }
             UserMessage::GetCoEditorToken { private_id, sender } => {
                 if room.private_id == private_id {
@@ -503,7 +443,7 @@ pub async fn task(
                 undone,
             } => {
                 let pull_data = RoomMessage::PullData(room.board.pull(current, undone));
-                send_to_user_by_id(ws_users, &user_id, &pull_data).await;
+                send_by_id(&room, *user_id, &pull_data);
             }
             UserMessage::HasUsers(sender, no_persist) => {
                 room.users.remove_expired();
@@ -522,13 +462,7 @@ pub async fn task(
             } => {
                 if room.private_id == private_id {
                     // kick users from the room
-                    send_all_except_sender(
-                        ws_users,
-                        &room,
-                        None,
-                        &RoomMessage::QuitData { payload: "deleted" },
-                    )
-                    .await;
+                    send_to_everyone(&room, None, &RoomMessage::QuitData { payload: "deleted" });
                     let _ = delete(db_client, &public_id, &private_id);
                     let _ = deleted.send(true);
                 } else {
@@ -544,41 +478,25 @@ pub async fn task(
     }
 }
 
-pub async fn send_all_except_sender(
-    ws_users: &WSUsers,
-    room: &Room,
-    sender_id: Option<&UserId>,
-    msg: &RoomMessage<'_>,
-) {
-    let sender_is_none = sender_id.is_none();
-    let default_id = Arc::new(0);
-    let sender_id = sender_id.unwrap_or(&default_id);
-    let ws_users = ws_users.read().await;
-    let msg = serde_json::to_string(&msg).unwrap();
+pub fn send_to_everyone(room: &Room, except: Option<usize>, msg: &RoomMessage) {
+    let msg = msg.as_bytes();
 
-    room.users.iter().for_each(|u| {
-        if sender_is_none || &u != sender_id {
-            let user = ws_users.get(&u);
-            match user {
-                Some(user) => send_string_to_user(user, msg.to_owned()),
-                None => (),
-            };
+    room.users.iter().for_each(|(id, chan)| match except {
+        Some(except) => {
+            if except != *id {
+                let _ = chan.send(msg.clone());
+            }
+        }
+        None => {
+            let _ = chan.send(msg.clone());
         }
     });
 }
 
-pub fn send_string_to_user(user: &UnboundedSender<Message>, msg: String) {
-    let _ = user.send(Message::text(msg));
-}
+pub fn send_by_id(room: &Room, id: usize, msg: &RoomMessage) {
+    let msg = msg.as_bytes();
 
-pub fn send_to_user(user: &UnboundedSender<Message>, msg: &RoomMessage) {
-    let _ = user.send(Message::text(serde_json::to_string(&msg).unwrap()));
-}
-
-pub async fn send_to_user_by_id(ws_users: &WSUsers, user_id: &UserId, msg: &RoomMessage<'_>) {
-    let ws_users = ws_users.read().await;
-    match ws_users.get(user_id) {
-        Some(user) => send_to_user(user, &msg),
-        None => (),
-    };
+    if let Some(chan) = room.users.get(&id) {
+        let _ = chan.send(msg);
+    }
 }

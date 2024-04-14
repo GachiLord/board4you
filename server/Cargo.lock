@@ -877,6 +877,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "658bd65b1cf4c852a3cc96f18a8ce7b5640f6b703f905c7d74532294c2a63984"
 
 [[package]]
+name = "fastwebsockets"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ac14c1f19ff7eab47c9ee7263a088296bec2abd1f9345964c863b5134da40a1"
+dependencies = [
+ "async-trait",
+ "axum-core 0.4.3",
+ "base64 0.21.5",
+ "bytes",
+ "http 1.1.0",
+ "http-body-util",
+ "hyper 1.2.0",
+ "hyper-util",
+ "pin-project",
+ "rand",
+ "sha1",
+ "simdutf8",
+ "thiserror",
+ "tokio",
+ "utf-8",
+]
+
+[[package]]
 name = "ff"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2442,6 +2465,7 @@ dependencies = [
  "data-encoding",
  "datasize",
  "fast_log",
+ "fastwebsockets",
  "futures-util",
  "handlebars",
  "jwt-simple",
@@ -2519,6 +2543,12 @@ dependencies = [
  "digest",
  "rand_core",
 ]
+
+[[package]]
+name = "simdutf8"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f27f6278552951f1f2b8cf9da965d10969b2efdea95a6ec47987ab46edfe263a"
 
 [[package]]
 name = "siphasher"

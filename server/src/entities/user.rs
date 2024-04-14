@@ -1,14 +1,10 @@
-use crate::libs::auth::UserData;
+use crate::libs::{auth::UserData, state::DbClient};
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::{self, Display},
-    sync::Arc,
-};
-use tokio_postgres::Client;
+use std::fmt::{self, Display};
 
 // user-related structs
 pub enum ValidationError {
@@ -49,7 +45,7 @@ pub struct UserInfo {
 
 // functions
 pub async fn validate(
-    client: &Arc<Client>,
+    client: DbClient,
     user: &User,
     user_id: Option<i32>,
 ) -> Result<(), ValidationError> {
@@ -95,7 +91,7 @@ pub async fn validate(
     }
 }
 
-pub async fn create(client: &Arc<Client>, user: &User) -> Result<(), ValidationError> {
+pub async fn create(client: DbClient, user: &User) -> Result<(), ValidationError> {
     // check if fields are valid
     validate(client, user, None).await?;
     // create user
@@ -115,7 +111,7 @@ pub async fn create(client: &Arc<Client>, user: &User) -> Result<(), ValidationE
     Ok(())
 }
 
-pub async fn read(client: &Arc<Client>, owner_id: i32) -> Option<UserInfo> {
+pub async fn read(client: DbClient, owner_id: i32) -> Option<UserInfo> {
     match client
         .query_one(
             "SELECT (public_login, first_name, second_name) WHERE id = ($1)",
@@ -134,11 +130,7 @@ pub async fn read(client: &Arc<Client>, owner_id: i32) -> Option<UserInfo> {
     }
 }
 
-pub async fn update(
-    client: &Arc<Client>,
-    user: &User,
-    user_id: i32,
-) -> Result<u64, ValidationError> {
+pub async fn update(client: DbClient, user: &User, user_id: i32) -> Result<u64, ValidationError> {
     validate(client, &user, Some(user_id)).await?;
     // hash password
     let salt = SaltString::generate(&mut OsRng);
@@ -167,14 +159,14 @@ pub async fn update(
     }
 }
 
-pub async fn delete(client: &Arc<Client>, user_id: i32) -> Result<u64, tokio_postgres::Error> {
+pub async fn delete(client: DbClient, user_id: i32) -> Result<u64, tokio_postgres::Error> {
     client
         .execute("DELETE FROM users WHERE id = ($1)", &[&user_id])
         .await
 }
 
 pub async fn verify_password(
-    client: &Arc<Client>,
+    client: DbClient,
     login: &String,
     password: &String,
 ) -> Result<UserData, ()> {

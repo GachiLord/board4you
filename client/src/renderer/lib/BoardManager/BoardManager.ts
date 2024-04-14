@@ -1,6 +1,6 @@
 import {
   ArrayQueue,
-  ConstantBackoff,
+  LinearBackoff,
   ReconnectEventDetail,
   RetryEventDetail,
   Websocket,
@@ -8,7 +8,7 @@ import {
   WebsocketEvent,
 } from "websocket-ts";
 import { IHistoryState } from '../../features/history'
-import { Handlers, BoardStatus, BoardOptions, Info, TimeOutError, NoSushRoomError, RoomInfo, MessageType, BoardMessage } from './typing'
+import { Handlers, BoardStatus, BoardOptions, Info, RoomInfo, MessageType, BoardMessage } from './typing'
 import ISize from '../../base/typing/ISize'
 import store from '../../store/store'
 import { convertToEnum } from "../../board/canvas/share/convert";
@@ -25,7 +25,7 @@ export default class BoardManager {
   }
 
   constructor(options?: BoardOptions) {
-    this.url = options?.url ?? `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/board`
+    this.url = options?.url ?? `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/board`
   }
 
   #openHandler = (e: Event) => {
@@ -55,14 +55,17 @@ export default class BoardManager {
     if (this.handlers.reconnect) this.handlers.reconnect(e)
   }
 
-  async connect(): Promise<Event> {
+  async connect(roomId: string): Promise<Event> {
     return new Promise(res => {
-      this.rws = new WebsocketBuilder(this.url)
+      this.rws = new WebsocketBuilder(this.url + "/" + roomId)
         .withBuffer(new ArrayQueue())           // buffer messages when disconnected
-        .withBackoff(new ConstantBackoff(1000)) // retry every 1s
+        .withBackoff(new LinearBackoff(0, 1000, 7000)) // retry every 1s
         .build();
 
       this.rws.addEventListener(WebsocketEvent.open, (_, e) => {
+        // add status
+        this.status.roomId = roomId
+        this.status.connected = true
         this.#openHandler(e)
         res(e)
       })
@@ -89,33 +92,6 @@ export default class BoardManager {
     this.rws.removeEventListener(WebsocketEvent.reconnect, this.#recconectHandler)
     // close connection
     this.rws.close()
-  }
-
-  joinRoom(roomId: string): Promise<Info> {
-    return new Promise((res, rej) => {
-      // set connection timeout
-      const timeout = setTimeout(() => {
-        rej(new TimeOutError('connection timeout', 10000))
-      }, 10000)
-      // set connection waiter
-      const waiter = (_: unknown, e: MessageEvent<string>) => {
-        const response = JSON.parse(e.data)
-        if (response.Info && response.Info.status === "ok" && response.Info.action === 'Join') {
-          // add status
-          this.status.roomId = roomId
-          // clear listeners
-          clearTimeout(timeout)
-          this.rws?.removeEventListener(WebsocketEvent.message, waiter)
-          res(response.Info)
-        }
-        else if (response.Info && response.Info.status === "bad" && response.Info.action === 'Join') {
-          rej(new NoSushRoomError(undefined, roomId))
-        }
-      }
-      this.rws?.addEventListener(WebsocketEvent.message, waiter)
-      // do request
-      this.send('Join', { public_id: roomId })
-    })
   }
 
   quitRoom(roomId: string) {
