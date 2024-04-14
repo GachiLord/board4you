@@ -106,29 +106,32 @@ lazy_static! {
 async fn create_room(client: &Client) -> RoomData {
     let body = fs::read_to_string("./src/stress_test/create_room.json")
         .expect("this bin should be run from 'server' folder");
-    client
+    let res = client
         .post("http://localhost:3000/api/room")
+        .header("content-type", "application/json")
         .body(body)
         .send()
         .await
-        .unwrap()
-        .json::<RoomData>()
-        .await
-        .unwrap()
+        .unwrap();
+    //dbg!(&res);
+    res.json::<RoomData>().await.unwrap()
 }
 
 async fn editor_task(msgs: &Messages, room_data: &StaticRoomData) {
     // connect to the socket
-    let (ws_stream, _) = connect_async("ws://localhost:3000/board").await.expect(
+    let (ws_stream, _) = connect_async(format!(
+        "ws://localhost:3000/ws/board/{}",
+        room_data.get("public_id").unwrap()
+    ))
+    .await
+    .expect(
         "Failed to connect. Make sure your socket limit let you create desired amount of rooms.",
     );
     let (mut write, mut read) = ws_stream.split();
-    // send join message
-    let _ = write.send(Message::Text(msgs.join(room_data))).await;
-    // wait for joining the room
-    let _ = read.next().await;
     // send pull message
     let _ = write.send(Message::Text(msgs.pull(room_data))).await;
+    // wait for PullData
+    let _ = read.next().await;
     // send a new shape periodically
     loop {
         // TODO: This part is currently disabled due to the ineffective way used to send websocket messages.
@@ -153,7 +156,7 @@ async fn editor_task(msgs: &Messages, room_data: &StaticRoomData) {
         // send a push
         let _ = write.send(Message::Text(msgs.push(room_data))).await;
         // await a second
-        time::sleep(time::Duration::from_secs(1)).await;
+        time::sleep(time::Duration::from_secs(3)).await;
     }
 }
 

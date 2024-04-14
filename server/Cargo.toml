@@ -14,6 +14,9 @@ path = "src/main.rs"
 name = "stress-test"
 path = "src/stress_test/main.rs"
 
+[profile.release-with-debug]
+inherits = "release"
+debug = true
 
 [dependencies]
 tower = "*"
