@@ -8,6 +8,7 @@ use axum::{
 };
 use data_encoding::BASE64URL;
 use jwt_simple::algorithms::HS256Key;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc::unbounded_channel, oneshot};
 use uuid::Uuid;
@@ -22,7 +23,7 @@ use crate::{
     AppState,
 };
 
-use super::common::generate_res;
+use super::common::{generate_res, UserDataFromJWT};
 
 const ROOM_INITIAL_LIMIT: usize = 1024 * 1024 * 10;
 
@@ -50,6 +51,7 @@ struct RoomCredentials {
 
 async fn create_room(
     State(state): State<AppState>,
+    UserDataFromJWT(user_data): UserDataFromJWT,
     Json(room): Json<RoomInitials>,
     //user_data: Option<UserData>,
 ) -> (StatusCode, Json<RoomCredentials>) {
@@ -61,12 +63,15 @@ async fn create_room(
     let co_editor_private_id =
         (BASE64URL.encode(&HS256Key::generate().to_bytes()) + "_co_editor").into_boxed_str();
     // owner info
-    let owner_id: Option<i32> = None;
-    // TODO: add owner if user is authed
-    //
-    //if let Some(data) = user_data {
-    //    owner_id = Some(data.id)
-    //}
+    let mut owner_id: Option<i32> = None;
+    //add owner if user is authed
+    if let Some(data) = user_data {
+        owner_id = Some(data.id);
+        debug!(
+            "user with public_login '{}' has just created a room",
+            data.public_login
+        );
+    }
     // create Room instance
     let room = Room {
         public_id: public_id.to_owned(),

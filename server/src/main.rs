@@ -11,11 +11,10 @@ use tokio::sync::oneshot;
 use tokio_postgres::{Client, NoTls};
 use tower_http::services::{ServeDir, ServeFile};
 
+use crate::websocket::ws_handler;
 use libs::state::Rooms;
 use lifecycle::on_shutdown;
 use lifecycle::{cleanup, monitor};
-
-use crate::websocket::ws_handler;
 
 // modules
 mod api;
@@ -106,7 +105,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // routes
     let mut routes = Router::new();
     // apis
-    routes = routes.nest("/api", api::api());
+    routes = routes.nest("/api", api::api(state.clone()));
     // ws route
     routes = routes.route("/ws/board/:public_id", get(ws_handler));
     // static paths

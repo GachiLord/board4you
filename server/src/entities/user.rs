@@ -5,6 +5,7 @@ use argon2::{
 };
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
+use tokio::sync::oneshot;
 
 // user-related structs
 pub enum ValidationError {
@@ -168,7 +169,7 @@ pub async fn delete(client: DbClient, user_id: i32) -> Result<u64, tokio_postgre
 pub async fn verify_password(
     client: DbClient,
     login: &String,
-    password: &String,
+    password: String,
 ) -> Result<UserData, ()> {
     let argon2 = Argon2::default();
     let err = Err(());
@@ -181,14 +182,20 @@ pub async fn verify_password(
     }
     let user = user.unwrap();
     let hash: String = user.get("password");
-    let parsed_hash = PasswordHash::new(&hash);
-    // check if paresed_hash is ok
-    if parsed_hash.is_err() {
-        return err;
-    }
-    // verify hash
-    let verify_result = argon2.verify_password(password.as_bytes(), &parsed_hash.unwrap());
-    if verify_result.is_ok() {
+    // verify hash in separate task to prevent blocking of async tasks
+    let (tx, rx) = oneshot::channel();
+    tokio::task::spawn_blocking(move || {
+        let parsed_hash = match PasswordHash::new(&hash) {
+            Ok(h) => h,
+            Err(_) => {
+                let _ = tx.send(false);
+                return;
+            }
+        };
+        let verify_result = argon2.verify_password(password.as_bytes(), &parsed_hash);
+        let _ = tx.send(verify_result.is_ok());
+    });
+    if rx.await.unwrap() {
         return Ok(UserData {
             id: user.get("id"),
             login: user.get("login"),
