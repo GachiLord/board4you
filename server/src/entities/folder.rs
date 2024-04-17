@@ -29,8 +29,8 @@ pub struct FolderInfo {
 }
 
 pub async fn create(
-    db_client: &DbClient,
-    title: String,
+    db_client: DbClient,
+    title: &str,
     owner_id: i32,
 ) -> Result<Uuid, tokio_postgres::Error> {
     // create a folder
@@ -45,11 +45,7 @@ pub async fn create(
     Ok(public_id)
 }
 
-pub async fn read(
-    db_client: &DbClient,
-    public_id: String,
-    owner_id: Option<i32>,
-) -> Option<Folder> {
+pub async fn read(db_client: DbClient, public_id: &str, owner_id: Option<i32>) -> Option<Folder> {
     // get folder
     match db_client
         .query_one(
@@ -105,7 +101,7 @@ pub struct FolderShortInfo {
 }
 
 pub async fn read_list_by_owner(
-    db_client: &DbClient,
+    db_client: DbClient,
     page: i64,
     owner_id: i32,
 ) -> Paginated<Vec<FolderShortInfo>> {
@@ -148,7 +144,7 @@ pub async fn read_list_by_owner(
     }
 }
 
-pub async fn is_owned_by_public_id(db_client: &DbClient, public_id: String, owner_id: i32) -> bool {
+pub async fn is_owned_by_public_id(db_client: DbClient, public_id: &str, owner_id: i32) -> bool {
     match db_client
         .query_one(
             "SELECT owner_id FROM folders WHERE public_id = ($1)",
@@ -161,7 +157,7 @@ pub async fn is_owned_by_public_id(db_client: &DbClient, public_id: String, owne
     }
 }
 
-pub async fn update(db_client: &DbClient, folder: FolderInfo) -> Result<(), tokio_postgres::Error> {
+pub async fn update(db_client: DbClient, folder: FolderInfo) -> Result<(), tokio_postgres::Error> {
     let db_folder = db_client
         .query_one(
             "SELECT id, title FROM folders WHERE public_id = ($1)",
@@ -232,7 +228,7 @@ pub async fn update(db_client: &DbClient, folder: FolderInfo) -> Result<(), toki
     Ok(())
 }
 
-pub async fn delete(db_client: &DbClient, public_id: String) -> Result<u64, tokio_postgres::Error> {
+pub async fn delete(db_client: DbClient, public_id: &str) -> Result<u64, tokio_postgres::Error> {
     db_client
         .execute("DELETE FROM folders WHERE public_id = ($1)", &[&public_id])
         .await
