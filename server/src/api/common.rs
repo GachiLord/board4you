@@ -1,7 +1,7 @@
 use crate::libs::auth::{
-    get_jwt_cookies, get_jwt_tokens_from_refresh, retrive_user_data_from_parts,
-    verify_access_token, verify_refresh_token, UserData, ACCESS_TOKEN_COOKIE_NAME,
-    REFRESH_TOKEN_COOKIE_NAME,
+    get_jwt_cookies, get_jwt_tokens_from_refresh, retrive_jwt_cookies,
+    retrive_user_data_from_parts, verify_access_token, verify_refresh_token, UserData,
+    ACCESS_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_NAME,
 };
 use crate::AppState;
 use axum::async_trait;
@@ -15,7 +15,6 @@ use axum::http::{
     response, StatusCode,
 };
 use axum::middleware::Next;
-use cookie::Cookie;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use tokio_postgres::Client;
@@ -149,22 +148,7 @@ pub async fn process_jwt(
     // get request cookie header
     let request_cookies = headers.get(COOKIE);
     if has_tokens == false && request_cookies.is_some() {
-        let cookies = match request_cookies.unwrap().to_str() {
-            Ok(s) => s,
-            Err(_) => return response,
-        };
-        // check if user has valid jwt_tokens
-        let mut access_token = None;
-        let mut refresh_token = None;
-        for c in Cookie::split_parse(cookies).into_iter() {
-            if let Ok(c) = c {
-                match c.name() {
-                    ACCESS_TOKEN_COOKIE_NAME => access_token = Some(c),
-                    REFRESH_TOKEN_COOKIE_NAME => refresh_token = Some(c),
-                    _ => return response,
-                }
-            }
-        }
+        let (access_token, refresh_token) = retrive_jwt_cookies(request_cookies.unwrap());
         // if access_token is ok, just return the response
         if let Some(c) = access_token {
             if let Ok(_) = verify_access_token(c.value()) {

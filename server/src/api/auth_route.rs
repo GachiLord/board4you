@@ -21,8 +21,8 @@ pub fn router() -> Router<AppState> {
 
 #[derive(Deserialize)]
 struct Credentials {
-    login: String,
-    password: String,
+    login: Box<str>,
+    password: Box<str>,
 }
 
 async fn login(

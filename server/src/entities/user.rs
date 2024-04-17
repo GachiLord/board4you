@@ -37,7 +37,7 @@ pub struct User {
     pub second_name: String,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct UserInfo {
     pub public_login: String,
     pub first_name: String,
@@ -131,6 +131,23 @@ pub async fn read(client: DbClient, owner_id: i32) -> Option<UserInfo> {
     }
 }
 
+pub async fn read_by_public_login(
+    client: DbClient,
+    public_login: &str,
+) -> Result<UserInfo, tokio_postgres::Error> {
+    let row = client
+        .query_one(
+            "SELECT public_login, first_name, second_name FROM users WHERE public_login=($1)",
+            &[&public_login],
+        )
+        .await?;
+    Ok(UserInfo {
+        public_login: row.get::<&str, String>("public_login"),
+        first_name: row.get::<&str, String>("first_name"),
+        second_name: row.get::<&str, String>("second_name"),
+    })
+}
+
 pub async fn update(client: DbClient, user: &User, user_id: i32) -> Result<u64, ValidationError> {
     validate(client, &user, Some(user_id)).await?;
     // hash password
@@ -168,8 +185,8 @@ pub async fn delete(client: DbClient, user_id: i32) -> Result<u64, tokio_postgre
 
 pub async fn verify_password(
     client: DbClient,
-    login: &String,
-    password: String,
+    login: &str,
+    password: Box<str>,
 ) -> Result<UserData, ()> {
     let argon2 = Argon2::default();
     let err = Err(());
@@ -181,7 +198,7 @@ pub async fn verify_password(
         return err;
     }
     let user = user.unwrap();
-    let hash: String = user.get("password");
+    let hash: Box<str> = user.get("password");
     // verify hash in separate task to prevent blocking of async tasks
     let (tx, rx) = oneshot::channel();
     tokio::task::spawn_blocking(move || {

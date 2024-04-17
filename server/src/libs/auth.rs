@@ -27,26 +27,34 @@ pub struct UserData {
 
 // funs
 
-pub async fn retrive_user_data_from_parts(client: DbClient, parts: &mut Parts) -> Option<UserData> {
-    // parse cookie header
+pub fn retrive_jwt_cookies<'a>(
+    cookie_header: &'a HeaderValue,
+) -> (Option<Cookie<'a>>, Option<Cookie<'a>>) {
     let mut access_token = None;
     let mut refresh_token = None;
-    let cookies = match parts.headers.get(COOKIE) {
-        Some(s) => match s.to_str() {
-            Ok(s) => s,
-            Err(_) => return None,
-        },
-        None => return None,
+    let cookies = match cookie_header.to_str() {
+        Ok(s) => s,
+        Err(_) => return (None, None),
     };
     for c in Cookie::split_parse(cookies).into_iter() {
         if let Ok(c) = c {
             match c.name() {
                 ACCESS_TOKEN_COOKIE_NAME => access_token = Some(c),
                 REFRESH_TOKEN_COOKIE_NAME => refresh_token = Some(c),
-                _ => return None,
+                _ => return (None, None),
             }
         }
     }
+    return (access_token, refresh_token);
+}
+
+pub async fn retrive_user_data_from_parts(client: DbClient, parts: &mut Parts) -> Option<UserData> {
+    // parse cookie header
+    let cookie = match parts.headers.get(COOKIE) {
+        Some(c) => c,
+        None => return None,
+    };
+    let (access_token, refresh_token) = retrive_jwt_cookies(cookie);
 
     if let Some(s) = access_token {
         if let Ok(user_data) = verify_access_token(s.value()) {
