@@ -11,7 +11,7 @@ use axum::http::request::Parts;
 use axum::http::HeaderMap;
 use axum::http::{
     self,
-    header::{COOKIE, SET_COOKIE},
+    header::{CONTENT_TYPE, COOKIE, SET_COOKIE},
     response, StatusCode,
 };
 use axum::middleware::Next;
@@ -29,6 +29,14 @@ const INTERNAL_SERVER_ERROR_MSG: &'static str = "unexpected server error";
 const FORBIDDEN_MSG: &'static str = "insufficient rights to perform this action";
 
 // response generator
+
+pub fn generate_res_json(msg: impl Serialize) -> http::Response<Body> {
+    http::Response::builder()
+        .status(StatusCode::OK)
+        .header(CONTENT_TYPE, "application/json")
+        .body(Body::from(serde_json::to_string(&msg).unwrap()))
+        .unwrap()
+}
 
 pub fn generate_res(code: StatusCode, msg: Option<&str>) -> http::Response<Body> {
     let reply_message;
@@ -165,15 +173,16 @@ pub async fn process_jwt(
         }
         // otherwise try to update the tokens and add them to the response
         if let Some(c) = refresh_token {
-            if let Ok(_) = verify_refresh_token(state.client, c.value()).await {
-                match get_jwt_tokens_from_refresh(state.client, c.value()).await {
+            match verify_refresh_token(state.client, c.value()).await {
+                Ok(_) => match get_jwt_tokens_from_refresh(state.client, c.value()).await {
                     Ok((a_t, r_t, _)) => {
                         let (a_t, r_t) = get_jwt_cookies(&a_t, &r_t, None);
-                        response_headers.append(ACCESS_TOKEN_COOKIE_NAME, a_t);
-                        response_headers.append(REFRESH_TOKEN_COOKIE_NAME, r_t);
+                        response_headers.append(SET_COOKIE, a_t);
+                        response_headers.append(SET_COOKIE, r_t);
                     }
                     Err(_) => {}
-                }
+                },
+                Err(_) => {}
             }
         }
     }

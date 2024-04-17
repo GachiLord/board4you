@@ -1,6 +1,6 @@
 use super::{get_page_query_params, Paginated};
 use crate::libs::state::{Board, DbClient, Room};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 
 pub enum SaveAction {
@@ -118,4 +118,31 @@ pub async fn delete(
             &[&public_id, &private_id],
         )
         .await
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct RoomCredentials {
+    pub public_id: Box<str>,
+    pub private_id: Box<str>,
+}
+
+pub async fn get_private_ids(
+    client: DbClient,
+    owner_id: i32,
+) -> Result<Vec<RoomCredentials>, tokio_postgres::Error> {
+    let res = client
+        .query(
+            "SELECT private_id, public_id FROM boards WHERE owner_id=($1)",
+            &[&owner_id],
+        )
+        .await?
+        .iter()
+        .map(|row| {
+            return RoomCredentials {
+                public_id: row.get("public_id"),
+                private_id: row.get("private_id"),
+            };
+        })
+        .collect::<Vec<RoomCredentials>>();
+    Ok(res)
 }
