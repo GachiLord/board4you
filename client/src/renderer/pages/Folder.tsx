@@ -64,8 +64,8 @@ export default function Folder() {
     const folderInfo: FolderInfo = {
       public_id: folderQuery.data.public_id,
       title,
-      add_board_ids: contents.filter(b => !folderQuery.data.contents.includes(b)).map(b => b.id),
-      remove_board_ids: folderQuery.data.contents.filter(b => !contents.includes(b)).map(b => b.id)
+      add_board_ids: contents.filter(b => !folderQuery.data.contents.map(c => c.id).includes(b.id)).map(b => b.id),
+      remove_board_ids: folderQuery.data.contents.filter(b => !contents.map(c => c.id).includes(b.id)).map(b => b.id)
     }
     setLoading(true)
     request('folder').patch().body(folderInfo).finally(() => setLoading(false))
