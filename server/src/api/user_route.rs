@@ -9,7 +9,7 @@ use axum::{
     routing::{delete, get, post, put},
     Json, Router,
 };
-use log::debug;
+use log::error;
 use serde::{Deserialize, Serialize};
 
 use super::common::{generate_res, generate_res_json, UserDataFromJWT};
@@ -100,7 +100,7 @@ async fn update_user(
                     .unwrap();
             }
             Err(e) => {
-                debug!("connot expire a token: {e}");
+                error!("connot expire a token: {e}");
                 return generate_res(StatusCode::INTERNAL_SERVER_ERROR, None);
             }
         },
