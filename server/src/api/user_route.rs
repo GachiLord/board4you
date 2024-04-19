@@ -9,6 +9,7 @@ use axum::{
     routing::{delete, get, post, put},
     Json, Router,
 };
+use log::debug;
 use serde::{Deserialize, Serialize};
 
 use super::common::{generate_res, generate_res_json, UserDataFromJWT};
@@ -71,15 +72,13 @@ async fn update_user(
     let (_, refresh_token) = retrive_jwt_cookies(cookie);
     // get client
     let client = state.pool.get().await;
+    // verify password to decide whether we expire the token or not
+    if let Err(_) = user::verify_password(&client, &update_data.login, update_data.password).await {
+        return generate_res(StatusCode::BAD_REQUEST, Some("wrong password"));
+    }
     match refresh_token {
         Some(token) => match expire_refresh_token(&client, &token.value()).await {
             Ok(user) => {
-                // varify password
-                if let Err(_) =
-                    user::verify_password(&client, &update_data.login, update_data.password).await
-                {
-                    return generate_res(StatusCode::BAD_REQUEST, Some("wrong password"));
-                }
                 // update user
                 if let Err(e) = user::update(&client, &update_data.user, user.id).await {
                     return generate_res(StatusCode::BAD_REQUEST, Some(&e.to_string()));
@@ -100,7 +99,8 @@ async fn update_user(
                     .body(Body::from("updated"))
                     .unwrap();
             }
-            Err(_) => {
+            Err(e) => {
+                debug!("connot expire a token: {e}");
                 return generate_res(StatusCode::INTERNAL_SERVER_ERROR, None);
             }
         },

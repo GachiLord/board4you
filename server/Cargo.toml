@@ -46,6 +46,7 @@ console-subscriber = "0.2.0"
 cookie = "0.18.1"
 bb8 = "0.8.3"
 bb8-postgres = "0.8.1"
+anyhow = "1.0.82"
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
 
