@@ -16,6 +16,45 @@ Board4you is a whiteboard app built with Electron, warp, React, Redux Toolkit, r
 - rust - to run app in dev mode
 - Docker compose - to run app in a container
 
+
+## Deployment
+
+Clone repository:
+```bash
+git clone https://github.com/GachiLord/board4you
+cd board4you
+```
+Create database password(filename: "db_password.txt") and jwt secret(filename: "jwt_secret.txt") files inside board4you/secrets.
+They should be strong, possibly random values and of great length.
+
+Start the app locally by this command:
+```bash
+docker compose up db web -d
+```
+It will launch database and app's server.
+
+Deploying Board4you publicly requires you to use some proxy, e.g. Nginx.
+You should configure your proxy like this:
+```bash
+# <public route> => <local address>
+/ => http://localhost:3000 # Http server
+/ws/board => http://localhost:3000/ws/board # WebSocket server
+```
+
+### Configuration
+
+Board4you is configureted by changing docker-compose.yml.
+Typically you will need to edit web service in the compose file(environment section).
+Here is a list of environment variables changing the app's behaviour and their default values:
+```bash
+export DB_PORT=5432 # database's port
+export DB_HOST=localhost # database's host
+export DB_USER=board4you # database's user
+export CLEANUP_INTERVAL_MINUTES=30 # this value is used in the cleanup task, that deletes unused rooms from RAM and saves them into database
+export MONITOR_INTERVAL_MINUTES=1 # this value is used in the monitor task, that logs information about the server
+export NO_PERSIST=1 # if set to 1, rooms in RAM will not be saved into database
+```
+
 ## Development
 
 ```bash
