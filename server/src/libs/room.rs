@@ -126,7 +126,7 @@ impl RoomMessage<'_> {
 pub async fn task(
     public_id: Box<str>,
     mut room: Room,
-    db_client: DbClient,
+    db_client: DbClient<'_>,
     mut message_receiver: UnboundedReceiver<UserMessage>,
 ) {
     // handle room events
@@ -463,7 +463,7 @@ pub async fn task(
                 if room.private_id == private_id {
                     // kick users from the room
                     send_to_everyone(&room, None, &RoomMessage::QuitData { payload: "deleted" });
-                    let _ = delete(db_client, &public_id, &private_id);
+                    let _ = delete(&db_client, &public_id, &private_id);
                     let _ = deleted.send(true);
                 } else {
                     let _ = deleted.send(false);

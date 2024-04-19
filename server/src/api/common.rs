@@ -3,7 +3,7 @@ use crate::libs::auth::{
     retrive_user_data_from_parts, verify_access_token, verify_refresh_token, UserData,
     ACCESS_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_NAME,
 };
-use crate::AppState;
+use crate::{AppState, PoolWrapper};
 use axum::async_trait;
 use axum::body::Body;
 use axum::extract::{FromRef, FromRequestParts, Request, State};
@@ -16,8 +16,6 @@ use axum::http::{
 };
 use axum::middleware::Next;
 use serde::{Deserialize, Serialize};
-use std::convert::Infallible;
-use tokio_postgres::Client;
 
 // constants
 
@@ -101,26 +99,24 @@ where
     JwtState: FromRef<S>,
     S: Send + Sync,
 {
-    type Rejection = Infallible;
+    type Rejection = (StatusCode, &'static str);
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let state = JwtState::from_ref(state);
         return Ok(Self(
-            retrive_user_data_from_parts(state.client, parts).await,
+            retrive_user_data_from_parts(&state.pool.get().await, parts).await,
         ));
     }
 }
 
 // the state your library needs
 struct JwtState {
-    client: &'static Client,
+    pool: &'static PoolWrapper,
 }
 
 impl FromRef<AppState> for JwtState {
     fn from_ref(input: &AppState) -> Self {
-        Self {
-            client: input.client,
-        }
+        Self { pool: &input.pool }
     }
 }
 /// This functinon accepts the response and returns it with updated jwt_tokens
@@ -155,10 +151,12 @@ pub async fn process_jwt(
                 return response;
             }
         }
+        // get client
+        let client = state.pool.get().await;
         // otherwise try to update the tokens and add them to the response
         if let Some(c) = refresh_token {
-            match verify_refresh_token(state.client, c.value()).await {
-                Ok(_) => match get_jwt_tokens_from_refresh(state.client, c.value()).await {
+            match verify_refresh_token(&client, c.value()).await {
+                Ok(_) => match get_jwt_tokens_from_refresh(&client, c.value()).await {
                     Ok((a_t, r_t, _)) => {
                         let (a_t, r_t) = get_jwt_cookies(&a_t, &r_t, None);
                         response_headers.append(SET_COOKIE, a_t);

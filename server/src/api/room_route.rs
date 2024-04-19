@@ -93,15 +93,17 @@ async fn create_room(
         },
         owner_id,
     };
+    // get client
+    let client = state.pool.get().await;
     // save board to db if user is authed
     if let Some(_) = owner_id {
-        let _ = save(state.client, &room).await;
+        let _ = save(&client, &room).await;
     }
     // update rooms
     let (tx, rx) = unbounded_channel();
     let public_id_c = public_id.clone();
     tokio::spawn(async move {
-        task(public_id_c, room, state.client, rx).await;
+        task(public_id_c, room, client, rx).await;
     });
     state.rooms.write().await.insert(public_id.to_owned(), tx);
     // response
@@ -121,7 +123,7 @@ async fn read_own_list(
 ) -> Response {
     match user_data {
         Some(user) => {
-            let list = get_by_owner(state.client, page as i64, user.id)
+            let list = get_by_owner(&state.pool.get().await, page as i64, user.id)
                 .await
                 .unwrap_or(Paginated {
                     content: vec![],
@@ -139,6 +141,8 @@ async fn delete_room(
     State(state): State<AppState>,
     Json(room_info): Json<RoomCredentials>,
 ) -> Response {
+    // get client
+    let client = state.pool.get().await;
     // prepare room for delete
     let mut rooms = state.rooms.write().await;
     match rooms.get_mut(&room_info.public_id) {
@@ -167,7 +171,7 @@ async fn delete_room(
         None => {
             // if there is no room in the global state, delete it from db
             if let Err(_) =
-                board::delete(state.client, &room_info.public_id, &room_info.private_id).await
+                board::delete(&client, &room_info.public_id, &room_info.private_id).await
             {
                 return generate_res(StatusCode::NOT_FOUND, Some("no such room"));
             }
@@ -176,7 +180,7 @@ async fn delete_room(
     // delete room from global state
     rooms.remove(&room_info.public_id);
     // delete room from db
-    let _ = board::delete(state.client, &room_info.public_id, &room_info.private_id).await;
+    let _ = board::delete(&client, &room_info.public_id, &room_info.private_id).await;
     // send response
     return generate_res(StatusCode::OK, Some("deleted"));
 }
@@ -186,7 +190,7 @@ async fn get_private_ids(
     UserDataFromJWT(user_data): UserDataFromJWT,
 ) -> Response {
     match user_data {
-        Some(user) => match board::get_private_ids(state.client, user.id).await {
+        Some(user) => match board::get_private_ids(&state.pool.get().await, user.id).await {
             Ok(ids) => return generate_res_json(ids),
             Err(_) => return generate_res(StatusCode::INTERNAL_SERVER_ERROR, None),
         },

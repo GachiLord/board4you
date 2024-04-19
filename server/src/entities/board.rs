@@ -19,7 +19,7 @@ pub enum SaveAction {
 /// This function will return an error if:
 /// - failed to insert new row
 /// - failed to update existing row
-pub async fn save(client: DbClient, room: &Room) -> Result<SaveAction, Box<dyn Error>> {
+pub async fn save(client: &DbClient<'_>, room: &Room) -> Result<SaveAction, Box<dyn Error>> {
     let board_state = serde_json::to_value(&room.board).expect("failed to serealize room.board");
     match client
         .query(
@@ -51,7 +51,7 @@ pub async fn save(client: DbClient, room: &Room) -> Result<SaveAction, Box<dyn E
 }
 
 pub async fn get(
-    client: DbClient,
+    client: &DbClient<'_>,
     public_id: &str,
 ) -> Result<(Box<str>, Board), tokio_postgres::Error> {
     let sql_res = client
@@ -74,7 +74,7 @@ pub struct BoardInfo {
 }
 
 pub async fn get_by_owner(
-    client: DbClient,
+    client: &DbClient<'_>,
     page: i64,
     owner_id: i32,
 ) -> Result<Paginated<Vec<BoardInfo>>, tokio_postgres::Error> {
@@ -108,7 +108,7 @@ pub async fn get_by_owner(
 }
 
 pub async fn delete(
-    client: DbClient,
+    client: &DbClient<'_>,
     public_id: &str,
     private_id: &str,
 ) -> Result<u64, tokio_postgres::Error> {
@@ -127,7 +127,7 @@ pub struct RoomCredentials {
 }
 
 pub async fn get_private_ids(
-    client: DbClient,
+    client: &DbClient<'_>,
     owner_id: i32,
 ) -> Result<Vec<RoomCredentials>, tokio_postgres::Error> {
     let res = client

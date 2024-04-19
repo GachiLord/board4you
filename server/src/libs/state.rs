@@ -1,4 +1,6 @@
 use super::room::{UserChannel, UserMessage};
+use bb8::PooledConnection;
+use bb8_postgres::PostgresConnectionManager;
 use data_encoding::BASE64URL;
 use datasize::DataSize;
 use jwt_simple::algorithms::HS256Key;
@@ -9,7 +11,7 @@ use std::{
     sync::{Arc, Weak},
 };
 use tokio::sync::{mpsc, RwLock};
-use tokio_postgres::Client;
+use tokio_postgres::NoTls;
 use weak_table::WeakKeyHashMap;
 
 /// current - edits that are accepted
@@ -418,5 +420,5 @@ impl Room {
 
 pub type Rooms = Arc<RwLock<HashMap<Box<str>, mpsc::UnboundedSender<UserMessage>>>>;
 pub type JwtKey = Arc<HS256Key>;
-pub type DbClient = &'static Client;
+pub type DbClient<'a> = PooledConnection<'static, PostgresConnectionManager<NoTls>>;
 pub type UserId = Arc<usize>;

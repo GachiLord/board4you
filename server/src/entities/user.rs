@@ -46,7 +46,7 @@ pub struct UserInfo {
 
 // functions
 pub async fn validate(
-    client: DbClient,
+    client: &DbClient<'_>,
     user: &User,
     user_id: Option<i32>,
 ) -> Result<(), ValidationError> {
@@ -92,7 +92,7 @@ pub async fn validate(
     }
 }
 
-pub async fn create(client: DbClient, user: &User) -> Result<(), ValidationError> {
+pub async fn create(client: &DbClient<'_>, user: &User) -> Result<(), ValidationError> {
     // check if fields are valid
     validate(client, user, None).await?;
     // create user
@@ -112,7 +112,7 @@ pub async fn create(client: DbClient, user: &User) -> Result<(), ValidationError
     Ok(())
 }
 
-pub async fn read(client: DbClient, owner_id: i32) -> Option<UserInfo> {
+pub async fn read(client: &DbClient<'_>, owner_id: i32) -> Option<UserInfo> {
     match client
         .query_one(
             "SELECT (public_login, first_name, second_name) WHERE id = ($1)",
@@ -132,7 +132,7 @@ pub async fn read(client: DbClient, owner_id: i32) -> Option<UserInfo> {
 }
 
 pub async fn read_by_public_login(
-    client: DbClient,
+    client: &DbClient<'_>,
     public_login: &str,
 ) -> Result<UserInfo, tokio_postgres::Error> {
     let row = client
@@ -148,7 +148,11 @@ pub async fn read_by_public_login(
     })
 }
 
-pub async fn update(client: DbClient, user: &User, user_id: i32) -> Result<u64, ValidationError> {
+pub async fn update(
+    client: &DbClient<'_>,
+    user: &User,
+    user_id: i32,
+) -> Result<u64, ValidationError> {
     validate(client, &user, Some(user_id)).await?;
     // hash password
     let salt = SaltString::generate(&mut OsRng);
@@ -177,14 +181,14 @@ pub async fn update(client: DbClient, user: &User, user_id: i32) -> Result<u64, 
     }
 }
 
-pub async fn delete(client: DbClient, user_id: i32) -> Result<u64, tokio_postgres::Error> {
+pub async fn delete(client: &DbClient<'_>, user_id: i32) -> Result<u64, tokio_postgres::Error> {
     client
         .execute("DELETE FROM users WHERE id = ($1)", &[&user_id])
         .await
 }
 
 pub async fn verify_password(
-    client: DbClient,
+    client: &DbClient<'_>,
     login: &str,
     password: Box<str>,
 ) -> Result<UserData, ()> {

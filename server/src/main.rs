@@ -1,5 +1,7 @@
 // libs
 use axum::{routing::get, Router};
+use bb8::{Pool, RunError};
+use bb8_postgres::PostgresConnectionManager;
 use fast_log::config::Config;
 use jwt_simple::prelude::*;
 use lazy_static::lazy_static;
@@ -8,11 +10,11 @@ use std::{env, fs, path::PathBuf, sync::atomic::AtomicUsize};
 use std::{error::Error, path::Path};
 use tokio::signal::unix::signal;
 use tokio::sync::oneshot;
-use tokio_postgres::{Client, NoTls};
+use tokio_postgres::NoTls;
 use tower_http::services::{ServeDir, ServeFile};
 
 use crate::websocket::ws_handler;
-use libs::state::Rooms;
+use libs::state::{DbClient, Rooms};
 use lifecycle::on_shutdown;
 use lifecycle::{cleanup, monitor};
 
@@ -58,8 +60,37 @@ lazy_static! {
 // app state
 
 #[derive(Clone)]
+pub struct PoolWrapper {
+    inner: &'static Pool<PostgresConnectionManager<NoTls>>,
+}
+
+impl PoolWrapper {
+    /// Returns an owned connection from connection bb8 pool
+    ///
+    /// # Panics
+    ///
+    /// Panics if failed to get a connection
+    pub async fn get(&self) -> DbClient {
+        match self.inner.get_owned().await {
+            Ok(c) => c,
+            Err(e) => {
+                error!(
+                    "failed to get a postgres client from connection pool: {}",
+                    e.to_string()
+                );
+                panic!("failed to get a postgres client from connection pool");
+            }
+        }
+    }
+
+    pub async fn try_get(&self) -> Result<DbClient, RunError<tokio_postgres::Error>> {
+        self.inner.get_owned().await
+    }
+}
+
+#[derive(Clone)]
 struct AppState {
-    client: &'static Client,
+    pool: &'static PoolWrapper,
     rooms: Rooms,
 }
 
@@ -81,25 +112,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
     .expect("db_password is not found");
     let init_sql =
         fs::read_to_string(&env::var("DB_INIT_PATH").expect("$DB_INIT_PATH is not provided"))?;
-    let (client, connection) = tokio_postgres::connect(
-        format!("host={db_host} port={db_port} user={db_user} password={db_password}").as_ref(),
+    let manager = PostgresConnectionManager::new_from_stringlike(
+        &format!("host={db_host} port={db_port} user={db_user} password={db_password}"),
         NoTls,
     )
-    .await?;
-    // The connection object performs the actual communication with the database,
-    // so spawn it off to run on its own.
-    tokio::spawn(async move {
-        if let Err(e) = connection.await {
-            error!("connection error: {}", e);
-        }
-    });
-    let client: &'static Client = Box::leak(Box::new(client));
+    .expect("failed to create db connection pool");
+    let pool = Box::leak(Box::new(Pool::builder().build(manager).await.unwrap()));
     // initialize db
-    client.batch_execute(&init_sql).await?;
+    let pool_wrapper = Box::leak(Box::new(PoolWrapper { inner: pool }));
+    pool.get_owned()
+        .await
+        .unwrap()
+        .batch_execute(&init_sql)
+        .await?;
     // create state of the app
     let rooms = Rooms::default();
     let state = AppState {
-        client,
+        pool: pool_wrapper,
         rooms: rooms.clone(),
     };
     // routes

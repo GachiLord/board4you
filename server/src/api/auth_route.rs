@@ -35,7 +35,13 @@ async fn login(
         return (StatusCode::OK, HeaderMap::new());
     }
     // otherwise generate new tokens
-    match user::verify_password(state.client, &credentials.login, credentials.password).await {
+    match user::verify_password(
+        &state.pool.get().await,
+        &credentials.login,
+        credentials.password,
+    )
+    .await
+    {
         Ok(user) => {
             let mut map = HeaderMap::new();
             let user_data = user;

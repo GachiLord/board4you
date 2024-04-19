@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub async fn retrive_room_channel(
-    db_client: DbClient,
+    db_client: DbClient<'_>,
     rooms: Rooms,
     public_id: Box<str>,
 ) -> Result<RoomChannel, Box<str>> {
@@ -21,7 +21,7 @@ pub async fn retrive_room_channel(
         None => {
             // drop previous rooms pointer to prevent deadlock
             drop(rooms_p);
-            match board::get(db_client, &public_id).await {
+            match board::get(&db_client, &public_id).await {
                 // if there is a room in db, spawn it
                 Ok((private_id, board)) => {
                     let room = Room {

@@ -48,7 +48,10 @@ pub fn retrive_jwt_cookies<'a>(
     return (access_token, refresh_token);
 }
 
-pub async fn retrive_user_data_from_parts(client: DbClient, parts: &mut Parts) -> Option<UserData> {
+pub async fn retrive_user_data_from_parts(
+    client: &DbClient<'_>,
+    parts: &mut Parts,
+) -> Option<UserData> {
     // parse cookie header
     let cookie = match parts.headers.get(COOKIE) {
         Some(c) => c,
@@ -118,7 +121,7 @@ pub fn get_jwt_tokens(data: UserData) -> (String, String) {
 ///
 /// This function will return an error if provided refresh_token is invalid
 pub async fn get_jwt_tokens_from_refresh(
-    client: DbClient,
+    client: &DbClient<'_>,
     refresh_token: &str,
 ) -> Result<(String, String, UserData), ()> {
     if let Ok(user_data) = verify_refresh_token(client, &refresh_token).await {
@@ -136,7 +139,10 @@ pub async fn get_jwt_tokens_from_refresh(
 /// # Errors
 ///
 /// This function will return an error if the token is invalid
-pub async fn expire_refresh_token(db_client: DbClient, jwt_token: &str) -> Result<UserData, ()> {
+pub async fn expire_refresh_token(
+    db_client: &DbClient<'_>,
+    jwt_token: &str,
+) -> Result<UserData, ()> {
     if let Ok(data) = verify_refresh_token(db_client, jwt_token).await {
         // expire token
         if let Err(_) = create(db_client, jwt_token).await {
@@ -195,7 +201,10 @@ pub fn verify_access_token(jwt_token: &str) -> Result<UserData, ()> {
 /// # Errors
 ///
 /// This function will return an error if token is invalid
-pub async fn verify_refresh_token(db_client: DbClient, jwt_token: &str) -> Result<UserData, ()> {
+pub async fn verify_refresh_token(
+    db_client: &DbClient<'_>,
+    jwt_token: &str,
+) -> Result<UserData, ()> {
     let mut options = VerificationOptions::default();
     options.max_validity = Some(Duration::from_days(REFRESH_TOKEN_MAX_AGE as u64));
 

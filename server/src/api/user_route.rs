@@ -34,7 +34,7 @@ pub fn router() -> Router<AppState> {
 }
 
 async fn create_user(State(state): State<AppState>, Json(user): Json<User>) -> Response {
-    match user::create(state.client, &user).await {
+    match user::create(&state.pool.get().await, &user).await {
         Ok(_) => return generate_res(StatusCode::OK, Some("created")),
         Err(e) => return generate_res(StatusCode::BAD_REQUEST, Some(&e.to_string())),
     }
@@ -46,7 +46,7 @@ struct UserInfo {
 }
 
 async fn read_user(State(state): State<AppState>, Path(public_login): Path<Box<str>>) -> Response {
-    match read_by_public_login(state.client, &public_login).await {
+    match read_by_public_login(&state.pool.get().await, &public_login).await {
         Ok(info) => return generate_res_json(info),
         Err(_) => return generate_res(StatusCode::NOT_FOUND, Some("user is not found")),
     }
@@ -69,18 +69,19 @@ async fn update_user(
         None => return generate_res(StatusCode::UNAUTHORIZED, None),
     };
     let (_, refresh_token) = retrive_jwt_cookies(cookie);
+    // get client
+    let client = state.pool.get().await;
     match refresh_token {
-        Some(token) => match expire_refresh_token(state.client, &token.value()).await {
+        Some(token) => match expire_refresh_token(&client, &token.value()).await {
             Ok(user) => {
                 // varify password
                 if let Err(_) =
-                    user::verify_password(state.client, &update_data.login, update_data.password)
-                        .await
+                    user::verify_password(&client, &update_data.login, update_data.password).await
                 {
                     return generate_res(StatusCode::BAD_REQUEST, Some("wrong password"));
                 }
                 // update user
-                if let Err(e) = user::update(state.client, &update_data.user, user.id).await {
+                if let Err(e) = user::update(&client, &update_data.user, user.id).await {
                     return generate_res(StatusCode::BAD_REQUEST, Some(&e.to_string()));
                 }
                 // update cookies
@@ -127,28 +128,33 @@ pub async fn delete_user(
         return generate_res(StatusCode::UNAUTHORIZED, None);
     }
     let refresh_token = refresh_token.unwrap();
+    // get client
+    let client = state.pool.get().await;
 
-    match verify_refresh_token(state.client, &refresh_token.value()).await {
-        Ok(user) => match verify_password(state.client, &user.login, delete_data.password).await {
-            Ok(_) => {
-                // expire token
-                let _ = jwt::create(state.client, &refresh_token.value()).await;
-                // set cookies
-                let (c_1, c_2) = get_jwt_cookies(DELETED_COOKIE_VALUE, DELETED_COOKIE_VALUE, None);
-                match user::delete(state.client, user.id).await {
-                    Ok(_) => {
-                        return Response::builder()
-                            .status(StatusCode::OK)
-                            .header(SET_COOKIE, c_1)
-                            .header(SET_COOKIE, c_2)
-                            .body(Body::from("deleted"))
-                            .unwrap()
+    match verify_refresh_token(&client, &refresh_token.value()).await {
+        Ok(user) => {
+            match verify_password(&client, &user.login, delete_data.password).await {
+                Ok(_) => {
+                    // expire token
+                    let _ = jwt::create(&client, &refresh_token.value()).await;
+                    // set cookies
+                    let (c_1, c_2) =
+                        get_jwt_cookies(DELETED_COOKIE_VALUE, DELETED_COOKIE_VALUE, None);
+                    match user::delete(&client, user.id).await {
+                        Ok(_) => {
+                            return Response::builder()
+                                .status(StatusCode::OK)
+                                .header(SET_COOKIE, c_1)
+                                .header(SET_COOKIE, c_2)
+                                .body(Body::from("deleted"))
+                                .unwrap()
+                        }
+                        Err(_) => return generate_res(StatusCode::INTERNAL_SERVER_ERROR, None),
                     }
-                    Err(_) => return generate_res(StatusCode::INTERNAL_SERVER_ERROR, None),
                 }
+                Err(_) => return generate_res(StatusCode::BAD_REQUEST, Some("wrong password")),
             }
-            Err(_) => return generate_res(StatusCode::BAD_REQUEST, Some("wrong password")),
-        },
+        }
         Err(_) => return generate_res(StatusCode::UNAUTHORIZED, None),
     }
 }

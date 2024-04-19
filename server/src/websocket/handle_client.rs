@@ -58,16 +58,17 @@ pub async fn handle_client(
     // try to find room in RAM or DB
     // if there is a room, join it
     // otherwise, close the connection
-    let room_chan = match retrive_room_channel(app_state.client, app_state.rooms, public_id).await {
-        Ok(c) => c,
-        Err(e) => {
-            debug!(
-                "attempt to connect to non-existent room with public_id: {}",
-                e
-            );
-            return Ok(());
-        }
-    };
+    let room_chan =
+        match retrive_room_channel(app_state.pool.get().await, app_state.rooms, public_id).await {
+            Ok(c) => c,
+            Err(e) => {
+                debug!(
+                    "attempt to connect to non-existent room with public_id: {}",
+                    e
+                );
+                return Ok(());
+            }
+        };
     let user_id = Arc::new(NEXT_USER_ID.fetch_add(1, Ordering::Relaxed));
     // handle the connection
     debug!("connected a user with id: {}", *user_id);
