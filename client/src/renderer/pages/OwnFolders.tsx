@@ -25,9 +25,9 @@ export default function OwnFolders() {
   const [title, setTitle] = useState("")
   const [pagination, setPagination] = useState<Paginated<FolderShortInfo>>(PaginatedDefault)
   const { isPending, isError } = useQuery({
-    queryKey: ['folders', 'own', page],
+    queryKey: ['folder', 'own', page],
     queryFn: async () => {
-      const list: Paginated<FolderShortInfo> = await request(`folders/own/${page}`).get().body()
+      const list: Paginated<FolderShortInfo> = await request(`folder/own/${page}`).get().body()
       setPagination(list)
       return list
     },

@@ -1,12 +1,11 @@
 use crate::entities::board;
 use crate::libs::room::{self, send_to_user_by_id, RoomMessage, UserMessage};
+use crate::libs::state::Rooms;
 use crate::libs::state::{BoardSize, Edit, Room};
-use crate::libs::state::{Rooms, WSUsers};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::mpsc::unbounded_channel;
 use tokio_postgres::Client;
-use warp::ws::Message;
 use weak_table::WeakHashSet;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

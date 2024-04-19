@@ -14,11 +14,17 @@ path = "src/main.rs"
 name = "stress-test"
 path = "src/stress_test/main.rs"
 
+[profile.release-with-debug]
+inherits = "release"
+debug = true
 
 [dependencies]
-tokio = { version = "1", features = ["signal", "rt-multi-thread", "time", "net"] }
+tower = "*"
+tower-http = { version="*", features = ["fs"] }
+axum = { version="0.7.5", features = [] }
+fastwebsockets = { version="0.7.1", features=["upgrade", "with_axum", "unstable-split"] }
+tokio = { version = "1", features = ["signal", "rt-multi-thread", "time", "net", "io-util"] }
 tokio-stream = "0.1"
-warp = { version = "0.3", features = ["tls"] } 
 futures-util = { version = "0.3", default-features = false, features = ["sink"] }
 uuid = { version = "1", features = ["v4", "fast-rng", "macro-diagnostics"] }
 serde_json = "1.0"
@@ -37,6 +43,9 @@ lazy_static = "1.4.0"
 clap = { version = "4.5.4", features = ["derive"] }
 datasize = "0.2.15"
 console-subscriber = "0.2.0"
+cookie = "0.18.1"
+bb8 = "0.8.3"
+bb8-postgres = "0.8.1"
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
 

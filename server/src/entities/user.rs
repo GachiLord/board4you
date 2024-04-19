@@ -1,14 +1,11 @@
-use crate::libs::auth::UserData;
+use crate::libs::{auth::UserData, state::DbClient};
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::{self, Display},
-    sync::Arc,
-};
-use tokio_postgres::Client;
+use std::fmt::{self, Display};
+use tokio::sync::oneshot;
 
 // user-related structs
 pub enum ValidationError {
@@ -40,7 +37,7 @@ pub struct User {
     pub second_name: String,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct UserInfo {
     pub public_login: String,
     pub first_name: String,
@@ -49,7 +46,7 @@ pub struct UserInfo {
 
 // functions
 pub async fn validate(
-    client: &Arc<Client>,
+    client: &DbClient<'_>,
     user: &User,
     user_id: Option<i32>,
 ) -> Result<(), ValidationError> {
@@ -95,7 +92,7 @@ pub async fn validate(
     }
 }
 
-pub async fn create(client: &Arc<Client>, user: &User) -> Result<(), ValidationError> {
+pub async fn create(client: &DbClient<'_>, user: &User) -> Result<(), ValidationError> {
     // check if fields are valid
     validate(client, user, None).await?;
     // create user
@@ -115,7 +112,7 @@ pub async fn create(client: &Arc<Client>, user: &User) -> Result<(), ValidationE
     Ok(())
 }
 
-pub async fn read(client: &Arc<Client>, owner_id: i32) -> Option<UserInfo> {
+pub async fn read(client: &DbClient<'_>, owner_id: i32) -> Option<UserInfo> {
     match client
         .query_one(
             "SELECT (public_login, first_name, second_name) WHERE id = ($1)",
@@ -134,8 +131,25 @@ pub async fn read(client: &Arc<Client>, owner_id: i32) -> Option<UserInfo> {
     }
 }
 
+pub async fn read_by_public_login(
+    client: &DbClient<'_>,
+    public_login: &str,
+) -> Result<UserInfo, tokio_postgres::Error> {
+    let row = client
+        .query_one(
+            "SELECT public_login, first_name, second_name FROM users WHERE public_login=($1)",
+            &[&public_login],
+        )
+        .await?;
+    Ok(UserInfo {
+        public_login: row.get::<&str, String>("public_login"),
+        first_name: row.get::<&str, String>("first_name"),
+        second_name: row.get::<&str, String>("second_name"),
+    })
+}
+
 pub async fn update(
-    client: &Arc<Client>,
+    client: &DbClient<'_>,
     user: &User,
     user_id: i32,
 ) -> Result<u64, ValidationError> {
@@ -167,16 +181,16 @@ pub async fn update(
     }
 }
 
-pub async fn delete(client: &Arc<Client>, user_id: i32) -> Result<u64, tokio_postgres::Error> {
+pub async fn delete(client: &DbClient<'_>, user_id: i32) -> Result<u64, tokio_postgres::Error> {
     client
         .execute("DELETE FROM users WHERE id = ($1)", &[&user_id])
         .await
 }
 
 pub async fn verify_password(
-    client: &Arc<Client>,
-    login: &String,
-    password: &String,
+    client: &DbClient<'_>,
+    login: &str,
+    password: Box<str>,
 ) -> Result<UserData, ()> {
     let argon2 = Argon2::default();
     let err = Err(());
@@ -188,15 +202,21 @@ pub async fn verify_password(
         return err;
     }
     let user = user.unwrap();
-    let hash: String = user.get("password");
-    let parsed_hash = PasswordHash::new(&hash);
-    // check if paresed_hash is ok
-    if parsed_hash.is_err() {
-        return err;
-    }
-    // verify hash
-    let verify_result = argon2.verify_password(password.as_bytes(), &parsed_hash.unwrap());
-    if verify_result.is_ok() {
+    let hash: Box<str> = user.get("password");
+    // verify hash in separate task to prevent blocking of async tasks
+    let (tx, rx) = oneshot::channel();
+    tokio::task::spawn_blocking(move || {
+        let parsed_hash = match PasswordHash::new(&hash) {
+            Ok(h) => h,
+            Err(_) => {
+                let _ = tx.send(false);
+                return;
+            }
+        };
+        let verify_result = argon2.verify_password(password.as_bytes(), &parsed_hash);
+        let _ = tx.send(verify_result.is_ok());
+    });
+    if rx.await.unwrap() {
         return Ok(UserData {
             id: user.get("id"),
             login: user.get("login"),

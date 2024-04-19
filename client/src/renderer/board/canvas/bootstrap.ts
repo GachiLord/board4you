@@ -44,7 +44,15 @@ export default function bootstrap({
   // join room if mode is shared
   if (roomId) {
     setLoading(true)
-    boardManager.connect()
+    joinRoom({
+      navigate,
+      setLoading,
+      setRoomExists,
+      boardManager,
+      roomId,
+      inviteId
+    })
+
     // check mode 
     if (privateId && !coEditor) store.dispatch(setMode('author'))
     else if (coEditor || inviteId) store.dispatch(setMode('coop'))
@@ -57,14 +65,6 @@ export default function bootstrap({
     setError,
     setLoading,
     setRoomExists
-  })
-  boardManager.handlers.onOpen = () => joinRoom({
-    navigate,
-    setLoading,
-    setRoomExists,
-    boardManager,
-    roomId,
-    inviteId
   })
   boardManager.handlers.onClose = () => setLoading(true)
   boardManager.handlers.retry = () => setLoading(true)

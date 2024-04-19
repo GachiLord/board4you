@@ -1,15 +1,23 @@
-use crate::libs::auth::{verify_access_token, verify_refresh_token, UserData};
-use crate::libs::state::{DbClient, JwtKey};
-use crate::{with_db_client, with_jwt_key};
+use crate::libs::auth::{
+    get_jwt_cookies, get_jwt_tokens_from_refresh, retrive_jwt_cookies,
+    retrive_user_data_from_parts, verify_access_token, verify_refresh_token, UserData,
+    ACCESS_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_NAME,
+};
+use crate::{AppState, PoolWrapper};
+use axum::async_trait;
+use axum::body::Body;
+use axum::extract::{FromRef, FromRequestParts, Request, State};
+use axum::http::request::Parts;
+use axum::http::HeaderMap;
+use axum::http::{
+    self,
+    header::{CONTENT_TYPE, COOKIE, SET_COOKIE},
+    response, StatusCode,
+};
+use axum::middleware::Next;
 use serde::{Deserialize, Serialize};
-use std::convert::Infallible;
-use warp::http::{response::Builder, Response, StatusCode};
-use warp::hyper::body::Bytes;
-use warp::Filter;
 
 // constants
-
-pub const CONTENT_LENGTH_LIMIT: u64 = 1024 * 16;
 
 const UNAUTHORIZED_MSG: &'static str = "auth to perform this action";
 const NOT_FOUND_MSG: &'static str = "resource is not found";
@@ -19,35 +27,45 @@ const FORBIDDEN_MSG: &'static str = "insufficient rights to perform this action"
 
 // response generator
 
-fn builder(status_code: StatusCode) -> Builder {
-    Response::builder().status(status_code)
+pub fn generate_res_json(msg: impl Serialize) -> http::Response<Body> {
+    http::Response::builder()
+        .status(StatusCode::OK)
+        .header(CONTENT_TYPE, "application/json")
+        .body(Body::from(serde_json::to_string(&msg).unwrap()))
+        .unwrap()
 }
 
-pub fn generate_res(code: StatusCode, msg: Option<&str>) -> warp::http::Result<Response<String>> {
+pub fn generate_res(code: StatusCode, msg: Option<&str>) -> http::Response<Body> {
+    let reply_message;
+
     match code {
         StatusCode::UNAUTHORIZED => {
-            return builder(code).body(msg.unwrap_or(UNAUTHORIZED_MSG).to_string())
+            reply_message = Some(msg.unwrap_or(UNAUTHORIZED_MSG).to_owned());
         }
         StatusCode::NOT_FOUND => {
-            return builder(code).body(msg.unwrap_or(NOT_FOUND_MSG).to_string())
+            reply_message = Some(msg.unwrap_or(NOT_FOUND_MSG).to_owned());
         }
         StatusCode::BAD_REQUEST => {
-            return builder(code).body(msg.unwrap_or(BAD_REQUEST_MSG).to_string())
+            reply_message = Some(msg.unwrap_or(BAD_REQUEST_MSG).to_owned());
         }
         StatusCode::INTERNAL_SERVER_ERROR => {
-            return builder(code).body(msg.unwrap_or(INTERNAL_SERVER_ERROR_MSG).to_string())
+            reply_message = Some(msg.unwrap_or(INTERNAL_SERVER_ERROR_MSG).to_owned());
         }
         StatusCode::FORBIDDEN => {
-            return builder(code).body(msg.unwrap_or(FORBIDDEN_MSG).to_string())
+            reply_message = Some(msg.unwrap_or(FORBIDDEN_MSG).to_owned());
         }
         _ => {
             let msg = match msg {
                 Some(msg) => msg.to_string(),
-                None => "done".to_string(),
+                None => "no info".to_string(),
             };
-            return builder(StatusCode::OK).body(msg);
+            reply_message = Some(msg);
         }
     }
+    return http::Response::builder()
+        .status(code)
+        .body(Body::from(reply_message.unwrap_or("no info".to_owned())))
+        .unwrap();
 }
 
 // structs
@@ -64,102 +82,92 @@ struct ErrorMessage {
     message: String,
 }
 
-#[derive(Debug)]
-pub struct UserDataFromJwt {
-    pub user_data: Option<UserData>,
-    pub new_jwt_cookie_values: Option<(String, String)>,
-}
-
 #[derive(Deserialize, Serialize)]
 pub struct Reply {
     pub message: String,
 }
 
-// helpers
-pub fn with_jwt_cookies(
-) -> impl Filter<Extract = (Option<String>, Option<String>), Error = Infallible> + Clone {
-    warp::cookie::optional("access_token").and(warp::cookie::optional("refresh_token"))
+// jwt
+
+pub struct UserDataFromJWT(pub Option<UserData>);
+
+#[async_trait]
+impl<S> FromRequestParts<S> for UserDataFromJWT
+where
+    // keep `S` generic but require that it can produce a `MyLibraryState`
+    // this means users will have to implement `FromRef<UserState> for MyLibraryState`
+    JwtState: FromRef<S>,
+    S: Send + Sync,
+{
+    type Rejection = (StatusCode, &'static str);
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let state = JwtState::from_ref(state);
+        return Ok(Self(
+            retrive_user_data_from_parts(&state.pool.get().await, parts).await,
+        ));
+    }
 }
 
-/// Extracts UserData if access or refresh token is valid
-pub fn with_user_data(
-    db_client: &DbClient,
-    jwt_key: JwtKey,
-) -> impl Filter<Extract = (Option<UserData>,), Error = Infallible> + Clone {
-    with_db_client(db_client.clone())
-        .and(with_jwt_key(jwt_key))
-        .and(with_jwt_cookies())
-        .and_then(retrive_user_data)
+// the state your library needs
+struct JwtState {
+    pool: &'static PoolWrapper,
 }
 
-/// Returns UserData if access or refresh token is valid
-pub async fn retrive_user_data(
-    db_client: DbClient,
-    jwt_key: JwtKey,
-    access_token: Option<String>,
-    refresh_token: Option<String>,
-) -> Result<Option<UserData>, Infallible> {
-    let some_access_token = access_token.is_some();
-    let some_refresh_token = refresh_token.is_some();
-
-    if some_access_token {
-        if let Ok(user_data) = verify_access_token(jwt_key.clone(), &access_token.unwrap()) {
-            return Ok(Some(user_data));
+impl FromRef<AppState> for JwtState {
+    fn from_ref(input: &AppState) -> Self {
+        Self { pool: &input.pool }
+    }
+}
+/// This functinon accepts the response and returns it with updated jwt_tokens
+/// if access_token is expired.
+/// * The functinon won't add tokens if they are already set
+pub async fn process_jwt(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    request: Request,
+    next: Next,
+) -> response::Response<Body> {
+    let mut response = next.run(request).await;
+    let response_headers = response.headers_mut();
+    // if response already has jwt_tokens, do nothing
+    let mut has_tokens = false;
+    for value in response_headers.get_all(SET_COOKIE) {
+        let value = match value.to_str() {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        if value.contains(ACCESS_TOKEN_COOKIE_NAME) || value.contains(REFRESH_TOKEN_COOKIE_NAME) {
+            has_tokens = true;
         }
     }
-    if some_refresh_token {
-        if let Ok(user_data) =
-            verify_refresh_token(&db_client, &jwt_key, &refresh_token.unwrap()).await
-        {
-            return Ok(Some(user_data));
+    // get request cookie header
+    let request_cookies = headers.get(COOKIE);
+    if has_tokens == false && request_cookies.is_some() {
+        let (access_token, refresh_token) = retrive_jwt_cookies(request_cookies.unwrap());
+        // if access_token is ok, just return the response
+        if let Some(c) = access_token {
+            if let Ok(_) = verify_access_token(c.value()) {
+                return response;
+            }
+        }
+        // get client
+        let client = state.pool.get().await;
+        // otherwise try to update the tokens and add them to the response
+        if let Some(c) = refresh_token {
+            match verify_refresh_token(&client, c.value()).await {
+                Ok(_) => match get_jwt_tokens_from_refresh(&client, c.value()).await {
+                    Ok((a_t, r_t, _)) => {
+                        let (a_t, r_t) = get_jwt_cookies(&a_t, &r_t, None);
+                        response_headers.append(SET_COOKIE, a_t);
+                        response_headers.append(SET_COOKIE, r_t);
+                    }
+                    Err(_) => {}
+                },
+                Err(_) => {}
+            }
         }
     }
-    // if there is no valid tokens return nothing
-    Ok(None)
-}
 
-pub fn as_string(limit: u64) -> impl Filter<Extract = (String,), Error = warp::Rejection> + Clone {
-    warp::body::content_length_limit(limit)
-        .and(warp::filters::body::bytes())
-        .and_then(convert_to_string)
-}
-
-async fn convert_to_string(bytes: Bytes) -> Result<String, warp::Rejection> {
-    String::from_utf8(bytes.to_vec()).map_err(|_| warp::reject())
-}
-
-// rejecting
-
-pub async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, Infallible> {
-    let code;
-    let message;
-
-    if err.is_not_found() {
-        code = StatusCode::NOT_FOUND;
-        message = "NOT_FOUND";
-    } else if let Some(_) = err.find::<warp::filters::body::BodyDeserializeError>() {
-        // This error happens if the body could not be deserialized correctly
-        // We can use the cause to analyze the error and customize the error message
-        message = "CANNOT_PARSE_BODY";
-        code = StatusCode::BAD_REQUEST;
-    } else if let Some(_) = err.find::<warp::reject::MethodNotAllowed>() {
-        // We can handle a specific error, here METHOD_NOT_ALLOWED,
-        // and render it however we want
-        code = StatusCode::METHOD_NOT_ALLOWED;
-        message = "METHOD_NOT_ALLOWED";
-    } else if let Some(_) = err.find::<warp::reject::Rejection>() {
-        code = StatusCode::BAD_REQUEST;
-        message = "BAD_REQUEST";
-    } else {
-        // We should have expected this... Just log and say its a 500
-        code = StatusCode::INTERNAL_SERVER_ERROR;
-        message = "UNHANDLED_REJECTION 1";
-    }
-
-    let json = warp::reply::json(&ErrorMessage {
-        code: code.as_u16(),
-        message: message.into(),
-    });
-
-    Ok(warp::reply::with_status(json, code))
+    response
 }

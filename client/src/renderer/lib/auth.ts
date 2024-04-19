@@ -23,7 +23,7 @@ export async function updateAuth() {
     return res
   }
   catch {
-    logOut(false)
+    //TODO: logOut(false)
     const res: AuthState = { authed: false }
     return res
   }

@@ -18,7 +18,7 @@ interface Props {
 
 export default function joinRoom({ navigate, setLoading, setRoomExists, boardManager, roomId, inviteId }: Props) {
   setLoading(true)
-  if (roomId) boardManager.joinRoom(roomId)
+  if (roomId) boardManager.connect(roomId)
     .then(() => {
       // fetch room contents
       pull(boardManager)
@@ -72,7 +72,8 @@ export default function joinRoom({ navigate, setLoading, setRoomExists, boardMan
         store.dispatch(setShareInfo({}))
         store.dispatch(set('move'))
       }
-
+      // disable loading
+      setLoading(false)
     })
     // alert if there is no such room 
     .catch((e) => {
