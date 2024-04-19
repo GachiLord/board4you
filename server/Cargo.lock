@@ -2491,7 +2491,7 @@ dependencies = [
 
 [[package]]
 name = "server"
-version = "1.0.6"
+version = "1.0.7"
 dependencies = [
  "argon2",
  "axum 0.7.5",
