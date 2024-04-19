@@ -5,7 +5,10 @@ use axum::http::{header::COOKIE, request::Parts, HeaderValue};
 use cookie::{time, Cookie, SameSite};
 use jwt_simple::claims::Claims;
 use jwt_simple::prelude::*;
+use jwt_simple::Error;
 use serde::{Deserialize, Serialize};
+use std::error;
+use std::fmt::Display;
 
 // consts
 
@@ -24,6 +27,23 @@ pub struct UserData {
     pub first_name: String,
     pub second_name: String,
 }
+
+#[derive(Debug)]
+pub enum VerifyError {
+    Invalid(Error),
+    Expired,
+}
+
+impl Display for VerifyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Invalid(e) => f.write_str(&format!("invalid token because {e}")),
+            Self::Expired => f.write_str("token is already expired"),
+        }
+    }
+}
+
+impl error::Error for VerifyError {}
 
 // funs
 
@@ -142,15 +162,11 @@ pub async fn get_jwt_tokens_from_refresh(
 pub async fn expire_refresh_token(
     db_client: &DbClient<'_>,
     jwt_token: &str,
-) -> Result<UserData, ()> {
-    if let Ok(data) = verify_refresh_token(db_client, jwt_token).await {
-        // expire token
-        if let Err(_) = create(db_client, jwt_token).await {
-            return Err(());
-        }
-        return Ok(data);
-    }
-    return Err(());
+) -> Result<UserData, anyhow::Error> {
+    let data = verify_refresh_token(db_client, jwt_token).await?;
+    // expire token
+    create(db_client, jwt_token).await?;
+    return Ok(data);
 }
 
 /// Returns cookies with jwt token values.
@@ -186,13 +202,13 @@ pub fn get_jwt_cookies_from_user_data(
 /// # Errors
 ///
 /// This function will return an error if the token is invalid
-pub fn verify_access_token(jwt_token: &str) -> Result<UserData, ()> {
+pub fn verify_access_token(jwt_token: &str) -> Result<UserData, VerifyError> {
     let mut options = VerificationOptions::default();
     options.max_validity = Some(Duration::from_mins(ACCESS_TOKEN_MAX_AGE as u64));
 
     match JWT_SECRET_KEY.verify_token::<UserData>(jwt_token, Some(options)) {
         Ok(claims) => Ok(claims.custom),
-        Err(_) => Err(()),
+        Err(e) => Err(VerifyError::Invalid(e)),
     }
 }
 
@@ -204,7 +220,7 @@ pub fn verify_access_token(jwt_token: &str) -> Result<UserData, ()> {
 pub async fn verify_refresh_token(
     db_client: &DbClient<'_>,
     jwt_token: &str,
-) -> Result<UserData, ()> {
+) -> Result<UserData, VerifyError> {
     let mut options = VerificationOptions::default();
     options.max_validity = Some(Duration::from_days(REFRESH_TOKEN_MAX_AGE as u64));
 
@@ -213,9 +229,9 @@ pub async fn verify_refresh_token(
             if !exists(db_client, jwt_token).await {
                 return Ok(claims.custom);
             }
-            return Err(());
+            return Err(VerifyError::Expired);
         }
-        Err(_) => return Err(()),
+        Err(e) => return Err(VerifyError::Invalid(e)),
     }
 }
 
