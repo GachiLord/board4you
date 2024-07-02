@@ -22,21 +22,21 @@ export interface BoardStatus {
 
 // board message schemes
 export interface Auth { token: string }
-export interface Join { public_id: string }
-export interface Quit { public_id: string }
-export interface SetTitle { public_id: string, title: string }
-export interface UndoRedo { public_id: string, action_type: 'Undo' | 'Redo', action_id: string }
-export interface Push { public_id: string, data: Array<string>, silent: boolean }
+export interface Join { }
+export interface Quit { }
+export interface SetTitle { title: string }
+export interface UndoRedo { action_type: 'Undo' | 'Redo', action_id: string }
+export interface Push { data: Array<string>, silent: boolean }
 export interface PushSegment {
   public_id: string,
   private_id: string,
   action_type: 'Start' | 'Update' | 'End',
   data: unknown
 }
-export interface SetSize { public_id: string, data: string }
-export interface Empty { public_id: string, action_type: string }
-export interface Pull { public_id: string, current: string[], undone: string[] }
-export interface UpdateCoEditor { public_id: string, private_id: string }
+export interface SetSize { data: string }
+export interface Empty { action_type: string }
+export interface Pull { current: string[], undone: string[] }
+export interface UpdateCoEditor { private_id: string }
 // data interfaces
 export interface TitleData { title: string }
 export interface Info { status: string, payload: string }

@@ -32,13 +32,9 @@ async function changeHandler(transformer: Konva.Transformer, boardManager: Board
 
     if (shared) {
       boardManager.send('Empty', {
-        public_id,
-        private_id,
         action_type: 'undone'
       })
       boardManager.send('Push', {
-        public_id,
-        private_id,
         data: [convertToEnum(edit)],
         silent: false
       })

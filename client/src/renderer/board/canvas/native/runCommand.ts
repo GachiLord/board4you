@@ -108,8 +108,6 @@ export default async function(stage: Konva.Stage, boardManger: BoardManager, o: 
       })
       // send Edit
       if (itemIn(mode, 'author', 'coop')) boardManger.send('Push', {
-        public_id,
-        private_id,
         data: [convertToEnum(edit)],
         silent: false
       })

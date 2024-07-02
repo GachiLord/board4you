@@ -47,8 +47,6 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
       //
       if (canDraw)
         boardManager.send('Push', {
-          public_id: boardManager.status.roomId,
-          private_id: private_id,
           data: ([convertToEnum(edit)]),
           silent: false // true
         })

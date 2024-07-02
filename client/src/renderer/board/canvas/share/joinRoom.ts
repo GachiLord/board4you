@@ -4,6 +4,7 @@ import { set } from "../../../features/tool"
 import BoardManager from "../../../lib/BoardManager/BoardManager"
 import { request } from "../../../lib/request"
 import store from "../../../store/store"
+import auth from "./auth"
 import getPrivateId from "./getPrivateId"
 import pull from "./pull"
 
@@ -27,6 +28,9 @@ export default function joinRoom({ navigate, setLoading, setRoomExists, boardMan
       const mode = store.getState().board.mode
       const privateId = getPrivateId(roomId)
       if (mode === 'author') {
+        // send auth message
+        auth(boardManager, privateId);
+        // update share info
         request('room/co-editor/read').post().body({ public_id: roomId, private_id: privateId })
           .then((r) => {
             store.dispatch(setShareInfo({
@@ -43,8 +47,10 @@ export default function joinRoom({ navigate, setLoading, setRoomExists, boardMan
           })
       }
       if (mode === 'coop') {
-        // check if inviteId is valid
         const idToCheck = inviteId ? inviteId : privateId
+        // send auth message
+        auth(boardManager, idToCheck);
+        // check if inviteId is valid
         request('room/co-editor/check').post().body({ public_id: roomId, co_editor_private_id: idToCheck })
           .then((r) => {
             if (r.valid) {

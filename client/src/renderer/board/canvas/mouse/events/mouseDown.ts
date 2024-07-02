@@ -44,8 +44,6 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
     // empty undone if it exists and tool is not select
     if (undone && tool !== 'select' && tool !== 'move' && !isRightClick) {
       if (canDraw) boardManager.send('Empty', {
-        public_id: boardManager.status.roomId,
-        private_id: private_id,
         action_type: 'undone'
       })
       store.dispatch(emptyUndone())

@@ -64,6 +64,6 @@ export default async function(boardManager: BoardManager, insertProps: IInsertPr
   }
 
   editManager.applyEdit(edit)
-  if (itemIn(mode, 'coop', 'author')) boardManager.send('Push', { ...boardManager.getCredentials(), data: [convertToEnum(edit)], silent: false })
+  if (itemIn(mode, 'coop', 'author')) boardManager.send('Push', { data: [convertToEnum(edit)], silent: false })
   store.dispatch(addCurrent(edit))
 }
