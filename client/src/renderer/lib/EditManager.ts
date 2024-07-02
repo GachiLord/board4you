@@ -66,8 +66,6 @@ export default class EditManager {
     this.boardManager.send(
       'UndoRedo',
       {
-        public_id,
-        private_id,
         action_type,
         action_id
       }

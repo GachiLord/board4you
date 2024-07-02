@@ -13,47 +13,49 @@ pub type UserChannel = UnboundedSender<Bytes>;
 pub type RoomChannel = UnboundedSender<UserMessage>;
 
 pub enum UserMessage {
+    // Messages that don't require any auth
     Join {
         user_id: Arc<usize>,
         chan: UserChannel,
-    },
-    SetTitle {
-        user_id: Arc<usize>,
-        private_id: Box<str>,
-        title: Box<str>,
-    },
-    UndoRedo {
-        user_id: Arc<usize>,
-        private_id: Box<str>,
-        action_type: Box<str>,
-        action_id: Box<str>,
-    },
-    Empty {
-        user_id: Arc<usize>,
-        private_id: Box<str>,
-        action_type: Box<str>,
-    },
-    Push {
-        user_id: Arc<usize>,
-        private_id: Box<str>,
-        data: Vec<Edit>,
-        silent: bool,
-    },
-    PushSegment {
-        user_id: Arc<usize>,
-        private_id: Box<str>,
-        action_type: Box<str>,
-        data: Box<str>,
-    },
-    SetSize {
-        user_id: Arc<usize>,
-        private_id: Box<str>,
-        data: BoardSize,
     },
     Pull {
         user_id: Arc<usize>,
         current: Vec<Box<str>>,
         undone: Vec<Box<str>>,
+    },
+    // Messages that assume user is authed
+    SetTitle {
+        user_id: Arc<usize>,
+        title: Box<str>,
+    },
+    UndoRedo {
+        user_id: Arc<usize>,
+        action_type: Box<str>,
+        action_id: Box<str>,
+    },
+    Empty {
+        user_id: Arc<usize>,
+        action_type: Box<str>,
+    },
+    Push {
+        user_id: Arc<usize>,
+        data: Vec<Edit>,
+        silent: bool,
+    },
+    PushSegment {
+        user_id: Arc<usize>,
+        action_type: Box<str>,
+        data: Box<str>,
+    },
+    SetSize {
+        user_id: Arc<usize>,
+        data: BoardSize,
+    },
+    // Messages that implement auth
+    Auth {
+        user_id: Arc<usize>,
+        token: Box<str>,
+        sender: oneshot::Sender<bool>,
     },
     UpdateCoEditor {
         user_id: Arc<usize>,
@@ -67,15 +69,20 @@ pub enum UserMessage {
         private_id: Box<str>,
         sender: oneshot::Sender<Result<Box<str>, ()>>,
     },
+    VerifyEditorToken {
+        token: Box<str>,
+        sender: oneshot::Sender<bool>,
+    },
     VerifyCoEditorToken {
         token: Box<str>,
         sender: oneshot::Sender<bool>,
     },
-    HasUsers(oneshot::Sender<bool>, bool),
     DeleteRoom {
         deleted: oneshot::Sender<bool>,
         private_id: Box<str>,
     },
+    // Messages that used only by app(user cannot send them)
+    HasUsers(oneshot::Sender<bool>, bool),
     Expire(oneshot::Sender<()>),
 }
 
@@ -114,6 +121,7 @@ pub enum RoomMessage<'a> {
         action: &'a str,
         payload: &'a str,
     },
+    Authed,
 }
 
 impl RoomMessage<'_> {
@@ -132,27 +140,32 @@ pub async fn task(
     // handle room events
     while let Some(msg) = message_receiver.recv().await {
         match msg {
-            UserMessage::Join { user_id, chan } => {
-                room.add_user(user_id, chan);
-            }
-            UserMessage::SetTitle {
+            UserMessage::Auth {
+                token,
                 user_id,
-                private_id,
-                title,
+                sender,
             } => {
-                // skip if private_key is not valid
-                if room.private_id != private_id && room.board.co_editor_private_id != private_id {
+                if token == room.private_id || token == room.board.co_editor_private_id {
+                    if let Ok(_) = sender.send(true) {
+                        send_by_id(&room, *user_id, &RoomMessage::Authed);
+                    }
+                } else {
+                    let _ = sender.send(false);
                     send_by_id(
                         &room,
                         *user_id,
                         &RoomMessage::Info {
                             status: "bad",
-                            action: "SetTitle",
-                            payload: "private_id is invalid",
+                            action: "Auth",
+                            payload: "token is invalid",
                         },
                     );
-                    continue;
                 }
+            }
+            UserMessage::Join { user_id, chan } => {
+                room.add_user(user_id, chan);
+            }
+            UserMessage::SetTitle { user_id, title } => {
                 if title.len() > 36 {
                     send_by_id(
                         &room,
@@ -183,23 +196,9 @@ pub async fn task(
             }
             UserMessage::Push {
                 user_id,
-                private_id,
                 mut data,
                 silent,
             } => {
-                // skip if private_key is not valid
-                if room.private_id != private_id && room.board.co_editor_private_id != private_id {
-                    send_to_everyone(
-                        &room,
-                        Some(*user_id),
-                        &RoomMessage::Info {
-                            status: "bad",
-                            action: "Push",
-                            payload: "private_id is invalid",
-                        },
-                    );
-                    continue;
-                }
                 // save changes and validate data
                 if silent {
                     for edit in data.into_iter() {
@@ -242,23 +241,9 @@ pub async fn task(
             }
             UserMessage::PushSegment {
                 user_id,
-                private_id,
                 action_type,
                 data,
             } => {
-                // skip if private_key is not valid
-                if room.private_id != private_id && room.board.co_editor_private_id != private_id {
-                    send_by_id(
-                        &room,
-                        *user_id,
-                        &RoomMessage::Info {
-                            status: "bad",
-                            action: "PushSegment",
-                            payload: "private_id is invalid",
-                        },
-                    );
-                    continue;
-                }
                 // send
                 send_to_everyone(
                     &room,
@@ -271,23 +256,9 @@ pub async fn task(
             }
             UserMessage::UndoRedo {
                 user_id,
-                private_id,
                 action_type,
                 action_id,
             } => {
-                // skip if private_key is not valid
-                if room.private_id != private_id && room.board.co_editor_private_id != private_id {
-                    send_by_id(
-                        &room,
-                        *user_id,
-                        &RoomMessage::Info {
-                            status: "bad",
-                            action: "UndoRedo",
-                            payload: "private_id is invalid",
-                        },
-                    );
-                    continue;
-                }
                 // determine command name
                 let command_name = if action_type.as_ref() == "Undo" {
                     CommandName::Undo
@@ -322,22 +293,8 @@ pub async fn task(
             }
             UserMessage::Empty {
                 user_id,
-                private_id,
                 action_type,
             } => {
-                // skip if private_key is not valid
-                if room.private_id != private_id && room.board.co_editor_private_id != private_id {
-                    send_by_id(
-                        &room,
-                        *user_id,
-                        &RoomMessage::Info {
-                            status: "bad",
-                            action: "Empty",
-                            payload: "private_id is invalid",
-                        },
-                    );
-                    continue;
-                }
                 // save changes
                 if action_type.as_ref() == "current" {
                     room.board.empty_current();
@@ -353,24 +310,7 @@ pub async fn task(
                     },
                 )
             }
-            UserMessage::SetSize {
-                user_id,
-                private_id,
-                data,
-            } => {
-                // skip if private_key is not valid
-                if room.private_id != private_id && room.board.co_editor_private_id != private_id {
-                    send_by_id(
-                        &room,
-                        *user_id,
-                        &RoomMessage::Info {
-                            status: "bad",
-                            action: "SetSize",
-                            payload: "private_id is invalid",
-                        },
-                    );
-                    continue;
-                }
+            UserMessage::SetSize { user_id, data } => {
                 // update board state
                 if let Err(e) = room.board.set_size(data.height, data.width) {
                     // if size is invalid do nothing
@@ -436,6 +376,10 @@ pub async fn task(
             }
             UserMessage::VerifyCoEditorToken { token, sender } => {
                 let _ = sender.send(room.board.co_editor_private_id == token);
+            }
+
+            UserMessage::VerifyEditorToken { token, sender } => {
+                let _ = sender.send(room.private_id == token);
             }
             UserMessage::Pull {
                 user_id,

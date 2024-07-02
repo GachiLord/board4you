@@ -71,9 +71,14 @@ export default function(msg: string, { editManager, boardManager, setLoading, se
       break
     }
     case 'Info': {
-      if (data.action === 'Push', data.payload === 'data has no id') {
+      if (data.action === 'Push' && data.payload === 'data has no id') {
         console.error(parsed)
         setError(true)
+      }
+      if (data.action === 'Auth' && data.status === 'bad') {
+        store.dispatch(setMode('viewer'))
+        store.dispatch(deleteRoom(boardManager.status.roomId))
+        store.dispatch(set('move'))
       }
       break
     }

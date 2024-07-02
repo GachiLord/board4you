@@ -22,7 +22,7 @@ debug = true
 tower = "*"
 tower-http = { version="*", features = ["fs"] }
 axum = { version="0.7.5", features = [] }
-fastwebsockets = { version="0.7.1", features=["upgrade", "with_axum", "unstable-split"] }
+fastwebsockets = { version="0.8", features=["upgrade", "with_axum", "unstable-split"] }
 tokio = { version = "1", features = ["signal", "rt-multi-thread", "time", "net", "io-util"] }
 tokio-stream = "0.1"
 futures-util = { version = "0.3", default-features = false, features = ["sink"] }

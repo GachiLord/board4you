@@ -10,43 +10,40 @@ use fastwebsockets::{upgrade, FragmentCollectorRead, Frame, OpCode, Payload, Web
 use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use std::sync::{atomic::Ordering, Arc};
-use tokio::sync::mpsc::{error::SendError, unbounded_channel};
+use tokio::sync::{
+    mpsc::{error::SendError, unbounded_channel},
+    oneshot,
+};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 enum BoardMessage {
     SetTitle {
-        private_id: Box<str>,
         title: Box<str>,
     },
     UndoRedo {
-        private_id: Box<str>,
         action_type: Box<str>,
         action_id: Box<str>,
     },
     Empty {
-        private_id: Box<str>,
         action_type: Box<str>,
     },
     Push {
-        private_id: Box<str>,
         data: Vec<Edit>,
         silent: bool,
     },
     PushSegment {
-        private_id: Box<str>,
         action_type: Box<str>,
         data: Box<str>,
     },
     SetSize {
-        private_id: Box<str>,
         data: BoardSize,
     },
     Pull {
         current: Vec<Box<str>>,
         undone: Vec<Box<str>>,
     },
-    UpdateCoEditor {
-        private_id: Box<str>,
+    Auth {
+        token: Box<str>,
     },
 }
 
@@ -92,6 +89,7 @@ pub async fn handle_client(
             }
         }
     });
+    let mut is_authed = false;
 
     // read messages from ws
     while let Ok(frame) = rx_s
@@ -105,15 +103,19 @@ pub async fn handle_client(
                     Ok(s) => {
                         let parsed: Result<BoardMessage, _> = serde_json::from_str(&s);
                         match parsed {
-                            Ok(p) => match handle_message(&room_chan, user_id.clone(), p) {
-                                Ok(_) => {}
-                                Err(e) => {
-                                    // if we can't send a msg, the room was most likely deleted
-                                    // So we should disconnect user
-                                    warn!("try to send to non-existent room: {}", e);
-                                    break;
+                            Ok(p) => {
+                                match handle_message(&room_chan, user_id.clone(), &mut is_authed, p)
+                                    .await
+                                {
+                                    Ok(_) => {}
+                                    Err(e) => {
+                                        // if we can't send a msg, the room was most likely deleted
+                                        // So we should disconnect the user
+                                        warn!("try to send to non-existent room: {}", e);
+                                        break;
+                                    }
                                 }
-                            },
+                            }
                             Err(err) => {
                                 let msg = RoomMessage::Info {
                                     status: "bad",
@@ -146,30 +148,43 @@ pub async fn handle_client(
     Ok(())
 }
 
-fn handle_message(
+async fn handle_message(
     r: &RoomChannel,
     user_id: UserId,
+    is_authed: &mut bool,
     msg: BoardMessage,
 ) -> Result<(), SendError<UserMessage>> {
     match msg {
-        BoardMessage::SetTitle { private_id, title } => r.send(UserMessage::SetTitle {
-            user_id,
-            private_id,
-            title,
-        }),
+        BoardMessage::Auth { token } => {
+            let (sender, receiver) = oneshot::channel();
+            let _ = r.send(UserMessage::Auth {
+                user_id,
+                token,
+                sender,
+            });
+            if let Ok(r) = receiver.await {
+                *is_authed = r;
+            }
+            Ok(())
+        }
+        BoardMessage::SetTitle { title } => {
+            if *is_authed {
+                let _ = r.send(UserMessage::SetTitle { user_id, title });
+            }
+            Ok(())
+        }
 
-        BoardMessage::Push {
-            private_id,
-            data,
-            silent,
-        } => r.send(UserMessage::Push {
-            user_id,
-            private_id,
-            data,
-            silent,
-        }),
+        BoardMessage::Push { data, silent } => {
+            if *is_authed {
+                let _ = r.send(UserMessage::Push {
+                    user_id,
+                    data,
+                    silent,
+                });
+            }
+            Ok(())
+        }
         BoardMessage::PushSegment {
-            private_id: _,
             action_type: _,
             data: _,
         } => {
@@ -193,34 +208,34 @@ fn handle_message(
         }
 
         BoardMessage::UndoRedo {
-            private_id,
             action_type,
             action_id,
-        } => r.send(UserMessage::UndoRedo {
-            user_id,
-            private_id,
-            action_type,
-            action_id,
-        }),
-        BoardMessage::Empty {
-            private_id,
-            action_type,
-        } => r.send(UserMessage::Empty {
-            user_id,
-            private_id,
-            action_type,
-        }),
+        } => {
+            if *is_authed {
+                let _ = r.send(UserMessage::UndoRedo {
+                    user_id,
+                    action_type,
+                    action_id,
+                });
+            }
+            Ok(())
+        }
+        BoardMessage::Empty { action_type } => {
+            if *is_authed {
+                let _ = r.send(UserMessage::Empty {
+                    user_id,
+                    action_type,
+                });
+            }
+            Ok(())
+        }
 
-        BoardMessage::SetSize { private_id, data } => r.send(UserMessage::SetSize {
-            user_id,
-            private_id,
-            data,
-        }),
-
-        BoardMessage::UpdateCoEditor { private_id } => r.send(UserMessage::UpdateCoEditor {
-            user_id,
-            private_id,
-        }),
+        BoardMessage::SetSize { data } => {
+            if *is_authed {
+                let _ = r.send(UserMessage::SetSize { user_id, data });
+            }
+            Ok(())
+        }
 
         BoardMessage::Pull { current, undone } => r.send(UserMessage::Pull {
             user_id,
