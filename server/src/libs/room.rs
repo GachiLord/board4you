@@ -204,6 +204,7 @@ pub async fn task(
                     for edit in data.into_iter() {
                         match room.board.push(edit) {
                             Ok(()) => (),
+                            // FIX: id should send only to sender
                             Err(e) => send_to_everyone(
                                 &room,
                                 Some(*user_id),
@@ -219,6 +220,7 @@ pub async fn task(
                     for edit in data.to_owned().into_iter() {
                         match room.board.push(edit) {
                             Ok(()) => (),
+                            // FIX: id should send to user_id
                             Err(e) => send_to_everyone(
                                 &room,
                                 Some(*user_id),
