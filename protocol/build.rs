@@ -60,7 +60,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let line = line.replace("#[derive(", "#[derive(Serialize, Deserialize, ");
 
         // add wasm bindgen macro where possible
-        if line.contains("struct ")
+        if (line.contains("struct ") || line.contains("enum "))
             && !line.contains("Msg")
             && !line.contains("PullData")
             && !line.contains("Push")

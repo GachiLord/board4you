@@ -9,10 +9,28 @@ pub mod board_protocol {
 
 use board_protocol::ServerMessage;
 use board_protocol::UserMessage;
+use utils::set_panic_hook;
+
+// execution stuff
+
+#[cfg(target_family = "wasm")]
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+
+#[cfg(target_family = "wasm")]
+#[wasm_bindgen(start)]
+fn start() {
+    set_panic_hook();
+}
+
+// lib
 
 #[cfg(target_family = "unix")]
 #[wasm_bindgen]
-pub fn encode_server_msg(msg: ServerMessage) -> Vec<u8> {
+pub fn encode_server_msg(msg: UserMessage) -> Vec<u8> {
     let mut buf = Vec::with_capacity(msg.encoded_len());
     msg.encode(&mut buf).unwrap();
     buf
