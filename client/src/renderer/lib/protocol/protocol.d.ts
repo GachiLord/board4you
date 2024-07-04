@@ -4,11 +4,6 @@
 */
 export function start(): void;
 /**
-* @param {any} msg
-* @returns {Uint8Array}
-*/
-export function encode_server_msg(msg: any): Uint8Array;
-/**
 * @param {Uint8Array} buf
 * @returns {any}
 */
@@ -18,11 +13,6 @@ export function decode_server_msg(buf: Uint8Array): any;
 * @returns {Uint8Array}
 */
 export function encode_user_msg(msg: any): Uint8Array;
-/**
-* @param {Uint8Array} buf
-* @returns {any}
-*/
-export function decode_user_msg(buf: Uint8Array): any;
 /**
 */
 export enum ActionType {
@@ -55,9 +45,6 @@ export enum Tool {
 */
 export class Add {
   free(): void;
-/**
-*/
-  edit_type: string;
 /**
 */
   id: string;
@@ -128,9 +115,6 @@ export class Modify {
   current: (Shape)[];
 /**
 */
-  edit_type: string;
-/**
-*/
   id: string;
 /**
 */
@@ -156,9 +140,6 @@ export class QuitData {
 */
 export class Remove {
   free(): void;
-/**
-*/
-  edit_type: string;
 /**
 */
   id: string;

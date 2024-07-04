@@ -51,21 +51,18 @@ message Shape {
 
 message Add {
   string id = 1;
-  string edit_type = 2;
-  Shape shape = 3;
+  Shape shape = 2;
 }
 
 message Remove {
   string id = 1;
-  string edit_type = 2;
-  repeated Shape shapes = 3;
+  repeated Shape shapes = 2;
 }
 
 message Modify {
   string id = 1;
-  string edit_type = 2;
-  repeated Shape current = 3;
-  repeated Shape initial = 4;
+  repeated Shape current = 2;
+  repeated Shape initial = 3;
 }
 
 message BoardSize {
