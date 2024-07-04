@@ -311,10 +311,13 @@ function handleError(f, args) {
 }
 /**
 */
-export const ActionType = Object.freeze({ Undo:0,"0":"Undo",Redo:1,"1":"Redo", });
+export const EmptyActionType = Object.freeze({ Current:0,"0":"Current",Undone:1,"1":"Undone", });
 /**
 */
 export const ShapeType = Object.freeze({ Line:0,"0":"Line",Arrow:1,"1":"Arrow",Rect:2,"2":"Rect",Ellipse:3,"3":"Ellipse",Img:4,"4":"Img", });
+/**
+*/
+export const ActionType = Object.freeze({ Undo:0,"0":"Undo",Redo:1,"1":"Redo", });
 /**
 */
 export const Tool = Object.freeze({ PenTool:0,"0":"PenTool",LineTool:1,"1":"LineTool",ArrowTool:3,"3":"ArrowTool",RectTool:4,"4":"RectTool",EllipseTool:5,"5":"EllipseTool",EraserTool:6,"6":"EraserTool",MoveTool:7,"7":"MoveTool",SelectTool:8,"8":"SelectTool",ImgTool:9,"9":"ImgTool", });

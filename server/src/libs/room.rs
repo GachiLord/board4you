@@ -1,8 +1,14 @@
 use crate::entities::board::{delete, save};
 
-use super::state::{BoardSize, Command, CommandName, DbClient, Edit, PullData, Room};
+use super::state::{Command, CommandName, DbClient, Room};
 use axum::body::Bytes;
-use serde::Serialize;
+use protocol::{
+    board_protocol::{
+        server_message::Msg, ActionType, Authed, BoardSize, Edit, EmptyActionType, EmptyData, Info,
+        PushData, QuitData, ServerMessage, SizeData, TitleData, UndoRedoData, UpdateCoEditorData,
+    },
+    encode_server_msg,
+};
 use std::{mem, sync::Arc};
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
@@ -30,26 +36,21 @@ pub enum UserMessage {
     },
     UndoRedo {
         user_id: Arc<usize>,
-        action_type: Box<str>,
+        action_type: ActionType,
         action_id: Box<str>,
     },
     Empty {
         user_id: Arc<usize>,
-        action_type: Box<str>,
+        action_type: EmptyActionType,
     },
     Push {
         user_id: Arc<usize>,
         data: Vec<Edit>,
         silent: bool,
     },
-    PushSegment {
-        user_id: Arc<usize>,
-        action_type: Box<str>,
-        data: Box<str>,
-    },
     SetSize {
         user_id: Arc<usize>,
-        data: BoardSize,
+        data: Option<BoardSize>,
     },
     // Messages that implement auth
     Auth {
@@ -86,47 +87,13 @@ pub enum UserMessage {
     Expire(oneshot::Sender<()>),
 }
 
-#[derive(Serialize)]
-pub enum RoomMessage<'a> {
-    PushData {
-        action: &'a str,
-        data: Vec<Edit>,
-    },
-    PushSegmentData {
-        action_type: &'a str,
-        data: &'a str,
-    },
-    UndoRedoData {
-        action_type: &'a str,
-        action_id: &'a str,
-    },
-    EmptyData {
-        action_type: &'a str,
-    },
-    SizeData {
-        data: BoardSize,
-    },
-    TitleData {
-        title: &'a str,
-    },
-    QuitData {
-        payload: &'a str,
-    },
-    UpdateCoEditorData {
-        payload: &'a str,
-    },
-    PullData(PullData),
-    Info {
-        status: &'a str,
-        action: &'a str,
-        payload: &'a str,
-    },
-    Authed,
+trait ToBytes {
+    fn as_bytes(&self) -> Bytes;
 }
 
-impl RoomMessage<'_> {
-    pub fn as_bytes(&self) -> Bytes {
-        let msg = serde_json::to_string(&self).unwrap();
+impl ToBytes for ServerMessage {
+    fn as_bytes(&self) -> Bytes {
+        let msg = encode_server_msg(self);
         return Bytes::from(msg);
     }
 }
@@ -147,17 +114,25 @@ pub async fn task(
             } => {
                 if token == room.private_id || token == room.board.co_editor_private_id {
                     if let Ok(_) = sender.send(true) {
-                        send_by_id(&room, *user_id, &RoomMessage::Authed);
+                        send_by_id(
+                            &room,
+                            *user_id,
+                            &ServerMessage {
+                                msg: Some(Msg::Authed(Authed {})),
+                            },
+                        );
                     }
                 } else {
                     let _ = sender.send(false);
                     send_by_id(
                         &room,
                         *user_id,
-                        &RoomMessage::Info {
-                            status: "bad",
-                            action: "Auth",
-                            payload: "token is invalid",
+                        &ServerMessage {
+                            msg: Some(Msg::Info(Info {
+                                status: "bad".to_owned(),
+                                action: "Auth".to_owned(),
+                                payload: "token is invalid".to_owned(),
+                            })),
                         },
                     );
                 }
@@ -170,22 +145,18 @@ pub async fn task(
                     send_by_id(
                         &room,
                         *user_id,
-                        &RoomMessage::Info {
-                            status: "bad",
-                            action: "SetTitle",
-                            payload: "title is too long",
+                        &ServerMessage {
+                            msg: Some(Msg::Info(Info {
+                                status: "bad".to_owned(),
+                                action: "SetTitle".to_owned(),
+                                payload: "title is too long".to_owned(),
+                            })),
                         },
                     );
                     continue;
                 }
                 // changes
                 room.board.title = title.clone();
-                // send changes
-                send_to_everyone(
-                    &room,
-                    Some(*user_id),
-                    &RoomMessage::TitleData { title: &title },
-                );
                 // update title in db
                 let _ = db_client
                     .execute(
@@ -193,6 +164,16 @@ pub async fn task(
                         &[&title, &public_id],
                     )
                     .await;
+                // send changes
+                send_to_everyone(
+                    &room,
+                    Some(*user_id),
+                    &ServerMessage {
+                        msg: Some(Msg::TitleData(TitleData {
+                            title: title.into(),
+                        })),
+                    },
+                );
             }
             UserMessage::Push {
                 user_id,
@@ -204,14 +185,15 @@ pub async fn task(
                     for edit in data.into_iter() {
                         match room.board.push(edit) {
                             Ok(()) => (),
-                            // FIX: id should send only to sender
-                            Err(e) => send_to_everyone(
+                            Err(e) => send_by_id(
                                 &room,
-                                Some(*user_id),
-                                &RoomMessage::Info {
-                                    status: "bad",
-                                    action: "Push",
-                                    payload: &e.to_string(),
+                                *user_id,
+                                &ServerMessage {
+                                    msg: Some(Msg::Info(Info {
+                                        status: "bad".to_owned(),
+                                        action: "Push".to_owned(),
+                                        payload: e.to_string(),
+                                    })),
                                 },
                             ),
                         }
@@ -220,41 +202,28 @@ pub async fn task(
                     for edit in data.to_owned().into_iter() {
                         match room.board.push(edit) {
                             Ok(()) => (),
-                            // FIX: id should send to user_id
-                            Err(e) => send_to_everyone(
+                            Err(e) => send_by_id(
                                 &room,
-                                Some(*user_id),
-                                &RoomMessage::Info {
-                                    status: "bad",
-                                    action: "Push",
-                                    payload: &e.to_string(),
+                                *user_id,
+                                &ServerMessage {
+                                    msg: Some(Msg::Info(Info {
+                                        status: "bad".to_owned(),
+                                        action: "Push".to_owned(),
+                                        payload: e.to_string(),
+                                    })),
                                 },
                             ),
                         }
                     }
                     // form data
-                    let push_data = RoomMessage::PushData {
-                        action: "Push",
-                        data: mem::take(&mut data),
+                    let push_data = ServerMessage {
+                        msg: Some(Msg::PushData(PushData {
+                            data: mem::take(&mut data),
+                        })),
                     };
                     // send
                     send_to_everyone(&room, Some(*user_id), &push_data);
                 }
-            }
-            UserMessage::PushSegment {
-                user_id,
-                action_type,
-                data,
-            } => {
-                // send
-                send_to_everyone(
-                    &room,
-                    Some(*user_id),
-                    &RoomMessage::PushSegmentData {
-                        action_type: &action_type,
-                        data: &data,
-                    },
-                )
             }
             UserMessage::UndoRedo {
                 user_id,
@@ -262,7 +231,7 @@ pub async fn task(
                 action_id,
             } => {
                 // determine command name
-                let command_name = if action_type.as_ref() == "Undo" {
+                let command_name = if action_type == ActionType::Undo {
                     CommandName::Undo
                 } else {
                     CommandName::Redo
@@ -277,18 +246,22 @@ pub async fn task(
                     Ok(()) => send_to_everyone(
                         &room,
                         Some(*user_id),
-                        &RoomMessage::UndoRedoData {
-                            action_type: &action_type,
-                            action_id: &action_id,
+                        &ServerMessage {
+                            msg: Some(Msg::UndoRedoData(UndoRedoData {
+                                action_type: action_type.into(),
+                                action_id: action_id.into(),
+                            })),
                         },
                     ),
                     Err(e) => send_by_id(
                         &room,
                         *user_id,
-                        &RoomMessage::Info {
-                            status: "bad",
-                            action: "UndoRedo",
-                            payload: e,
+                        &ServerMessage {
+                            msg: Some(Msg::Info(Info {
+                                status: "bad".to_owned(),
+                                action: "UndoRedo".to_owned(),
+                                payload: e.to_owned(),
+                            })),
                         },
                     ),
                 }
@@ -298,36 +271,66 @@ pub async fn task(
                 action_type,
             } => {
                 // save changes
-                if action_type.as_ref() == "current" {
-                    room.board.empty_current();
-                } else {
-                    room.board.empty_undone();
+                match action_type {
+                    EmptyActionType::Current => {
+                        room.board.empty_current();
+                    }
+                    EmptyActionType::Undone => {
+                        room.board.empty_undone();
+                    }
                 }
                 // send
                 send_to_everyone(
                     &room,
                     Some(*user_id),
-                    &RoomMessage::EmptyData {
-                        action_type: &action_type,
+                    &ServerMessage {
+                        msg: Some(Msg::EmptyData(EmptyData {
+                            action_type: action_type.into(),
+                        })),
                     },
                 )
             }
             UserMessage::SetSize { user_id, data } => {
                 // update board state
-                if let Err(e) = room.board.set_size(data.height, data.width) {
-                    // if size is invalid do nothing
+                if data.is_none() {
                     send_by_id(
                         &room,
                         *user_id,
-                        &RoomMessage::Info {
-                            status: "bad",
-                            action: "SetSize",
-                            payload: e.to_string().as_str(),
+                        &ServerMessage {
+                            msg: Some(Msg::Info(Info {
+                                status: "bad".to_owned(),
+                                action: "SetSize".to_owned(),
+                                payload: "size is None".to_owned(),
+                            })),
                         },
                     );
                     continue;
                 }
-                send_to_everyone(&room, Some(*user_id), &RoomMessage::SizeData { data });
+                if let Err(e) = room
+                    .board
+                    .set_size(data.as_ref().unwrap().height, data.as_ref().unwrap().width)
+                {
+                    // if size is invalid do nothing
+                    send_by_id(
+                        &room,
+                        *user_id,
+                        &ServerMessage {
+                            msg: Some(Msg::Info(Info {
+                                status: "bad".to_owned(),
+                                action: "SetSize".to_owned(),
+                                payload: e.to_string(),
+                            })),
+                        },
+                    );
+                    continue;
+                }
+                send_to_everyone(
+                    &room,
+                    Some(*user_id),
+                    &ServerMessage {
+                        msg: Some(Msg::SizeData(SizeData { data })),
+                    },
+                );
             }
             UserMessage::UpdateCoEditor {
                 user_id,
@@ -338,10 +341,12 @@ pub async fn task(
                     send_by_id(
                         &room,
                         *user_id,
-                        &RoomMessage::Info {
-                            status: "bad",
-                            action: "UpdateCoEditor",
-                            payload: "private_id is invalid",
+                        &ServerMessage {
+                            msg: Some(Msg::Info(Info {
+                                status: "bad".to_owned(),
+                                action: "UpdateCoEditor".to_owned(),
+                                payload: "private_id is invalid".to_owned(),
+                            })),
                         },
                     );
                     continue;
@@ -352,7 +357,9 @@ pub async fn task(
                 send_to_everyone(
                     &room,
                     Some(*user_id),
-                    &RoomMessage::UpdateCoEditorData { payload: "updated" },
+                    &ServerMessage {
+                        msg: Some(Msg::UpdateCoEditorData(UpdateCoEditorData {})),
+                    },
                 )
             }
             UserMessage::GetUpdatedCoEditorToken { private_id, sender } => {
@@ -366,7 +373,9 @@ pub async fn task(
                 send_to_everyone(
                     &room,
                     None,
-                    &RoomMessage::UpdateCoEditorData { payload: "updated" },
+                    &ServerMessage {
+                        msg: Some(Msg::UpdateCoEditorData(UpdateCoEditorData {})),
+                    },
                 )
             }
             UserMessage::GetCoEditorToken { private_id, sender } => {
@@ -388,7 +397,9 @@ pub async fn task(
                 current,
                 undone,
             } => {
-                let pull_data = RoomMessage::PullData(room.board.pull(current, undone));
+                let pull_data = &ServerMessage {
+                    msg: Some(Msg::PullData(room.board.pull(current, undone))),
+                };
                 send_by_id(&room, *user_id, &pull_data);
             }
             UserMessage::HasUsers(sender, no_persist) => {
@@ -408,7 +419,13 @@ pub async fn task(
             } => {
                 if room.private_id == private_id {
                     // kick users from the room
-                    send_to_everyone(&room, None, &RoomMessage::QuitData { payload: "deleted" });
+                    send_to_everyone(
+                        &room,
+                        None,
+                        &ServerMessage {
+                            msg: Some(Msg::QuitData(QuitData {})),
+                        },
+                    );
                     let _ = delete(&db_client, &public_id, &private_id);
                     let _ = deleted.send(true);
                 } else {
@@ -424,7 +441,7 @@ pub async fn task(
     }
 }
 
-pub fn send_to_everyone(room: &Room, except: Option<usize>, msg: &RoomMessage) {
+pub fn send_to_everyone(room: &Room, except: Option<usize>, msg: &ServerMessage) {
     let msg = msg.as_bytes();
 
     room.users.iter().for_each(|(id, chan)| match except {
@@ -439,7 +456,7 @@ pub fn send_to_everyone(room: &Room, except: Option<usize>, msg: &RoomMessage) {
     });
 }
 
-pub fn send_by_id(room: &Room, id: usize, msg: &RoomMessage) {
+pub fn send_by_id(room: &Room, id: usize, msg: &ServerMessage) {
     let msg = msg.as_bytes();
 
     if let Some(chan) = room.users.get(&id) {

@@ -102,8 +102,14 @@ message UndoRedo {
   ActionType action_type = 1; 
   string action_id = 2;
 }
+
+enum EmptyActionType {
+    CURRENT = 0;
+    UNDONE = 1;
+  }
+
 message Empty {
-  ActionType action_type = 1;
+  EmptyActionType  action_type = 1;
 }
 message Push {
   repeated Edit data = 1;
@@ -141,7 +147,7 @@ message UndoRedoData {
   string action_id = 2;
 }
 message EmptyData {
-  ActionType action_type = 1;
+  EmptyActionType action_type = 1;
 }
 message SizeData {
   BoardSize data = 1;

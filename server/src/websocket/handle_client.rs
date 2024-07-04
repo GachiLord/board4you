@@ -1,51 +1,27 @@
 use crate::{
     libs::{
-        room::{RoomChannel, RoomMessage, UserMessage},
-        state::{BoardSize, Edit, UserId},
+        room::{RoomChannel, UserMessage},
+        state::UserId,
     },
     lifecycle::retrive_room_channel,
     AppState, NEXT_USER_ID,
 };
+use axum::body::Bytes;
 use fastwebsockets::{upgrade, FragmentCollectorRead, Frame, OpCode, Payload, WebSocketError};
 use log::{debug, warn};
-use serde::{Deserialize, Serialize};
+use protocol::{
+    board_protocol::{
+        server_message::Msg::Info as InfoVariant, user_message::Msg as ProtcolUserMessageVariant,
+        ActionType, EmptyActionType, Info, ServerMessage as ProtocolServerMessage,
+        UserMessage as ProtocolUserMessage,
+    },
+    decode_user_msg, encode_server_msg,
+};
 use std::sync::{atomic::Ordering, Arc};
 use tokio::sync::{
     mpsc::{error::SendError, unbounded_channel},
     oneshot,
 };
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-enum BoardMessage {
-    SetTitle {
-        title: Box<str>,
-    },
-    UndoRedo {
-        action_type: Box<str>,
-        action_id: Box<str>,
-    },
-    Empty {
-        action_type: Box<str>,
-    },
-    Push {
-        data: Vec<Edit>,
-        silent: bool,
-    },
-    PushSegment {
-        action_type: Box<str>,
-        data: Box<str>,
-    },
-    SetSize {
-        data: BoardSize,
-    },
-    Pull {
-        current: Vec<Box<str>>,
-        undone: Vec<Box<str>>,
-    },
-    Auth {
-        token: Box<str>,
-    },
-}
 
 pub async fn handle_client(
     public_id: Box<str>,
@@ -98,45 +74,31 @@ pub async fn handle_client(
     {
         match frame.opcode {
             OpCode::Close => break,
-            OpCode::Text => {
-                match String::from_utf8(frame.payload.to_vec()) {
-                    Ok(s) => {
-                        let parsed: Result<BoardMessage, _> = serde_json::from_str(&s);
-                        match parsed {
-                            Ok(p) => {
-                                match handle_message(&room_chan, user_id.clone(), &mut is_authed, p)
-                                    .await
-                                {
-                                    Ok(_) => {}
-                                    Err(e) => {
-                                        // if we can't send a msg, the room was most likely deleted
-                                        // So we should disconnect the user
-                                        warn!("try to send to non-existent room: {}", e);
-                                        break;
-                                    }
-                                }
-                            }
-                            Err(err) => {
-                                let msg = RoomMessage::Info {
-                                    status: "bad",
-                                    action: "unknown",
-                                    payload: "cannot parse the message",
-                                };
-                                warn!("cannot parse message as BoardMessage: {}", err);
-                                let _ = tx_m.send(msg.as_bytes());
-                            }
+            OpCode::Text | OpCode::Binary => {
+                match decode_user_msg(frame.payload.as_ref()) {
+                    Ok(msg) => {
+                        if let Err(e) =
+                            handle_message(&room_chan, user_id.clone(), &mut is_authed, msg).await
+                        {
+                            // if we can't send a msg, the room was most likely deleted
+                            // So we should disconnect the user
+                            warn!("try to send to non-existent room: {}", e);
+                            break;
                         }
                     }
-                    Err(err) => {
-                        let msg = RoomMessage::Info {
-                            status: "bad",
-                            action: "unknown",
-                            payload: "message is not utf8 string",
+                    Err(e) => {
+                        let msg = ProtocolServerMessage {
+                            msg: Some(InfoVariant(Info {
+                                status: "bad".to_owned(),
+                                action: "unknown".to_owned(),
+                                payload: "failed to decode the message".to_owned(),
+                            })),
                         };
-                        warn!("cannot decode message as utf8 string: {}", err);
-                        let _ = tx_m.send(msg.as_bytes());
+                        let bytes = Bytes::from(encode_server_msg(&msg).to_vec());
+                        let _ = tx_m.send(bytes);
+                        warn!("cannot decode the message: {}", e);
                     }
-                };
+                }
             }
             _ => {}
         }
@@ -152,95 +114,72 @@ async fn handle_message(
     r: &RoomChannel,
     user_id: UserId,
     is_authed: &mut bool,
-    msg: BoardMessage,
+    msg: ProtocolUserMessage,
 ) -> Result<(), SendError<UserMessage>> {
-    match msg {
-        BoardMessage::Auth { token } => {
+    if msg.msg.is_none() {
+        return Ok(());
+    }
+
+    match msg.msg.unwrap() {
+        ProtcolUserMessageVariant::Auth(data) => {
             let (sender, receiver) = oneshot::channel();
-            let _ = r.send(UserMessage::Auth {
-                user_id,
-                token,
-                sender,
-            });
             if let Ok(r) = receiver.await {
                 *is_authed = r;
             }
-            Ok(())
+            r.send(UserMessage::Auth {
+                user_id,
+                token: data.token.into(),
+                sender,
+            })?
         }
-        BoardMessage::SetTitle { title } => {
+        ProtcolUserMessageVariant::SetTitle(data) => {
             if *is_authed {
-                let _ = r.send(UserMessage::SetTitle { user_id, title });
-            }
-            Ok(())
-        }
-
-        BoardMessage::Push { data, silent } => {
-            if *is_authed {
-                let _ = r.send(UserMessage::Push {
+                r.send(UserMessage::SetTitle {
                     user_id,
-                    data,
-                    silent,
-                });
+                    title: data.title.into(),
+                })?
             }
-            Ok(())
         }
-        BoardMessage::PushSegment {
-            action_type: _,
-            data: _,
-        } => {
-            Ok(())
-            // TODO: This part is currently disabled due to the ineffective way used to send websocket messages.
-            // Uncomment this, when or if it is improved
-            //
-            //match rooms.read().await.get(&public_id) {
-            //    Some(r) => {
-            //        let _ = r.send(UserMessage::PushSegment {
-            //            user_id,
-            //            private_id,
-            //            action_type,
-            //            data,
-            //        });
-            //    }
-            //    None => {
-            //        //send_to_user_by_id(ws_users, &user_id, &no_such_room("PushSegment")).await;
-            //    }
-            //}
-        }
-
-        BoardMessage::UndoRedo {
-            action_type,
-            action_id,
-        } => {
+        ProtcolUserMessageVariant::Push(data) => {
             if *is_authed {
-                let _ = r.send(UserMessage::UndoRedo {
+                r.send(UserMessage::Push {
                     user_id,
-                    action_type,
-                    action_id,
-                });
+                    data: data.data,
+                    silent: data.silent,
+                })?
             }
-            Ok(())
         }
-        BoardMessage::Empty { action_type } => {
+        ProtcolUserMessageVariant::UndoRedo(data) => {
             if *is_authed {
-                let _ = r.send(UserMessage::Empty {
+                r.send(UserMessage::UndoRedo {
                     user_id,
-                    action_type,
-                });
+                    action_type: ActionType::try_from(data.action_type).unwrap(),
+                    action_id: data.action_id.into(),
+                })?
             }
-            Ok(())
         }
-
-        BoardMessage::SetSize { data } => {
+        ProtcolUserMessageVariant::Empty(data) => {
             if *is_authed {
-                let _ = r.send(UserMessage::SetSize { user_id, data });
+                r.send(UserMessage::Empty {
+                    user_id,
+                    action_type: EmptyActionType::try_from(data.action_type).unwrap(),
+                })?
             }
-            Ok(())
         }
-
-        BoardMessage::Pull { current, undone } => r.send(UserMessage::Pull {
+        ProtcolUserMessageVariant::SetSize(data) => {
+            if *is_authed {
+                r.send(UserMessage::SetSize {
+                    user_id,
+                    data: data.data,
+                })?
+            }
+        }
+        ProtcolUserMessageVariant::Pull(data) => r.send(UserMessage::Pull {
             user_id,
-            current,
-            undone,
-        }),
+            current: data.current.into_iter().map(|d| d.into()).collect(),
+            undone: data.undone.into_iter().map(|d| d.into()).collect(),
+        })?,
     }
+
+    Ok(())
 }

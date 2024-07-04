@@ -8,6 +8,7 @@ use axum::{
 use data_encoding::BASE64URL;
 use jwt_simple::algorithms::HS256Key;
 use log::{debug, error};
+use protocol::board_protocol::{BoardSize, Edit};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc::unbounded_channel, oneshot};
 use uuid::Uuid;
@@ -20,7 +21,7 @@ use crate::{
     },
     libs::{
         room::{task, UserMessage},
-        state::{Board, BoardSize, Edit, Room},
+        state::{Board, Room},
     },
     AppState,
 };
