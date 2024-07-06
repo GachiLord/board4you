@@ -115,7 +115,7 @@
     "@types/uuid": "^9.0.7",
     "esbuild": "^0.19.5",
     "esbuild-plugin-wasm": "^1.1.0",
-    "pdfjs-dist": "^3.11.174",
+    "pdfjs-dist": "^4.2.67",
     "prop-types": "^15.8.1",
     "react-router-dom": "^6.18.0"
   },
