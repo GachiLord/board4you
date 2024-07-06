@@ -1,8 +1,8 @@
-import ISize from '../../base/typing/ISize'
 import { ReconnectEventDetail, RetryEventDetail } from 'websocket-ts'
+import { UndoRedo, Pull, Empty, SetSize, SetTitle, Auth, Add, Remove, Modify, UndoRedoData, EmptyData, SizeData, TitleData, QuitData, Info, Authed } from '../../lib/protocol'
 
 export interface Handlers {
-  onMessage?: (msg: string) => void,
+  onMessage?: (msg: Uint8Array) => void,
   onError?: (e: WebSocketEventMap["error"]) => void,
   onClose?: (e: WebSocketEventMap["close"]) => void,
   onOpen?: (e: WebSocketEventMap["open"]) => void,
@@ -19,40 +19,45 @@ export interface BoardStatus {
   connected: boolean,
   roomId: string | null
 }
-
-// board message schemes
-export interface Auth { token: string }
-export interface Join { }
-export interface Quit { }
-export interface SetTitle { title: string }
-export interface UndoRedo { action_type: 'Undo' | 'Redo', action_id: string }
-export interface Push { data: Array<string>, silent: boolean }
-export interface PushSegment {
-  public_id: string,
-  private_id: string,
-  action_type: 'Start' | 'Update' | 'End',
-  data: unknown
+// user messages
+export interface Edit {
+  edit: {
+    Add?: Add,
+    Remove?: Remove,
+    Modify?: Modify
+  }
 }
-export interface SetSize { data: string }
-export interface Empty { action_type: string }
-export interface Pull { current: string[], undone: string[] }
-export interface UpdateCoEditor { private_id: string }
-// data interfaces
-export interface TitleData { title: string }
-export interface Info { status: string, payload: string }
-export interface PushData { action: string, data: string[] }
-export interface PushSegmentData { action_type: string, data: any }
-export interface UndoRedoData { action_type: 'Undo' | 'Redo', action_id: string }
-export interface EmptyData { action_type: 'undone' | 'current' | 'history' }
-export interface SizeData { data: ISize }
-// board message
-export type BoardMessage = Join | Quit | UndoRedo | Push | PushSegment | Pull |
-  Info | Empty | SetSize | SetTitle | UpdateCoEditor | Auth
-export type MessageType = 'Join' | 'Quit' | 'UndoRedo' | 'Empty' |
-  'Push' | 'PushSegment' | 'PushData' | 'Pull' | 'Info' |
-  'SetSize' | 'SetTitle' | 'UpdateCoEditorData' | 'PullData' |
-  'PushSegmentData' | 'UndoRedoData' | 'EmptyData' | 'SizeData' |
-  'TitleData' | 'Info' | 'QuitData' | 'UpdateCoEditor' | "Auth" | "Authed"
+export interface Push {
+  data: Edit[]
+  silent: boolean
+}
+export type UserMessage = UndoRedo | Push | Pull |
+  Empty | SetSize | SetTitle | Auth
+export type UserMessageType = 'UndoRedo' | 'Push' | 'Pull' | 'Empty' | 'SetSize' | 'SetTitle' | 'Auth'
+// server messages 
+export interface PushData {
+  data: Edit[]
+}
+export interface UpdateCoEditorData { }
+export interface EditData {
+  should_be_created_edits: Edit[],
+  should_be_deleted_ids: String[],
+}
+export interface PullData {
+  current: EditData,
+  undone: EditData
+}
+export type ServerMessage =
+  PushData |
+  UndoRedoData |
+  EmptyData |
+  SizeData |
+  TitleData |
+  QuitData |
+  UpdateCoEditorData |
+  PullData |
+  Info |
+  Authed
 // errors
 export class TimeOutError extends Error {
   constructor(msg = "connection timeout after", durationMs: number, options?: ErrorOptions) {

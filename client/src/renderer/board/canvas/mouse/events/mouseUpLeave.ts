@@ -76,8 +76,9 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
       // cache the line to improve perfomance
       lastLine.cache()
       // add line to history
-      const edit: Edit = { id: lastLine.attrs.shape_id, edit_type: 'add', shape: CanvasUtils.toShape(lastLine) }
-      store.dispatch(addCurrent(edit))
+      // @ts-ignore
+      store.dispatch(addCurrent({ id: lastLine.attrs.shape_id, shape: CanvasUtils.toShape(lastLine, true) }))
+      const edit: Edit = { id: lastLine.attrs.shape_id, shape: CanvasUtils.toShape(lastLine), free() { } };
       // send PushSegmentEnd msg
       shareSegment(drawingShapeId)
       share(edit)
@@ -87,7 +88,8 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
       // validate lastLine
       if (!(lastShape instanceof Rect || lastShape instanceof Ellipse)) throw new TypeError('last created element must be an Ellipse or Rect')
       // save
-      const edit: Edit = { id: lastShape.attrs.shape_id, edit_type: 'add', shape: CanvasUtils.toShape(lastShape) }
+      // @ts-ignore
+      const edit: Edit = { id: lastShape.attrs.shape_id, shape: CanvasUtils.toShape(lastShape, true) }
       store.dispatch(addCurrent(edit))
       // send PushSegmentEnd msg
       shareSegment(drawingShapeId)

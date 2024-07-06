@@ -8,11 +8,12 @@ import {
   WebsocketEvent,
 } from "websocket-ts";
 import { IHistoryState } from '../../features/history'
-import { Handlers, BoardStatus, BoardOptions, Info, RoomInfo, MessageType, BoardMessage } from './typing'
+import { Handlers, BoardStatus, BoardOptions, RoomInfo, UserMessage, UserMessageType } from './typing'
 import ISize from '../../base/typing/ISize'
 import store from '../../store/store'
 import { convertToEnum } from "../../board/canvas/share/convert";
 import { request } from "../request";
+import { encode_user_msg, Info } from "../protocol/protocol";
 
 
 export default class BoardManager {
@@ -42,9 +43,9 @@ export default class BoardManager {
     if (this.handlers.onError) this.handlers.onError(e)
   }
 
-  #messageHandler = (_: unknown, e: MessageEvent<string>) => {
-    if (typeof e.data !== 'string') throw new TypeError('message has unsupported type')
-    if (this.handlers.onMessage) this.handlers.onMessage(e.data)
+  #messageHandler = (_: unknown, e: MessageEvent<ArrayBuffer>) => {
+    const buf = new Uint8Array(e.data)
+    if (this.handlers.onMessage) this.handlers.onMessage(buf)
   }
 
   #retryHandler = (_: unknown, e: CustomEvent<RetryEventDetail>) => {
@@ -61,6 +62,7 @@ export default class BoardManager {
         .withBuffer(new ArrayQueue())           // buffer messages when disconnected
         .withBackoff(new LinearBackoff(0, 1000, 7000)) // retry every 1s
         .build();
+      this.rws.binaryType = 'arraybuffer'
 
       this.rws.addEventListener(WebsocketEvent.open, (_, e) => {
         // add status
@@ -94,10 +96,6 @@ export default class BoardManager {
     this.rws.close()
   }
 
-  quitRoom(roomId: string) {
-    this.send('Quit', { public_id: roomId })
-  }
-
   static async createRoom(history: IHistoryState, size: ISize, title: string): Promise<RoomInfo> {
     const roomInitials = {
       current: history.current.map(edit => convertToEnum(edit)),
@@ -112,15 +110,16 @@ export default class BoardManager {
     return await request('room').delete().body({ public_id: roomId, private_id: privateId })
   }
 
-  send(messageType: MessageType, data: BoardMessage) {
+  send(messageType: UserMessageType, data: UserMessage) {
     if (this.rws == null) throw new Error('cannot send without a connection')
 
     const msg = new Map()
     msg.set(messageType, data)
+    console.log(msg)
+    const encoded = encode_user_msg({ msg: Object.fromEntries(msg) })
+    console.log(encoded)
 
-    this.rws.send(JSON.stringify(
-      Object.fromEntries(msg)
-    ))
+    this.rws.send(encoded)
   }
 
   getCredentials() {

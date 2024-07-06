@@ -57,7 +57,7 @@ pub async fn handle_client(
     tokio::spawn(async move {
         while let Some(msg) = rx_m.recv().await {
             let payload = Payload::Borrowed(&msg);
-            let frame = Frame::text(payload);
+            let frame = Frame::binary(payload);
             // if we can't send a message there is no point to continue this loop
             if let Err(e) = tx_s.write_frame(frame).await {
                 debug!("failed to send a message, closing the connection: {}", e);
@@ -87,6 +87,7 @@ pub async fn handle_client(
                         }
                     }
                     Err(e) => {
+                        dbg!(&e);
                         let msg = ProtocolServerMessage {
                             msg: Some(InfoVariant(Info {
                                 status: "bad".to_owned(),
@@ -117,68 +118,90 @@ async fn handle_message(
     msg: ProtocolUserMessage,
 ) -> Result<(), SendError<UserMessage>> {
     if msg.msg.is_none() {
+        debug!("User({}) has sent empty message", user_id);
         return Ok(());
     }
 
     match msg.msg.unwrap() {
         ProtcolUserMessageVariant::Auth(data) => {
+            debug!("Auth message received");
             let (sender, receiver) = oneshot::channel();
-            if let Ok(r) = receiver.await {
-                *is_authed = r;
-            }
             r.send(UserMessage::Auth {
                 user_id,
                 token: data.token.into(),
                 sender,
-            })?
+            })?;
+            if let Ok(r) = receiver.await {
+                *is_authed = r;
+            } else {
+                debug!("Failed to receive auth result");
+            }
         }
         ProtcolUserMessageVariant::SetTitle(data) => {
+            debug!("SetTitle message received");
             if *is_authed {
                 r.send(UserMessage::SetTitle {
                     user_id,
                     title: data.title.into(),
                 })?
+            } else {
+                debug!("Trying to work without auth");
             }
         }
         ProtcolUserMessageVariant::Push(data) => {
+            debug!("Push message received");
             if *is_authed {
                 r.send(UserMessage::Push {
                     user_id,
                     data: data.data,
                     silent: data.silent,
                 })?
+            } else {
+                debug!("Trying to work without auth");
             }
         }
         ProtcolUserMessageVariant::UndoRedo(data) => {
+            debug!("UndoRedo message received");
             if *is_authed {
                 r.send(UserMessage::UndoRedo {
                     user_id,
                     action_type: ActionType::try_from(data.action_type).unwrap(),
                     action_id: data.action_id.into(),
                 })?
+            } else {
+                debug!("Trying to work without auth");
             }
         }
         ProtcolUserMessageVariant::Empty(data) => {
+            debug!("Empty message received");
             if *is_authed {
                 r.send(UserMessage::Empty {
                     user_id,
                     action_type: EmptyActionType::try_from(data.action_type).unwrap(),
                 })?
+            } else {
+                debug!("Trying to work without auth");
             }
         }
         ProtcolUserMessageVariant::SetSize(data) => {
+            debug!("SetSize message received");
             if *is_authed {
                 r.send(UserMessage::SetSize {
                     user_id,
                     data: data.data,
                 })?
+            } else {
+                debug!("Trying to work without auth");
             }
         }
-        ProtcolUserMessageVariant::Pull(data) => r.send(UserMessage::Pull {
-            user_id,
-            current: data.current.into_iter().map(|d| d.into()).collect(),
-            undone: data.undone.into_iter().map(|d| d.into()).collect(),
-        })?,
+        ProtcolUserMessageVariant::Pull(data) => {
+            debug!("Pull message received");
+            r.send(UserMessage::Pull {
+                user_id,
+                current: data.current.into_iter().map(|d| d.into()).collect(),
+                undone: data.undone.into_iter().map(|d| d.into()).collect(),
+            })?
+        }
     }
 
     Ok(())

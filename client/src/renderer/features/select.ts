@@ -1,24 +1,24 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
-import IShape from "../base/typing/IShape";
+import { Shape } from "../lib/protocol/protocol";
 
 
-export type Selection = IShape[]
+export type Selection = Shape[]
 const initialSelection: Selection = []
 
 const sliceReducer = createSlice({
-    name: 'slice',
-    initialState: {
-        selection: initialSelection
+  name: 'slice',
+  initialState: {
+    selection: initialSelection
+  },
+  reducers: {
+    setSelection: (state, action: PayloadAction<Selection>) => {
+      state.selection = action.payload
     },
-    reducers: {
-        setSelection: (state, action: PayloadAction<Selection>) => {
-            state.selection = action.payload
-        },
-        emptySelection: (state) => {
-            state.selection = []
-        }
+    emptySelection: (state) => {
+      state.selection = []
     }
+  }
 })
 
-export const {setSelection, emptySelection} = sliceReducer.actions
+export const { setSelection, emptySelection } = sliceReducer.actions
 export default sliceReducer.reducer
