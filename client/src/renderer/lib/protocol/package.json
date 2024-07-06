@@ -1,0 +1,20 @@
+{
+  "name": "protocol",
+  "type": "module",
+  "collaborators": [
+    "GachiLord <name504172@gmail.com>"
+  ],
+  "version": "0.1.0",
+  "files": [
+    "protocol_bg.wasm",
+    "protocol.js",
+    "protocol_bg.js",
+    "protocol.d.ts"
+  ],
+  "main": "protocol.js",
+  "types": "protocol.d.ts",
+  "sideEffects": [
+    "./protocol.js",
+    "./snippets/*"
+  ]
+}

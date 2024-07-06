@@ -19,6 +19,7 @@ inherits = "release"
 debug = true
 
 [dependencies]
+protocol = { path = "../protocol" }
 tower = "*"
 tower-http = { version="*", features = ["fs"] }
 axum = { version="0.7.5", features = [] }

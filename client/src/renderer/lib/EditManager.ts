@@ -2,31 +2,14 @@ import CanvasUtils from "./CanvasUtils";
 import store from "../store/store";
 import { emptyUndone, undo, redo } from "../features/history";
 import Konva from "konva";
-import IShape from "../base/typing/IShape";
 import { itemIn } from "./twiks";
 import BoardManager from "./BoardManager/BoardManager";
+import { ActionType, Add, Modify, Remove, Shape } from "./protocol/protocol";
+import { Tool } from "./protocol/protocol_bg";
 
 
-export interface IAdd {
-  id: string
-  edit_type: 'add'
-  shape: IShape
-}
 
-export interface IRemove {
-  id: string
-  edit_type: 'remove'
-  shapes: IShape[]
-}
-
-export interface IModify {
-  id: string
-  edit_type: 'modify'
-  current: IShape[]
-  initial: IShape[]
-}
-
-export type Edit = IAdd | IRemove | IModify
+export type Edit = Add | Remove | Modify
 
 
 export default class EditManager {
@@ -46,11 +29,11 @@ export default class EditManager {
     }
   }
 
-  static getEditFromShape(shape: IShape): Edit {
+  static getEditFromShape(shape: Shape): Edit {
     return {
       id: shape.shape_id,
-      edit_type: 'add',
-      shape: shape
+      shape: shape,
+      free: () => { },
     }
   }
 
@@ -58,16 +41,15 @@ export default class EditManager {
     return EditManager.getEditFromShape(CanvasUtils.toShape(obj))
   }
 
-  #share(action_type: 'Undo' | 'Redo', action_id: string) {
+  #share(action_type: ActionType, action_id: string) {
     if (!this.boardManager.status.connected) return
 
-    const public_id = this.boardManager.status.roomId
-    const private_id = store.getState().rooms[public_id]
     this.boardManager.send(
       'UndoRedo',
       {
         action_type,
-        action_id
+        action_id,
+        free: () => { }
       }
     )
   }
@@ -84,7 +66,7 @@ export default class EditManager {
     this.cancelEdit(lastEdit)
     store.dispatch(undo(edit_id))
     // send msg
-    if (!silent) this.#share('Undo', lastEdit.id)
+    if (!silent) this.#share(ActionType.Undo, lastEdit.id)
   }
 
   redo(edit_id?: string, silent?: boolean) {
@@ -95,24 +77,35 @@ export default class EditManager {
     this.applyEdit(lastEdit)
     store.dispatch(redo())
     // send msg
-    if (!silent) this.#share('Redo', lastEdit.id)
+    if (!silent) this.#share(ActionType.Redo, lastEdit.id)
   }
 
   applyEdit(edit: Edit) {
-    switch (edit.edit_type) {
-      case 'add': {
-        const shapeToAdd = CanvasUtils.toKonvaObject(edit.shape)
-        if (!itemIn(edit.shape.tool, 'img', 'rect')) shapeToAdd.cache()
+    const keys = Object.keys(edit)
+    let t = 0
+    if (keys.includes('shape')) t = 0
+    if (keys.includes('shapes')) t = 1
+    if (keys.includes('current')) t = 2
+
+    switch (t) {
+      case 0: {
+        const e = edit as Add;
+        const shapeToAdd = CanvasUtils.toKonvaObject(e.shape)
+        if (!itemIn(e.shape.tool, Tool.ImgTool, Tool.RectTool)) shapeToAdd.cache()
         this.layer.add(shapeToAdd)
         break
       }
-      case 'remove':
-        edit.shapes.forEach(shape => {
+      case 1: {
+        const e = edit as Remove;
+        e.shapes.forEach(shape => {
           CanvasUtils.findOne(this.layer, { shape_id: shape.shape_id }).destroy()
         })
         break
-      case 'modify':
-        edit.current.forEach((attrs) => {
+
+      }
+      case 2:
+        const e = edit as Modify;
+        e.current.forEach((attrs) => {
           const shapeToModify = CanvasUtils.findOne(this.layer, { shape_id: attrs.shape_id })
           shapeToModify.setAttrs({
             ...attrs,
@@ -133,21 +126,32 @@ export default class EditManager {
   }
 
   cancelEdit(edit: Edit) {
-    switch (edit.edit_type) {
-      case 'add': {
-        const shapeToRemove = CanvasUtils.findOne(this.layer, { shape_id: edit.shape.shape_id })
+    const keys = Object.keys(edit)
+    let t = 0
+    if (keys.includes('shape')) t = 0
+    if (keys.includes('shapes')) t = 1
+    if (keys.includes('current')) t = 2
+
+    switch (t) {
+      case 0: {
+        const e = edit as Add;
+        const shapeToRemove = CanvasUtils.findOne(this.layer, { shape_id: e.shape.shape_id })
         shapeToRemove.destroy()
         break
       }
-      case 'remove':
-        edit.shapes.forEach(shape => {
+      case 1: {
+        const e = edit as Remove;
+        e.shapes.forEach(shape => {
           const shapeToAdd = CanvasUtils.toKonvaObject(shape)
           shapeToAdd.cache()
           this.layer.add(shapeToAdd)
         })
         break
-      case 'modify':
-        edit.initial.forEach((attrs) => {
+
+      }
+      case 2: {
+        const e = edit as Modify;
+        e.initial.forEach((attrs) => {
           const shapeToModify = CanvasUtils.findOne(this.layer, { shape_id: attrs.shape_id })
           shapeToModify.setAttrs({
             ...attrs,
@@ -164,6 +168,7 @@ export default class EditManager {
           })
         })
         break
+      }
     }
   }
 }

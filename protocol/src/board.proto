@@ -1,0 +1,182 @@
+syntax = "proto3";
+package board;
+
+
+// base structs
+
+enum Tool {
+  PEN_TOOL = 0;
+  LINE_TOOL = 1;
+  ARROW_TOOL = 3;
+  RECT_TOOL = 4;
+  ELLIPSE_TOOL = 5;
+  ERASER_TOOL = 6;
+  MOVE_TOOL = 7;
+  SELECT_TOOL = 8;
+  IMG_TOOL = 9;
+}
+
+enum ShapeType {
+  LINE = 0;
+  ARROW = 1;
+  RECT = 2;
+  ELLIPSE = 3;
+  IMG = 4;
+}
+
+message Shape {
+  float x = 1;
+  float y = 2;
+  Tool tool = 3;
+  ShapeType  shape_type = 4;
+  string shape_id = 5;
+  string color = 6;
+  float line_size = 7;
+  string line_type = 8;
+  float height = 9;
+  float width = 10;
+  float radius_x = 11;
+  float radius_y = 12;
+  float rotation =13;
+  float scale_x = 14;
+  float scale_y = 15;
+  float skew_x = 16;
+  float skew_y = 17;
+  repeated uint32 points = 18;
+  repeated string connected = 19;
+  string url = 20;
+}
+
+// edits
+
+message Add {
+  string id = 1;
+  Shape shape = 2;
+}
+
+message Remove {
+  string id = 1;
+  repeated Shape shapes = 2;
+}
+
+message Modify {
+  string id = 1;
+  repeated Shape current = 2;
+  repeated Shape initial = 3;
+}
+
+message BoardSize {
+  uint32 height = 1;
+  uint32 width = 2;
+}
+
+message Edit {
+  oneof edit {
+    Add add = 1;
+    Remove remove = 2;
+    Modify modify = 3;
+  }
+}
+
+message EditData {
+    repeated Edit should_be_created_edits = 1;
+    repeated string should_be_deleted_ids = 2;
+}
+
+message PullData {
+  EditData current = 1;
+  EditData undone = 2;
+}
+
+enum ActionType {
+  UNDO = 0;
+  REDO = 1;
+}
+
+// user messages
+
+message SetTitle {
+  string title = 1;
+}
+message UndoRedo {
+  ActionType action_type = 1; 
+  string action_id = 2;
+}
+
+enum EmptyActionType {
+    CURRENT = 0;
+    UNDONE = 1;
+  }
+
+message Empty {
+  EmptyActionType  action_type = 1;
+}
+message Push {
+  repeated Edit data = 1;
+  bool silent = 2;
+}
+message SetSize {
+  BoardSize data = 1;
+}
+message Pull {
+  repeated string current = 1;
+  repeated string undone = 2;
+}
+message Auth {
+  string token = 1;
+}
+
+message UserMessage {
+  oneof msg {
+    SetTitle set_title = 1;
+    UndoRedo undo_redo = 2;
+    Empty empty = 3;
+    Push push = 4;
+    SetSize set_size = 5;
+    Pull pull = 6;
+    Auth auth = 7;
+  }
+}
+
+// server messages
+message PushData {
+  repeated Edit data = 1;
+}
+message UndoRedoData {
+  ActionType action_type = 1;
+  string action_id = 2;
+}
+message EmptyData {
+  EmptyActionType action_type = 1;
+}
+message SizeData {
+  BoardSize data = 1;
+}
+message TitleData {
+  string title = 1;
+}
+message QuitData {}
+message UpdateCoEditorData {}
+message Info {
+  string status = 1;
+  string action = 2;
+  string payload = 3;
+}
+message Authed {}
+
+
+message ServerMessage {
+  oneof msg {
+    PushData push_data = 1;
+    UndoRedoData undo_redo_data = 2;
+    EmptyData empty_data = 3;
+    SizeData size_data = 4;
+    TitleData title_data = 5;
+    QuitData quit_data = 6;
+    UpdateCoEditorData update_co_editor_data = 7;
+    PullData pull_data = 8;
+    Info info = 9;
+    Authed authed = 10;
+  }
+}
+

@@ -26,7 +26,7 @@ export default class Selection {
       // add listener for transform and drag
       shapeChange(tr, boardManager)
       // add selected to selection
-      store.dispatch(setSelection(shapes.map(s => CanvasUtils.toShape(s))))
+      store.dispatch(setSelection(shapes.map(s => CanvasUtils.toShape(s, true))))
     }
     else throw new Error('Invalid value. Shapes must have length greater than 0')
   }

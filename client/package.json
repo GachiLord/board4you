@@ -5,6 +5,7 @@
   "repository": "https://github.com/GachiLord/board4you",
   "main": "./public/main.js",
   "scripts": {
+    "build": "node ./build.mjs",
     "buildWeb": "./scripts/buildWeb.sh",
     "devWeb": "./scripts/devWeb.sh",
     "buildDesktop": "./scripts/buildDesktop.sh",
@@ -113,6 +114,7 @@
     "@types/react-router-bootstrap": "^0.26.6",
     "@types/uuid": "^9.0.7",
     "esbuild": "^0.19.5",
+    "esbuild-plugin-wasm": "^1.1.0",
     "pdfjs-dist": "^3.11.174",
     "prop-types": "^15.8.1",
     "react-router-dom": "^6.18.0"

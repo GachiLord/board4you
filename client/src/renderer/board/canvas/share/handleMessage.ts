@@ -2,17 +2,14 @@ import EditManager from "../../../lib/EditManager"
 import boardEvents from "../../../base/constants/boardEvents"
 import handlePush from "./handlePush"
 import handlePull from "./handlePull"
-import handlePushStart from "./handlePushStart"
-import handlePushUpdate from "./handlePushUpdate"
-import handlePushEnd from "./handlePushEnd"
 import store from "../../../store/store"
 import { emptyCurrent, emptyHistory, emptyUndone } from "../../../features/history"
 import setCanvasSize from "../../../lib/setCanvasSize"
 import BoardManager from "../../../lib/BoardManager/BoardManager"
 import { setMode, setTitle } from "../../../features/board"
-import { PushSegmentData } from "../../../lib/BoardManager/typing"
 import { deleteRoom } from "../../../features/rooms"
 import { set } from "../../../features/tool"
+import { decode_server_msg } from "../../../lib/protocol/protocol"
 
 
 interface props {
@@ -24,9 +21,9 @@ interface props {
 }
 
 
-export default function(msg: string, { editManager, boardManager, setLoading, setError, setRoomExists }: props) {
-  const canvas = editManager.layer
-  const parsed = JSON.parse(msg)
+export default function(msg: Uint8Array, { editManager, boardManager, setLoading, setError, setRoomExists }: props) {
+  const decoded = decode_server_msg(msg);
+  const parsed = decoded.msg
   const key = Object.keys(parsed)[0]
   const data = parsed[key]
 
@@ -39,14 +36,6 @@ export default function(msg: string, { editManager, boardManager, setLoading, se
       handlePull(editManager, data)
       setLoading(false)
       break
-    case 'PushSegmentData': {
-      const segment: PushSegmentData = data
-      const t = segment.action_type
-      if (t === 'Start') handlePushStart(canvas, JSON.parse(segment.data))
-      if (t === 'Update') handlePushUpdate(canvas, JSON.parse(segment.data))
-      if (t === 'End') handlePushEnd(canvas, boardManager, segment.data)
-      break
-    }
     case 'UndoRedoData': {
       if (data.action_type === 'Undo') editManager.undo(data.action_id, true)
       else editManager.redo(data.action_id, true)

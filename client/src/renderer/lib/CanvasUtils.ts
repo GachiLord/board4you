@@ -1,10 +1,11 @@
 import { Shape, ShapeConfig } from "konva/lib/Shape"
-import IShape from "../base/typing/IShape"
+import { Shape as IShape } from './protocol'
 import Konva from "konva"
 import { Group } from "konva/lib/Group"
 import { itemIn } from "./twiks"
 import { Node } from "konva/lib/Node"
 import { Container } from "konva/lib/Container"
+import { ShapeType, Tool } from "./protocol/protocol_bg"
 
 export default class CanvasUtils {
 
@@ -31,20 +32,21 @@ export default class CanvasUtils {
       lineType: shape.line_type,
       // transform attrs
       rotation: shape.rotation ? shape.rotation : 0,
-      scaleX: shape.scaleX ? shape.scale_x : 1,
-      scaleY: shape.scaleY ? shape.scale_y : 1,
-      skewX: shape.skewX ? shape.skew_x : 0,
-      skewY: shape.skewY ? shape.skew_y : 0,
+      scaleX: shape.scale_x,
+      scaleY: shape.scale_y,
+      skewX: shape.skew_x,
+      skewY: shape.skew_y,
       // shapes that are must be connected to this
       connected: shape.connected ? new Set(shape.connected) : new Set(),
     }
 
     switch (shape.shape_type) {
-      case 'arrow':
+      case ShapeType.Arrow:
         return (
           new Konva.Arrow({
             ...commonAttrs,
-            points: shape.points ? shape.points : [],
+            // TODO: it might not work, so test it
+            points: Array.from(shape.points),
             stroke: shape.color,
             fill: shape.color,
             strokeWidth: shape.line_size,
@@ -57,7 +59,7 @@ export default class CanvasUtils {
           })
         )
 
-      case 'img': {
+      case ShapeType.Img: {
         const img = new Image(shape.width, shape.height)
         img.src = shape.url
 
@@ -75,7 +77,7 @@ export default class CanvasUtils {
         )
       }
 
-      case 'rect':
+      case ShapeType.Rect:
         return (
           new Konva.Rect({
             ...commonAttrs,
@@ -89,11 +91,11 @@ export default class CanvasUtils {
             listening: true,
           })
         )
-      case 'line':
+      case ShapeType.Line:
         return (
           new Konva.Line({
             ...commonAttrs,
-            points: shape.points,
+            points: Array.from(shape.points),
             stroke: shape.color,
             strokeWidth: shape.line_size,
             dash: shape.line_type === 'general' ? [] : [10, 10],
@@ -101,11 +103,11 @@ export default class CanvasUtils {
             lineCap: "round",
             lineJoin: "round",
             hitStrokeWidth: shape.line_size * 15,
-            globalCompositeOperation: shape.tool === 'eraser' ? 'destination-out' : 'source-over',
-            listening: shape.tool !== 'eraser', // dont listen for eraser lines
+            globalCompositeOperation: shape.tool === Tool.EraserTool ? 'destination-out' : 'source-over',
+            listening: shape.tool !== Tool.EraserTool, // don't listen for clicking on eraser lines
           })
         )
-      case 'ellipse':
+      case ShapeType.Ellipse:
         return (
           new Konva.Ellipse({
             ...commonAttrs,
@@ -128,7 +130,8 @@ export default class CanvasUtils {
    * before returning it.
    * 
    */
-  static toShape(shapeObj: Konva.Shape) {
+  static toShape(shapeObj: Konva.Shape, serializable = false) {
+    // @ts-ignore
     const shape: IShape = {
       tool: shapeObj.attrs.tool,
       shape_type: shapeObj.attrs.shape_type,
@@ -136,26 +139,30 @@ export default class CanvasUtils {
       shape_id: shapeObj.attrs.shape_id,
       line_size: shapeObj.attrs.lineSize,
       line_type: shapeObj.attrs.lineType,
-      height: shapeObj.attrs.height,
-      width: shapeObj.attrs.width,
-      radius_x: shapeObj.attrs.radiusX,
-      radius_y: shapeObj.attrs.radiusY,
-      rotation: shapeObj.attrs.rotation,
-      scale_x: shapeObj.attrs.scaleX,
-      scale_y: shapeObj.attrs.scaleY,
-      skew_x: shapeObj.attrs.skewX,
-      skew_y: shapeObj.attrs.skewY,
-      points: shapeObj.attrs.points,
+      height: shapeObj.attrs.height ?? 0,
+      width: shapeObj.attrs.width ?? 0,
+      radius_x: shapeObj.attrs.radiusX ?? 0,
+      radius_y: shapeObj.attrs.radiusY ?? 0,
+      rotation: shapeObj.attrs.rotation ?? 0,
+      scale_x: shapeObj.attrs.scaleX ?? 1,
+      scale_y: shapeObj.attrs.scaleY ?? 1,
+      skew_x: shapeObj.attrs.skewX ?? 0,
+      skew_y: shapeObj.attrs.skewY ?? 0,
+      points: serializable ? (shapeObj.attrs.points ?? []) : Uint32Array.from(shapeObj.attrs.points ?? []),
       x: shapeObj.attrs.x,
       y: shapeObj.attrs.y,
       connected: [...shapeObj.attrs.connected],
-      url: shapeObj.attrs.connected.url
-    }
-    for (const key of Object.keys(shape)) {
-      if (shape[key] == undefined) delete shape[key]
+      url: shapeObj.attrs.connected.url ?? "",
     }
 
     return shape
+  }
+
+  static toNonSerializableShape(shape: IShape) {
+    return {
+      ...shape,
+      points: Uint32Array.from(shape.points)
+    }
   }
 
   /**

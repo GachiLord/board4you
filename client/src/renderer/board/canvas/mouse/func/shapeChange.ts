@@ -3,12 +3,13 @@ import store from "../../../../store/store";
 import { addCurrent, emptyUndone } from "../../../../features/history";
 import { setSelection } from "../../../../features/select";
 import Konva from "konva";
-import IShape from "../../../../base/typing/IShape";
 import { itemIn, run } from "../../../../lib/twiks";
 import { v4 } from "uuid";
 import { Edit } from "../../../../lib/EditManager";
 import BoardManager from "../../../../lib/BoardManager/BoardManager";
 import { convertToEnum } from "../../share/convert";
+import { EmptyActionType } from "../../../../lib/protocol/protocol_bg";
+import { Shape } from "../../../../lib/protocol/protocol";
 
 
 
@@ -27,12 +28,11 @@ async function changeHandler(transformer: Konva.Transformer, boardManager: Board
   const share = (edit: Edit) => {
     const state = store.getState()
     const shared = itemIn(state.board.mode, 'coop', 'author')
-    const public_id = boardManager.status.roomId
-    const private_id: undefined | string = state.rooms[public_id]
 
     if (shared) {
       boardManager.send('Empty', {
-        action_type: 'undone'
+        action_type: EmptyActionType.Undone,
+        free() { }
       })
       boardManager.send('Push', {
         data: [convertToEnum(edit)],
@@ -42,12 +42,12 @@ async function changeHandler(transformer: Konva.Transformer, boardManager: Board
   }
   // transform
   const shapes = transformer.nodes()
-  const initial: IShape[] = shapes.map(shape => {
+  const initial: Shape[] = shapes.map(shape => {
     if (shape instanceof Konva.Shape) {
-      return CanvasUtils.toShape(shape)
+      return CanvasUtils.toShape(shape, true)
     }
   })
-  const current: IShape[] = []
+  const current: Shape[] = []
 
   // add current attrs
   transformer.on('dragend transformend', () => {
@@ -55,27 +55,33 @@ async function changeHandler(transformer: Konva.Transformer, boardManager: Board
     // update selection
     store.dispatch(setSelection(shapes.map(s => {
       if (s instanceof Konva.Shape) {
-        return CanvasUtils.toShape(s)
+        return CanvasUtils.toShape(s, true)
       }
     })))
 
     // add mods
     shapes.forEach(shape => {
       if (shape instanceof Konva.Shape) {
-        current.push(CanvasUtils.toShape(shape))
+        current.push(CanvasUtils.toShape(shape, true))
       }
     })
 
     // add changes in history
+    // @ts-ignore
     const edit: Edit = {
       id: v4(),
-      edit_type: 'modify',
       initial: initial,
-      current: current
+      current: current,
+    }
+    const editToShare = {
+      id: edit.id,
+      initial: initial.map(shape => CanvasUtils.toNonSerializableShape(shape)),
+      current: current.map(shape => CanvasUtils.toNonSerializableShape(shape)),
+      free() { }
     }
     store.dispatch(addCurrent(edit))
     // send changes
-    share(edit)
+    share(editToShare)
     // hadnle file change
     run(api => {
       api.handleFileChange()

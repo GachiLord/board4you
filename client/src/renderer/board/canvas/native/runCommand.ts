@@ -28,8 +28,6 @@ export default async function(stage: Konva.Stage, boardManger: BoardManager, o: 
   const canvas = stage.children[0]
   const temporaryLayer = stage.children[1]
   const editManager = new EditManager(canvas, boardManger)
-  const public_id = boardManger.status.roomId
-  const private_id = getPrivateId(public_id)
   const mode = store.getState().board.mode
   const canRunCommand = itemIn(mode, 'author', 'local', 'coop')
 
@@ -93,10 +91,17 @@ export default async function(stage: Konva.Stage, boardManger: BoardManager, o: 
   if (o === 'del' && canRunCommand) {
     const selection = store.getState().select.selection
     if (selection.length !== 0) {
+      // @ts-ignore
       const edit: Edit = {
         id: v4(),
-        edit_type: 'remove',
-        shapes: selection
+        shapes: selection,
+      }
+      const editToShare = {
+        id: edit.id,
+        shapes: selection.map(shape => {
+          return { ...shape, points: Uint32Array.from(shape.points) }
+        }),
+        free() { }
       }
       editManager.applyEdit(edit)
       store.dispatch(addCurrent(edit))
@@ -108,7 +113,7 @@ export default async function(stage: Konva.Stage, boardManger: BoardManager, o: 
       })
       // send Edit
       if (itemIn(mode, 'author', 'coop')) boardManger.send('Push', {
-        data: [convertToEnum(edit)],
+        data: [convertToEnum(editToShare)],
         silent: false
       })
     }
