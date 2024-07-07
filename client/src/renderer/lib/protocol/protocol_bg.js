@@ -311,16 +311,16 @@ function handleError(f, args) {
 }
 /**
 */
-export const ShapeType = Object.freeze({ Line:0,"0":"Line",Arrow:1,"1":"Arrow",Rect:2,"2":"Rect",Ellipse:3,"3":"Ellipse",Img:4,"4":"Img", });
+export const ActionType = Object.freeze({ Undo:0,"0":"Undo",Redo:1,"1":"Redo", });
+/**
+*/
+export const EmptyActionType = Object.freeze({ Current:0,"0":"Current",Undone:1,"1":"Undone", });
 /**
 */
 export const Tool = Object.freeze({ PenTool:0,"0":"PenTool",LineTool:1,"1":"LineTool",ArrowTool:3,"3":"ArrowTool",RectTool:4,"4":"RectTool",EllipseTool:5,"5":"EllipseTool",EraserTool:6,"6":"EraserTool",MoveTool:7,"7":"MoveTool",SelectTool:8,"8":"SelectTool",ImgTool:9,"9":"ImgTool", });
 /**
 */
-export const ActionType = Object.freeze({ Undo:0,"0":"Undo",Redo:1,"1":"Redo", });
-/**
-*/
-export const EmptyActionType = Object.freeze({ Current:0,"0":"Current",Undone:1,"1":"Undone", });
+export const ShapeType = Object.freeze({ Line:0,"0":"Line",Arrow:1,"1":"Arrow",Rect:2,"2":"Rect",Ellipse:3,"3":"Ellipse",Img:4,"4":"Img", });
 
 const AddFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
@@ -1592,6 +1592,26 @@ export class UndoRedoData {
     }
 }
 
+const UpdateCoEditorDataFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_updatecoeditordata_free(ptr >>> 0));
+/**
+*/
+export class UpdateCoEditorData {
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        UpdateCoEditorDataFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_updatecoeditordata_free(ptr);
+    }
+}
+
 export function __wbindgen_object_drop_ref(arg0) {
     takeObject(arg0);
 };
@@ -1654,13 +1674,18 @@ export function __wbindgen_number_new(arg0) {
     return addHeapObject(ret);
 };
 
-export function __wbindgen_string_new(arg0, arg1) {
-    const ret = getStringFromWasm0(arg0, arg1);
-    return addHeapObject(ret);
+export function __wbindgen_as_number(arg0) {
+    const ret = +getObject(arg0);
+    return ret;
 };
 
 export function __wbindgen_object_clone_ref(arg0) {
     const ret = getObject(arg0);
+    return addHeapObject(ret);
+};
+
+export function __wbindgen_string_new(arg0, arg1) {
+    const ret = getStringFromWasm0(arg0, arg1);
     return addHeapObject(ret);
 };
 
@@ -1674,12 +1699,12 @@ export function __wbindgen_error_new(arg0, arg1) {
     return addHeapObject(ret);
 };
 
-export function __wbg_getwithrefkey_15c62c2b8546208d(arg0, arg1) {
+export function __wbg_getwithrefkey_edc2c8960f0f1191(arg0, arg1) {
     const ret = getObject(arg0)[getObject(arg1)];
     return addHeapObject(ret);
 };
 
-export function __wbg_set_20cbc34131e76824(arg0, arg1, arg2) {
+export function __wbg_set_f975102236d3c502(arg0, arg1, arg2) {
     getObject(arg0)[takeObject(arg1)] = takeObject(arg2);
 };
 

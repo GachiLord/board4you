@@ -1,4 +1,7 @@
-use crate::entities::board::{delete, save};
+use crate::{
+    entities::board::{delete, save},
+    NO_PERSIST,
+};
 
 use super::state::{Command, CommandName, DbClient, Room};
 use axum::body::Bytes;
@@ -84,7 +87,7 @@ pub enum UserMessage {
         private_id: Box<str>,
     },
     // Messages that used only by app(user cannot send them)
-    HasUsers(oneshot::Sender<bool>, bool),
+    HasUsers(oneshot::Sender<bool>),
     Expire(oneshot::Sender<()>),
 }
 
@@ -108,7 +111,7 @@ pub async fn task(
     debug!("start task");
     // handle room events
     while let Some(msg) = message_receiver.recv().await {
-        debug!("start msg loop");
+        debug!("start new msg loop iteration");
         match msg {
             UserMessage::Auth {
                 token,
@@ -435,12 +438,12 @@ pub async fn task(
                 send_by_id(&room, *user_id, &pull_data);
                 debug!("PullData message sent");
             }
-            UserMessage::HasUsers(sender, no_persist) => {
+            UserMessage::HasUsers(sender) => {
                 room.users.remove_expired();
                 let _ = sender.send(room.users.len() > 0);
                 // if room has no users, stop task execution
                 if room.users.len() == 0 {
-                    if !no_persist {
+                    if !*NO_PERSIST {
                         let _ = save(&db_client, &room).await;
                     }
                     break;
@@ -467,7 +470,10 @@ pub async fn task(
                 }
             }
             UserMessage::Expire(completed) => {
-                let _ = save(&db_client, &room).await;
+                if !*NO_PERSIST {
+                    debug!("saved");
+                    let _ = save(&db_client, &room).await;
+                }
                 let _ = completed.send(());
                 break;
             }

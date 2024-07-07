@@ -1,6 +1,7 @@
 mod utils;
 
 use prost::Message;
+#[cfg(target_family = "wasm")]
 use wasm_bindgen::prelude::*;
 
 pub mod board_protocol {
@@ -9,6 +10,7 @@ pub mod board_protocol {
 
 use board_protocol::ServerMessage;
 use board_protocol::UserMessage;
+#[cfg(target_family = "wasm")]
 use utils::set_panic_hook;
 
 // execution stuff

@@ -165,11 +165,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut stream = signal(tokio::signal::unix::SignalKind::terminate()).unwrap();
     let (tx, rx) = oneshot::channel();
     // spawn server task
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, routes.with_state(state))
-        .with_graceful_shutdown(async { rx.await.unwrap() })
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
         .await
-        .unwrap();
+        .expect("Failed to create tcp socket on 3000 port");
+    tokio::spawn(async move {
+        axum::serve(listener, routes.with_state(state))
+            .with_graceful_shutdown(async { rx.await.unwrap() })
+            .await
+            .unwrap();
+    });
     // wait for a signal
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
