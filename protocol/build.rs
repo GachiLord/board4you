@@ -60,15 +60,27 @@ fn main() -> Result<(), Box<dyn Error>> {
         let line = line.replace("#[derive(", "#[derive(Serialize, Deserialize, ");
 
         // add wasm bindgen macro where possible
-        if (line.contains("struct ") || line.contains("enum "))
-            && !line.contains("Msg")
-            && !line.contains("PullData")
-            && !line.contains("Push")
-            && !line.contains("Edit")
+        let line_has_data_type = line.contains("pub struct ") || line.contains("pub enum ");
+        let line_has_copy_data_type = line.contains("Tool ")
+            || line.contains("ShapeType ")
+            || line.contains("ActionType ")
+            || line.contains("EmptyActionType ");
+        if line_has_data_type
+            && !line.contains("fn ")
+            && !line.contains("Msg ")
+            && !line.contains("PullData ")
+            && !line.contains("Push ")
+            && !line.contains("Edit ")
             && !line.contains("ServerMessage ")
-            && !line.contains("UserMessage")
+            && !line.contains("UserMessage ")
+            && !line.contains("EditData ")
+            && !line.contains("PushData ")
+            && !line_has_copy_data_type
         {
             output.push_str("#[wasm_bindgen(getter_with_clone)]\n");
+        }
+        if line_has_data_type && line_has_copy_data_type {
+            output.push_str("#[wasm_bindgen]\n");
         }
         // push the line
         output.push_str(&line);

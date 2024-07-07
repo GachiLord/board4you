@@ -104,6 +104,7 @@ export function __wbg_get_shape_line_type(a: number, b: number): void;
 export function __wbg_get_sizedata_data(a: number): number;
 export function __wbg_get_remove_shapes(a: number, b: number): void;
 export function __wbg_emptydata_free(a: number): void;
+export function __wbg_updatecoeditordata_free(a: number): void;
 export function __wbg_quitdata_free(a: number): void;
 export function __wbg_titledata_free(a: number): void;
 export function __wbg_sizedata_free(a: number): void;

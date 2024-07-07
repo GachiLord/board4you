@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use crate::libs::state::Rooms;
-use crate::NO_PERSIST;
 use crate::{libs::room::UserMessage, CLEANUP_INTERVAL_MINUTES};
 use log::info;
 use tokio::{
@@ -22,7 +21,7 @@ pub async fn cleanup(rooms: Rooms) {
         // collect and expire unused rooms
         for (id, room) in rooms_p.iter() {
             let (tx, rx) = oneshot::channel();
-            let _ = room.send(UserMessage::HasUsers(tx, *NO_PERSIST));
+            let _ = room.send(UserMessage::HasUsers(tx));
             if let Ok(res) = rx.await {
                 if !res {
                     expired_rooms.insert(id.to_owned());
