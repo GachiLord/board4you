@@ -87,13 +87,14 @@ impl Board {
             self.current
                 .iter()
                 // unwrap is allowed because we don't save empty edits
-                .map(|e| e.edit.as_ref().unwrap().id())
+                .map(|e| e.edit.as_ref().expect("Edit should not be None").id())
                 .collect::<HashSet<&str>>(),
         );
         let undone: HashSet<&str> = HashSet::from_iter(
             self.undone
                 .iter()
-                .map(|e| e.edit.as_ref().unwrap().id())
+                // unwrap is allowed because we don't save empty edits
+                .map(|e| e.edit.as_ref().expect("Edit should not be None").id())
                 .collect::<HashSet<&str>>(),
         );
         let user_current: HashSet<&str> =
@@ -109,7 +110,7 @@ impl Board {
             .collect();
         let current_delete: HashSet<Box<str>> = user_current
             .iter()
-            .filter_map(|e| match !user_current.contains(*e) {
+            .filter_map(|e| match !current.contains(*e) {
                 true => return Some(e.to_string().into_boxed_str()),
                 false => return None,
             })
@@ -138,7 +139,13 @@ impl Board {
                     .into_iter()
                     .filter(|e| {
                         current_create.contains::<Box<str>>(
-                            &e.edit.as_ref().unwrap().id().to_string().into_boxed_str(),
+                            &e.edit
+                                .as_ref()
+                                // unwrap is allowed because we don't save empty edits
+                                .expect("Edit should not be None")
+                                .id()
+                                .to_string()
+                                .into_boxed_str(),
                         )
                     })
                     .collect(),
@@ -151,7 +158,13 @@ impl Board {
                     .into_iter()
                     .filter(|e| {
                         undone_create.contains::<Box<str>>(
-                            &e.edit.as_ref().unwrap().id().to_string().into_boxed_str(),
+                            &e.edit
+                                .as_ref()
+                                // unwrap is allowed because we don't save empty edits
+                                .expect("Edit should not be None")
+                                .id()
+                                .to_string()
+                                .into_boxed_str(),
                         )
                     })
                     .collect(),
