@@ -115,9 +115,7 @@ export default class BoardManager {
 
     const msg = new Map()
     msg.set(messageType, data)
-    console.log(msg)
     const encoded = encode_user_msg({ msg: Object.fromEntries(msg) })
-    console.log(encoded)
 
     this.rws.send(encoded)
   }

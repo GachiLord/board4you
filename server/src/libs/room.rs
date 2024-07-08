@@ -471,7 +471,6 @@ pub async fn task(
             }
             UserMessage::Expire(completed) => {
                 if !*NO_PERSIST {
-                    debug!("saved");
                     let _ = save(&db_client, &room).await;
                 }
                 let _ = completed.send(());
