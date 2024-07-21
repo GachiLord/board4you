@@ -1,11 +1,11 @@
 use crate::{
     entities::board::{delete, save},
-    NO_PERSIST,
+    PoolWrapper, NO_PERSIST,
 };
 
-use super::state::{Command, CommandName, DbClient, Room};
+use super::state::{Command, CommandName, Room};
 use axum::body::Bytes;
-use log::debug;
+use log::{debug, error};
 use protocol::{
     board_protocol::{
         server_message::Msg, ActionType, Authed, BoardSize, Edit, EmptyActionType, EmptyData, Info,
@@ -105,7 +105,7 @@ impl ToBytes for ServerMessage {
 pub async fn task(
     public_id: Box<str>,
     mut room: Room,
-    db_client: DbClient<'_>,
+    client_pool: &PoolWrapper,
     mut message_receiver: UnboundedReceiver<UserMessage>,
 ) {
     debug!("start task");
@@ -171,7 +171,9 @@ pub async fn task(
                 // changes
                 room.board.title = title.clone();
                 // update title in db
-                let _ = db_client
+                let _ = client_pool
+                    .get()
+                    .await
                     .execute(
                         "UPDATE boards SET title = ($1) WHERE public_id = ($2)",
                         &[&title, &public_id],
@@ -197,7 +199,7 @@ pub async fn task(
                 // save changes and validate data
                 if silent {
                     for edit in data.into_iter() {
-                        match room.board.push(edit) {
+                        match room.board.push(edit).await {
                             Ok(()) => (),
                             Err(e) => {
                                 debug!("Push Info message sent");
@@ -217,7 +219,7 @@ pub async fn task(
                     }
                 } else {
                     for edit in data.to_owned().into_iter() {
-                        match room.board.push(edit) {
+                        match room.board.push(edit).await {
                             Ok(()) => (),
                             Err(e) => {
                                 debug!("Push Info message sent");
@@ -258,10 +260,13 @@ pub async fn task(
                     CommandName::Redo
                 };
                 // save changes
-                let exec_command = room.board.exec_command(Command {
-                    name: command_name,
-                    id: action_id.clone(),
-                });
+                let exec_command = room
+                    .board
+                    .exec_command(Command {
+                        name: command_name,
+                        id: action_id.clone(),
+                    })
+                    .await;
                 // handle command result
                 match exec_command {
                     Ok(()) => {
@@ -300,10 +305,14 @@ pub async fn task(
                 // save changes
                 match action_type {
                     EmptyActionType::Current => {
-                        room.board.empty_current();
+                        if let Err(e) = room.board.empty_current().await {
+                            error!("Failed to empty current buffer: {}", e);
+                        }
                     }
                     EmptyActionType::Undone => {
-                        room.board.empty_undone();
+                        if let Err(e) = room.board.empty_undone().await {
+                            error!("Failed to empty undone buffer: {}", e);
+                        }
                     }
                 }
                 // send
@@ -432,11 +441,18 @@ pub async fn task(
                 undone,
             } => {
                 debug!("Start sending PullData");
-                let pull_data = &ServerMessage {
-                    msg: Some(Msg::PullData(room.board.pull(current, undone))),
-                };
-                send_by_id(&room, *user_id, &pull_data);
-                debug!("PullData message sent");
+                match room.board.pull(current, undone).await {
+                    Ok(r) => {
+                        let pull_data = &ServerMessage {
+                            msg: Some(Msg::PullData(r)),
+                        };
+                        send_by_id(&room, *user_id, &pull_data);
+                        debug!("PullData message sent");
+                    }
+                    Err(e) => {
+                        error!("Failed to pull: {}", e);
+                    }
+                }
             }
             UserMessage::HasUsers(sender) => {
                 room.users.remove_expired();
@@ -444,7 +460,7 @@ pub async fn task(
                 // if room has no users, stop task execution
                 if room.users.len() == 0 {
                     if !*NO_PERSIST {
-                        let _ = save(&db_client, &room).await;
+                        let _ = save(&client_pool.get().await, &mut room).await;
                     }
                     break;
                 }
@@ -463,7 +479,7 @@ pub async fn task(
                         },
                     );
                     debug!("QuitData message sent");
-                    let _ = delete(&db_client, &public_id, &private_id).await;
+                    let _ = delete(&client_pool.get().await, &public_id, &private_id).await;
                     let _ = deleted.send(true);
                 } else {
                     let _ = deleted.send(false);
@@ -471,7 +487,7 @@ pub async fn task(
             }
             UserMessage::Expire(completed) => {
                 if !*NO_PERSIST {
-                    let _ = save(&db_client, &room).await;
+                    let _ = save(&client_pool.get().await, &mut room).await;
                 }
                 let _ = completed.send(());
                 break;

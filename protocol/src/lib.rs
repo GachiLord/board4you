@@ -1,5 +1,7 @@
 mod utils;
 
+#[cfg(target_family = "unix")]
+use prost::DecodeError;
 use prost::Message;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen::prelude::*;
@@ -41,6 +43,11 @@ pub fn encode_server_msg(msg: &ServerMessage) -> Vec<u8> {
 #[wasm_bindgen]
 pub fn decode_server_msg(buf: &[u8]) -> Result<ServerMessage, String> {
     ServerMessage::decode(buf).map_err(|err| err.to_string())
+}
+
+#[cfg(target_family = "unix")]
+pub fn decode_server_msg(buf: &[u8]) -> Result<ServerMessage, DecodeError> {
+    ServerMessage::decode(buf)
 }
 
 #[cfg(target_family = "wasm")]

@@ -26,8 +26,34 @@ CREATE TABLE IF NOT EXISTS boards (
 ALTER TABLE boards
     ADD COLUMN IF NOT EXISTS public_id varchar(36) NOT NULL,
     ADD COLUMN IF NOT EXISTS private_id varchar(44) NOT NULL,
+    ADD COLUMN IF NOT EXISTS height SMALLINT DEFAULT 900,
+    ADD COLUMN IF NOT EXISTS width SMALLINT DEFAULT 1720,
     ADD COLUMN IF NOT EXISTS board_state json NOT NULL,
     ADD COLUMN IF NOT EXISTS title varchar(36) DEFAULT 'untitled';
+
+ALTER TABLE boards
+    ALTER COLUMN height TYPE SMALLINT,
+    ALTER COLUMN width TYPE SMALLINT,
+    ALTER COLUMN board_state DROP NOT NULL;
+
+-- edits
+DO $$ BEGIN
+    CREATE TYPE edit_status AS ENUM ('current', 'undone');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS edits (
+  id SERIAL PRIMARY KEY,
+  board_id INT,
+  CONSTRAINT fk_board FOREIGN KEY(board_id) REFERENCES boards(id) ON DELETE CASCADE
+);
+
+ALTER TABLE edits 
+    ADD COLUMN IF NOT EXISTS edit_id varchar(36) NOT NULL,
+    ADD COLUMN IF NOT EXISTS status edit_status NOT NULL,
+    ADD COLUMN IF NOT EXISTS changed_at timestamp DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS data bytea NOT NULL;
 
 -- jwt
 CREATE TABLE IF NOT EXISTS expired_jwts (

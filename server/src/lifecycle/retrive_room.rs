@@ -5,12 +5,13 @@ use crate::{
     entities::board,
     libs::{
         room::{self, RoomChannel},
-        state::{DbClient, Room, Rooms},
+        state::{Room, Rooms},
     },
+    PoolWrapper,
 };
 
 pub async fn retrive_room_channel(
-    db_client: DbClient<'_>,
+    client_pool: &'static PoolWrapper,
     rooms: Rooms,
     public_id: Box<str>,
 ) -> Result<RoomChannel, Box<str>> {
@@ -21,7 +22,7 @@ pub async fn retrive_room_channel(
         None => {
             // drop previous rooms pointer to prevent deadlock
             drop(rooms_p);
-            match board::get(&db_client, &public_id).await {
+            match board::get(client_pool, &public_id).await {
                 // if there is a room in db, spawn it
                 Ok((private_id, board)) => {
                     let room = Room {
@@ -37,7 +38,7 @@ pub async fn retrive_room_channel(
                     let (tx, rx) = unbounded_channel();
                     let public_id_c = public_id.clone();
                     tokio::spawn(async move {
-                        room::task(public_id_c, room, db_client, rx).await;
+                        room::task(public_id_c, room, client_pool, rx).await;
                     });
                     // add new room
                     let mut rooms_p = rooms.write().await;

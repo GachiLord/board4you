@@ -1,11 +1,17 @@
 use super::{get_page_query_params, Paginated};
-use crate::libs::state::{Board, DbClient, Room};
+use crate::{
+    libs::state::{Board, DbClient, Room},
+    PoolWrapper,
+};
+use data_encoding::BASE64URL;
+use jwt_simple::algorithms::HS256Key;
+use protocol::board_protocol::BoardSize;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
 pub enum SaveAction {
-    Created,
-    Updated,
+    Created(i32),
+    Updated(i32),
 }
 /// Inserts new row if there is no room in db
 /// or Updates existing row
@@ -19,8 +25,7 @@ pub enum SaveAction {
 /// This function will return an error if:
 /// - failed to insert new row
 /// - failed to update existing row
-pub async fn save(client: &DbClient<'_>, room: &Room) -> Result<SaveAction, Box<dyn Error>> {
-    let board_state = serde_json::to_value(&room.board).expect("failed to serealize room.board");
+pub async fn save(client: &DbClient<'_>, room: &mut Room) -> Result<SaveAction, Box<dyn Error>> {
     match client
         .query(
             "SELECT * FROM boards WHERE public_id = $1",
@@ -30,38 +35,53 @@ pub async fn save(client: &DbClient<'_>, room: &Room) -> Result<SaveAction, Box<
     {
         Ok(res) => {
             if res.len() == 0 {
-                client.execute(
-                    "INSERT INTO boards(public_id, private_id, board_state, owner_id, title) VALUES ($1, $2, $3, $4, $5)",
-                    &[&room.public_id, &room.private_id, &board_state, &room.owner_id, &room.board.title]
+                let created = client.query_one(
+                    "INSERT INTO boards(public_id, private_id, owner_id, title) VALUES ($1, $2, $3, $4) RETURNING id",
+                    &[&room.public_id, &room.private_id,  &room.owner_id, &room.board.title]
                 ).await?;
+
+                room.board.id = created.get("id");
+                Ok(SaveAction::Created(room.board.id))
             } else {
                 client
                     .execute(
-                        "UPDATE boards SET board_state = ($1), title = ($2) WHERE public_id = ($3)",
-                        &[&board_state, &room.board.title, &room.public_id],
+                        "UPDATE boards SET title = ($1) WHERE public_id = ($2)",
+                        &[&room.board.title, &room.public_id],
                     )
                     .await?;
-                return Ok(SaveAction::Updated);
+
+                room.board.id = res[0].get("id");
+                Ok(SaveAction::Updated(room.board.id))
             }
         }
-        Err(e) => return Err(Box::new(e)),
+        Err(e) => Err(Box::new(e)),
     }
-
-    Ok(SaveAction::Created)
 }
 
 pub async fn get(
-    client: &DbClient<'_>,
+    pool: &'static PoolWrapper,
     public_id: &str,
 ) -> Result<(Box<str>, Board), tokio_postgres::Error> {
-    let sql_res = client
+    let db_client = pool.get().await;
+    let sql_res = db_client
         .query_one("SELECT * FROM boards WHERE public_id = $1", &[&public_id])
         .await?;
 
-    let mut board: Board =
-        serde_json::from_value(sql_res.get("board_state")).expect("failed to parse board_state");
+    // TODO: handle old db schema values
+    let board = Board {
+        pool,
+        queue: Vec::with_capacity(10),
+        id: sql_res.get("id"),
+        size: BoardSize {
+            height: sql_res.get::<&str, i16>("height").try_into().unwrap_or(900),
+            width: sql_res.get::<&str, i16>("width").try_into().unwrap_or(1720),
+        },
+        title: sql_res.get("title"),
+        co_editor_private_id: (BASE64URL.encode(&HS256Key::generate().to_bytes()) + "_co_editor")
+            .into_boxed_str(),
+        // TODO: change 10 to const
+    };
     let private_id = sql_res.get("private_id");
-    board.title = sql_res.get("title");
 
     Ok((private_id, board))
 }

@@ -1,3 +1,5 @@
+use std::time::SystemTime;
+
 use axum::{
     extract::{DefaultBodyLimit, Path, State},
     http::StatusCode,
@@ -17,6 +19,7 @@ use weak_table::WeakKeyHashMap;
 use crate::{
     entities::{
         board::{self, get_by_owner, save, RoomCredentials},
+        edit::{create, EditStatus},
         Paginated,
     },
     libs::{
@@ -55,7 +58,7 @@ struct RoomInitials {
 async fn create_room(
     State(state): State<AppState>,
     UserDataFromJWT(user_data): UserDataFromJWT,
-    Json(room): Json<RoomInitials>,
+    Json(room_init): Json<RoomInitials>,
 ) -> (StatusCode, Json<RoomCredentials>) {
     // ids
     let (tx, rx) = oneshot::channel();
@@ -81,30 +84,61 @@ async fn create_room(
         );
     }
     // create Room instance
-    let room = Room {
+    let mut room = Room {
         public_id: public_id.to_owned(),
         private_id: private_id.to_owned(),
         users: WeakKeyHashMap::with_capacity(10),
         board: Board {
-            current: room.current,
-            undone: room.undone,
-            size: room.size,
-            title: room.title,
+            pool: &state.pool,
+            id: 0,
+            queue: Vec::with_capacity(10),
+            size: room_init.size,
+            title: room_init.title,
             co_editor_private_id,
         },
         owner_id,
     };
     // get client
     let client = state.pool.get().await;
-    // save board to db if user is authed
-    if let Some(_) = owner_id {
-        let _ = save(&client, &room).await;
+    let now = SystemTime::now();
+    // create board record
+    if let Err(e) = save(&client, &mut room).await {
+        error!("Failed to create board: {}", e);
+    }
+    // create edit records
+    if let Err(e) = create(
+        &client,
+        room.board.id,
+        &EditStatus::Current,
+        room_init
+            .current
+            .into_iter()
+            .map(|edit| (now, edit))
+            .collect(),
+    )
+    .await
+    {
+        error!("Failed to create board: {}", e);
+    }
+    if let Err(e) = create(
+        &client,
+        room.board.id,
+        &EditStatus::Undone,
+        room_init
+            .undone
+            .into_iter()
+            .map(|edit| (now, edit))
+            .collect(),
+    )
+    .await
+    {
+        error!("Failed to create board: {}", e);
     }
     // update rooms
     let (tx, rx) = unbounded_channel();
     let public_id_c = public_id.clone();
     tokio::spawn(async move {
-        task(public_id_c, room, client, rx).await;
+        task(public_id_c, room, &state.pool, rx).await;
     });
     state.rooms.write().await.insert(public_id.to_owned(), tx);
     // response
