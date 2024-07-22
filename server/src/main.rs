@@ -28,7 +28,20 @@ mod websocket;
 // env vars
 
 lazy_static! {
-    pub static ref NO_PERSIST: bool = &env::var("NO_PERSIST").unwrap_or("0".to_owned()) == "1";
+    pub static ref OPERATION_QUEUE_SIZE: usize = match &env::var("OPERATION_QUEUE_SIZE") {
+        Ok(s) => {
+            let parsed = s
+                .parse()
+                .expect("$OPERATION_QUEUE_SIZE must be u8 integer >= 5");
+
+            if parsed < 5 {
+                panic!("$OPERATION_QUEUE_SIZE must be >= 5");
+            }
+
+            parsed
+        }
+        Err(_) => 10,
+    };
     pub static ref CLEANUP_INTERVAL_MINUTES: u64 = match &env::var("CLEANUP_INTERVAL_MINUTES") {
         Ok(t) => t
             .parse()
@@ -177,15 +190,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // wait for a signal
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
-            if !*NO_PERSIST {
-                on_shutdown(rooms.clone()).await
-            };
+            on_shutdown(rooms.clone()).await;
             tx.send(()).unwrap();
         },
         _ = stream.recv() => {
-            if !*NO_PERSIST {
-                on_shutdown(rooms.clone()).await
-            };
+            on_shutdown(rooms.clone()).await;
             tx.send(()).unwrap();
         }
     }

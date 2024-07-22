@@ -26,7 +26,7 @@ use crate::{
         room::{task, UserMessage},
         state::{Board, Room},
     },
-    AppState,
+    AppState, OPERATION_QUEUE_SIZE,
 };
 
 use super::common::{generate_res, generate_res_json, UserDataFromJWT};
@@ -91,7 +91,7 @@ async fn create_room(
         board: Board {
             pool: &state.pool,
             id: 0,
-            queue: Vec::with_capacity(10),
+            queue: Vec::with_capacity(*OPERATION_QUEUE_SIZE),
             size: room_init.size,
             title: room_init.title,
             co_editor_private_id,

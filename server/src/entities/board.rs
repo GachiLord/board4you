@@ -1,7 +1,7 @@
 use super::{get_page_query_params, Paginated};
 use crate::{
     libs::state::{Board, DbClient, Room},
-    PoolWrapper,
+    PoolWrapper, OPERATION_QUEUE_SIZE,
 };
 use data_encoding::BASE64URL;
 use jwt_simple::algorithms::HS256Key;
@@ -70,7 +70,7 @@ pub async fn get(
     // TODO: handle old db schema values
     let board = Board {
         pool,
-        queue: Vec::with_capacity(10),
+        queue: Vec::with_capacity(*OPERATION_QUEUE_SIZE),
         id: sql_res.get("id"),
         size: BoardSize {
             height: sql_res.get::<&str, i16>("height").try_into().unwrap_or(900),
@@ -79,7 +79,6 @@ pub async fn get(
         title: sql_res.get("title"),
         co_editor_private_id: (BASE64URL.encode(&HS256Key::generate().to_bytes()) + "_co_editor")
             .into_boxed_str(),
-        // TODO: change 10 to const
     };
     let private_id = sql_res.get("private_id");
 

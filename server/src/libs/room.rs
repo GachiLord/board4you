@@ -1,6 +1,6 @@
 use crate::{
     entities::board::{delete, save},
-    PoolWrapper, NO_PERSIST,
+    PoolWrapper,
 };
 
 use super::state::{Command, CommandName, Room};
@@ -469,9 +469,7 @@ pub async fn task(
                 let _ = sender.send(room.users.len() > 0);
                 // if room has no users, stop task execution
                 if room.users.len() == 0 {
-                    if !*NO_PERSIST {
-                        let _ = save(&client_pool.get().await, &mut room).await;
-                    }
+                    let _ = save(&client_pool.get().await, &mut room).await;
                     break;
                 }
             }
@@ -496,9 +494,7 @@ pub async fn task(
                 }
             }
             UserMessage::Expire(completed) => {
-                if !*NO_PERSIST {
-                    let _ = save(&client_pool.get().await, &mut room).await;
-                }
+                let _ = save(&client_pool.get().await, &mut room).await;
                 let _ = completed.send(());
                 break;
             }

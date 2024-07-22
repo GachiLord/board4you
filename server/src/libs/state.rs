@@ -1,6 +1,6 @@
 use crate::{
     entities::edit::{delete, read, sync_with_queue, EditStatus},
-    PoolWrapper,
+    PoolWrapper, OPERATION_QUEUE_SIZE,
 };
 
 use super::room::{UserChannel, UserMessage};
@@ -273,8 +273,8 @@ impl Board {
             }
         }
         // if the queue will be overflowed, clear it and save to db
-        if self.queue.len() + 1 > 10 {
-            let mut buf = Vec::with_capacity(10);
+        if self.queue.len() + 1 > *OPERATION_QUEUE_SIZE {
+            let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
             buf.append(&mut self.queue);
             sync_with_queue(&self.pool.get().await, self.id, buf)
                 .await
@@ -313,8 +313,8 @@ impl Board {
         match command.name {
             CommandName::Undo => {
                 // if undone will be overflowed, clear it and save to db
-                if self.queue.len() + 1 > 10 {
-                    let mut buf = Vec::with_capacity(10);
+                if self.queue.len() + 1 > *OPERATION_QUEUE_SIZE {
+                    let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
                     buf.append(&mut self.queue);
 
                     sync_with_queue(&self.pool.get().await, self.id, buf)
@@ -326,8 +326,8 @@ impl Board {
             }
             CommandName::Redo => {
                 // if current will be overflowed, clear it and save to db
-                if self.queue.len() + 1 > 10 {
-                    let mut buf = Vec::with_capacity(10);
+                if self.queue.len() + 1 > *OPERATION_QUEUE_SIZE {
+                    let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
                     buf.append(&mut self.queue);
                     sync_with_queue(&self.pool.get().await, self.id, buf)
                         .await
@@ -343,7 +343,7 @@ impl Board {
 
     /// clears self.current
     pub async fn empty_current(&mut self) -> Result<u64, tokio_postgres::Error> {
-        let mut buf = Vec::with_capacity(10);
+        let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
         buf.append(&mut self.queue);
         sync_with_queue(&self.pool.get().await, self.id, buf).await?;
         delete(&self.pool.get().await, self.id, &EditStatus::Current).await
@@ -351,7 +351,7 @@ impl Board {
 
     /// clears self.undone
     pub async fn empty_undone(&mut self) -> Result<u64, tokio_postgres::Error> {
-        let mut buf = Vec::with_capacity(10);
+        let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
         buf.append(&mut self.queue);
         sync_with_queue(&self.pool.get().await, self.id, buf).await?;
         delete(&self.pool.get().await, self.id, &EditStatus::Undone).await

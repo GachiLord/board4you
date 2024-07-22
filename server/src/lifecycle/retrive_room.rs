@@ -7,7 +7,7 @@ use crate::{
         room::{self, RoomChannel},
         state::{Room, Rooms},
     },
-    PoolWrapper,
+    PoolWrapper, OPERATION_QUEUE_SIZE,
 };
 
 pub async fn retrive_room_channel(
@@ -29,7 +29,7 @@ pub async fn retrive_room_channel(
                         public_id: public_id.clone(),
                         private_id,
                         board,
-                        users: WeakKeyHashMap::with_capacity(10),
+                        users: WeakKeyHashMap::with_capacity(*OPERATION_QUEUE_SIZE),
                         owner_id: None, // we don't need to provide owner_id here, because
                                         // it had already been saved in db earler during
                                         // last cleanup.
