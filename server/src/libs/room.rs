@@ -1,5 +1,8 @@
 use crate::{
-    entities::board::{delete, save},
+    entities::{
+        board::{delete, save},
+        edit::sync_with_queue,
+    },
     PoolWrapper,
 };
 
@@ -469,7 +472,9 @@ pub async fn task(
                 let _ = sender.send(room.users.len() > 0);
                 // if room has no users, stop task execution
                 if room.users.len() == 0 {
-                    let _ = save(&client_pool.get().await, &mut room).await;
+                    let db_client = &client_pool.get().await;
+                    let _ = save(db_client, &mut room).await;
+                    let _ = sync_with_queue(db_client, room.board.id, room.board.queue).await;
                     break;
                 }
             }
@@ -494,7 +499,9 @@ pub async fn task(
                 }
             }
             UserMessage::Expire(completed) => {
-                let _ = save(&client_pool.get().await, &mut room).await;
+                let db_client = &client_pool.get().await;
+                let _ = save(db_client, &mut room).await;
+                let _ = sync_with_queue(db_client, room.board.id, room.board.queue).await;
                 let _ = completed.send(());
                 break;
             }
