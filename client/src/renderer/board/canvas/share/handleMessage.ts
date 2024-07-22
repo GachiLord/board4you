@@ -10,6 +10,7 @@ import { setMode, setTitle } from "../../../features/board"
 import { deleteRoom } from "../../../features/rooms"
 import { set } from "../../../features/tool"
 import { decode_server_msg } from "../../../lib/protocol/protocol"
+import { ActionType } from "../../../lib/protocol/protocol_bg"
 
 
 interface props {
@@ -37,7 +38,7 @@ export default function(msg: Uint8Array, { editManager, boardManager, setLoading
       setLoading(false)
       break
     case 'UndoRedoData': {
-      if (data.action_type === 'Undo') editManager.undo(data.action_id, true)
+      if (data.action_type === ActionType.Undo) editManager.undo(data.action_id, true)
       else editManager.redo(data.action_id, true)
       break
     }

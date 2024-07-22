@@ -62,7 +62,7 @@ export default class EditManager {
     const current = store.getState().history.current
     const lastEdit = edit_id ? current.findLast(v => v.id === edit_id) : current.at(-1)
     if (!lastEdit) {
-      console.warn("attempt to undo non-existent shape with id: ", edit_id)
+      console.warn("attempt to undo non-existent edit with id: ", edit_id)
       return
     }
 
@@ -76,7 +76,7 @@ export default class EditManager {
     const undone = store.getState().history.undone
     const lastEdit = edit_id ? undone.findLast(v => v.id === edit_id) : undone.at(-1)
     if (!lastEdit) {
-      console.warn("attempt to redo non-existent shape with id: ", edit_id)
+      console.warn("attempt to redo non-existent edit with id: ", edit_id)
       return
     }
 
@@ -137,7 +137,6 @@ export default class EditManager {
     if (keys.includes('shape')) t = 0
     if (keys.includes('shapes')) t = 1
     if (keys.includes('current')) t = 2
-    console.log(edit, t)
 
     switch (t) {
       case 0: {
