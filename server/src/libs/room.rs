@@ -65,10 +65,6 @@ pub enum UserMessage {
         token: Box<str>,
         sender: oneshot::Sender<bool>,
     },
-    UpdateCoEditor {
-        user_id: Arc<usize>,
-        private_id: Box<str>,
-    },
     GetCoEditorToken {
         private_id: Box<str>,
         sender: oneshot::Sender<Result<Box<str>, ()>>,
@@ -76,10 +72,6 @@ pub enum UserMessage {
     GetUpdatedCoEditorToken {
         private_id: Box<str>,
         sender: oneshot::Sender<Result<Box<str>, ()>>,
-    },
-    VerifyEditorToken {
-        token: Box<str>,
-        sender: oneshot::Sender<bool>,
     },
     VerifyCoEditorToken {
         token: Box<str>,
@@ -384,38 +376,6 @@ pub async fn task(
                 );
                 debug!("SizeData message sent");
             }
-            UserMessage::UpdateCoEditor {
-                user_id,
-                private_id,
-            } => {
-                // skip if private_key is not valid
-                if room.private_id != private_id && room.board.co_editor_private_id != private_id {
-                    debug!("UpdateCoEditor Info message sent");
-                    send_by_id(
-                        &room,
-                        *user_id,
-                        &ServerMessage {
-                            msg: Some(Msg::Info(Info {
-                                status: "bad".to_owned(),
-                                action: "UpdateCoEditor".to_owned(),
-                                payload: "private_id is invalid".to_owned(),
-                            })),
-                        },
-                    );
-                    continue;
-                }
-                // update co-editor token
-                room.update_editor_private_id();
-                // send message
-                send_to_everyone(
-                    &room,
-                    Some(*user_id),
-                    &ServerMessage {
-                        msg: Some(Msg::UpdateCoEditorData(UpdateCoEditorData {})),
-                    },
-                );
-                debug!("UpdateCoEditorData message sent");
-            }
             UserMessage::GetUpdatedCoEditorToken { private_id, sender } => {
                 if room.private_id != private_id && room.board.co_editor_private_id != private_id {
                     let _ = sender.send(Err(()));
@@ -444,9 +404,6 @@ pub async fn task(
                 let _ = sender.send(room.board.co_editor_private_id == token);
             }
 
-            UserMessage::VerifyEditorToken { token, sender } => {
-                let _ = sender.send(room.private_id == token);
-            }
             UserMessage::Pull {
                 user_id,
                 current,

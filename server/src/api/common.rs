@@ -76,12 +76,6 @@ pub struct ReplyWithPayload {
     pub payload: String,
 }
 
-#[derive(Serialize)]
-struct ErrorMessage {
-    code: u16,
-    message: String,
-}
-
 #[derive(Deserialize, Serialize)]
 pub struct Reply {
     pub message: String,

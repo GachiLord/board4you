@@ -9,12 +9,9 @@ use protocol::board_protocol::BoardSize;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
-pub enum SaveAction {
-    Created(i32),
-    Updated(i32),
-}
 /// Inserts new row if there is no room in db
-/// or Updates existing row
+/// or Updates existing row.
+/// Also sets id in board struct
 ///
 /// # Panics
 ///
@@ -25,7 +22,7 @@ pub enum SaveAction {
 /// This function will return an error if:
 /// - failed to insert new row
 /// - failed to update existing row
-pub async fn save(client: &DbClient<'_>, room: &mut Room) -> Result<SaveAction, Box<dyn Error>> {
+pub async fn save(client: &DbClient<'_>, room: &mut Room) -> Result<(), Box<dyn Error>> {
     match client
         .query(
             "SELECT * FROM boards WHERE public_id = $1",
@@ -41,7 +38,7 @@ pub async fn save(client: &DbClient<'_>, room: &mut Room) -> Result<SaveAction, 
                 ).await?;
 
                 room.board.id = created.get("id");
-                Ok(SaveAction::Created(room.board.id))
+                Ok(())
             } else {
                 client
                     .execute(
@@ -51,7 +48,7 @@ pub async fn save(client: &DbClient<'_>, room: &mut Room) -> Result<SaveAction, 
                     .await?;
 
                 room.board.id = res[0].get("id");
-                Ok(SaveAction::Updated(room.board.id))
+                Ok(())
             }
         }
         Err(e) => Err(Box::new(e)),

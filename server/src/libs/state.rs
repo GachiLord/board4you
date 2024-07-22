@@ -386,11 +386,6 @@ impl Room {
         self.users.insert(id, chan);
     }
 
-    /// Removes user from the room
-    pub fn remove_user(&mut self, id: UserId) {
-        self.users.remove(&id);
-    }
-
     /// Updates self.co_editor_private_id and returns new one
     pub fn update_editor_private_id(&mut self) -> Box<str> {
         let id =
@@ -401,6 +396,5 @@ impl Room {
 }
 
 pub type Rooms = Arc<RwLock<HashMap<Box<str>, mpsc::UnboundedSender<UserMessage>>>>;
-pub type JwtKey = Arc<HS256Key>;
 pub type DbClient<'a> = PooledConnection<'static, PostgresConnectionManager<NoTls>>;
 pub type UserId = Arc<usize>;

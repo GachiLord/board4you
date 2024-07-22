@@ -9,12 +9,6 @@ use tokio::{sync::oneshot, task::spawn_blocking};
 use crate::libs::state::{DbClient, ExposeId, QueueOp};
 
 // helpers
-fn get_status_value(status: &EditStatus) -> &'static str {
-    match status {
-        EditStatus::Current => "'current'",
-        EditStatus::Undone => "'undone'",
-    }
-}
 
 async fn encode_edit_async(edit: Edit) -> Vec<u8> {
     let (tx, rx) = oneshot::channel();
