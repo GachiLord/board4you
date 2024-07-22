@@ -278,7 +278,7 @@ impl Board {
             buf.append(&mut self.queue);
             sync_with_queue(&self.pool.get().await, self.id, buf)
                 .await
-                .map_err(|_| "Error during queue saving");
+                .map_err(|_| PushError::DbError)?;
         }
         self.queue.push(QueueOp::Push(SystemTime::now(), edit));
         Ok(())

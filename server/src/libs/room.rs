@@ -150,7 +150,16 @@ pub async fn task(
                 }
             }
             UserMessage::Join { user_id, chan } => {
-                room.add_user(user_id, chan);
+                room.add_user(user_id.clone(), chan);
+                send_by_id(
+                    &room,
+                    *user_id,
+                    &ServerMessage {
+                        msg: Some(Msg::SizeData(SizeData {
+                            data: Some(room.board.size.clone()),
+                        })),
+                    },
+                );
             }
             UserMessage::SetTitle { user_id, title } => {
                 if title.len() > 36 {
@@ -456,6 +465,7 @@ pub async fn task(
             }
             UserMessage::HasUsers(sender) => {
                 room.users.remove_expired();
+                dbg!(&room.users);
                 let _ = sender.send(room.users.len() > 0);
                 // if room has no users, stop task execution
                 if room.users.len() == 0 {
