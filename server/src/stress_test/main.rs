@@ -1,106 +1,45 @@
-#[macro_use]
-extern crate lazy_static;
-
 use clap::Parser;
 use futures_util::{SinkExt, StreamExt};
-use handlebars::Handlebars;
+use protocol::board_protocol::edit::Edit as EditInner;
+use protocol::board_protocol::user_message::Msg;
+use protocol::board_protocol::Add;
+use protocol::board_protocol::Auth;
+use protocol::board_protocol::Edit;
+use protocol::board_protocol::Pull;
+use protocol::board_protocol::Push;
+use protocol::board_protocol::Shape;
+use protocol::board_protocol::ShapeType;
+use protocol::board_protocol::Tool;
+use protocol::board_protocol::UserMessage;
+use protocol::encode_user_msg;
 use reqwest::Client;
 use serde::Deserialize;
-use std::collections::HashMap;
 use std::{fs, usize};
 use tokio::task::JoinHandle;
 use tokio::{signal, spawn, time};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use uuid::Uuid;
 
 // stress test implementaion
 
 #[derive(Deserialize, Debug)]
 struct RoomData {
-    public_id: Box<String>,
-    private_id: Box<String>,
+    public_id: Box<str>,
+    private_id: Box<str>,
 }
 
-type StaticRoomData = HashMap<&'static str, &'static mut str>;
-
-impl RoomData {
-    fn as_leaked_hashmap(self) -> StaticRoomData {
-        HashMap::from([
-            ("public_id", self.public_id.leak()),
-            ("private_id", self.private_id.leak()),
-        ])
-    }
-}
-
-struct Messages {
-    templates: Handlebars<'static>,
-}
-
-impl Messages {
-    fn new() -> Messages {
-        // read files
-        let join = fs::read_to_string("./src/stress_test/join.json").unwrap();
-        let pull = fs::read_to_string("./src/stress_test/pull.json").unwrap();
-        let push = fs::read_to_string("./src/stress_test/push.json").unwrap();
-        let push_segment_start =
-            fs::read_to_string("./src/stress_test/push_segment_start.json").unwrap();
-        let push_segment_update =
-            fs::read_to_string("./src/stress_test/push_segment_update.json").unwrap();
-        let push_segment_end =
-            fs::read_to_string("./src/stress_test/push_segment_end.json").unwrap();
-        // add templates
-        let mut handlebars = Handlebars::new();
-        handlebars.register_escape_fn(|s| s.to_owned());
-        handlebars.register_template_string("join", join).unwrap();
-        handlebars.register_template_string("pull", pull).unwrap();
-        handlebars.register_template_string("push", push).unwrap();
-        handlebars
-            .register_template_string("push_segment_start", push_segment_start)
-            .unwrap();
-        handlebars
-            .register_template_string("push_segment_update", push_segment_update)
-            .unwrap();
-        handlebars
-            .register_template_string("push_segment_end", push_segment_end)
-            .unwrap();
-
-        Messages {
-            templates: handlebars,
+impl Into<RoomDataStatic> for RoomData {
+    fn into(self) -> RoomDataStatic {
+        RoomDataStatic {
+            public_id: Box::leak(self.public_id),
+            private_id: Box::leak(self.private_id),
         }
     }
-
-    fn join(&self, room_data: &StaticRoomData) -> String {
-        self.templates.render("join", &room_data).unwrap()
-    }
-
-    fn pull(&self, room_data: &StaticRoomData) -> String {
-        self.templates.render("pull", &room_data).unwrap()
-    }
-
-    fn push(&self, room_data: &StaticRoomData) -> String {
-        self.templates.render("push", &room_data).unwrap()
-    }
-
-    fn push_segment_start(&self, room_data: &StaticRoomData) -> String {
-        self.templates
-            .render("push_segment_start", &room_data)
-            .unwrap()
-    }
-
-    fn push_segment_update(&self, room_data: &StaticRoomData) -> String {
-        self.templates
-            .render("push_segment_update", &room_data)
-            .unwrap()
-    }
-
-    fn push_segment_end(&self, room_data: &StaticRoomData) -> String {
-        self.templates
-            .render("push_segment_end", &room_data)
-            .unwrap()
-    }
 }
 
-lazy_static! {
-    static ref MESSAGES: Messages = Messages::new();
+struct RoomDataStatic {
+    public_id: &'static mut str,
+    private_id: &'static mut str,
 }
 
 async fn create_room(client: &Client) -> RoomData {
@@ -113,15 +52,67 @@ async fn create_room(client: &Client) -> RoomData {
         .send()
         .await
         .unwrap();
-    //dbg!(&res);
     res.json::<RoomData>().await.unwrap()
 }
 
-async fn editor_task(msgs: &Messages, room_data: &StaticRoomData) {
+fn pull() -> Vec<u8> {
+    let msg = UserMessage {
+        msg: Some(Msg::Pull(Pull {
+            current: vec![],
+            undone: vec![],
+        })),
+    };
+    encode_user_msg(msg)
+}
+
+fn push() -> Vec<u8> {
+    let id = Uuid::new_v4().to_string();
+    let edit = EditInner::Add(Add {
+        id: id.to_owned(),
+        shape: Some(Shape {
+            x: 0.0,
+            y: 0.0,
+            tool: Tool::PenTool as i32,
+            shape_type: ShapeType::Line as i32,
+            shape_id: id,
+            color: "black".to_owned(),
+            line_size: 3.0,
+            line_type: "earaser".to_owned(),
+            height: 0.0,
+            width: 0.0,
+            radius_x: 0.0,
+            radius_y: 0.0,
+            rotation: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+            skew_x: 0.0,
+            skew_y: 0.0,
+            points: vec![0, 100],
+            connected: vec![],
+            url: "".to_owned(),
+        }),
+    });
+    let msg = UserMessage {
+        msg: Some(Msg::Push(Push {
+            data: vec![Edit { edit: Some(edit) }],
+            silent: false,
+        })),
+    };
+    encode_user_msg(msg)
+}
+
+fn auth(token: String) -> Vec<u8> {
+    let msg = UserMessage {
+        msg: Some(Msg::Auth(Auth { token })),
+    };
+    encode_user_msg(msg)
+}
+
+async fn editor_task(room_data: &RoomDataStatic) {
     // connect to the socket
     let (ws_stream, _) = connect_async(format!(
         "ws://localhost:3000/ws/board/{}",
-        room_data.get("public_id").unwrap()
+        room_data.public_id
     ))
     .await
     .expect(
@@ -129,62 +120,50 @@ async fn editor_task(msgs: &Messages, room_data: &StaticRoomData) {
     );
     let (mut write, mut read) = ws_stream.split();
     // send pull message
-    let _ = write.send(Message::Text(msgs.pull(room_data))).await;
+    let _ = write
+        .send(Message::Binary(auth(room_data.private_id.to_owned())))
+        .await;
+    let _ = write.send(Message::Binary(pull())).await;
     // wait for PullData
+    let _ = read.next().await;
     let _ = read.next().await;
     // send a new shape periodically
     loop {
-        // TODO: This part is currently disabled due to the ineffective way used to send websocket messages.
-        // Uncomment this, when or if it is improved
-        //
-        //// send push start
-        //let _ = write
-        //    .send(Message::Text(msgs.push_segment_start(room_data)))
-        //    .await;
-        //// send segments of the line every 200ms
-        //for _ in 0..20 {
-        //    let _ = write
-        //        .send(Message::Text(msgs.push_segment_update(room_data)))
-        //        .await;
-        //    time::sleep(time::Duration::from_millis(100)).await;
-        //}
-        //// finish drawing the line
-        //let _ = write
-        //    .send(Message::Text(msgs.push_segment_end(room_data)))
-        //    .await;
-        //
-        // send a push
-        let _ = write.send(Message::Text(msgs.push(room_data))).await;
+        // send push msg
+        let _ = write.send(Message::Binary(push())).await;
         // await a second
         time::sleep(time::Duration::from_secs(3)).await;
     }
 }
 
-async fn user_task(msgs: &Messages, room_data: &StaticRoomData) {
+async fn user_task(room_data: &RoomDataStatic) {
     // connect to the socket
-    let (ws_stream, _) = connect_async("ws://localhost:3000/board")
-        .await
-        .expect("Failed to connect");
+    let (ws_stream, _) = connect_async(format!(
+        "ws://localhost:3000/ws/board/{}",
+        room_data.public_id
+    ))
+    .await
+    .expect("Failed to connect");
     let (mut write, read) = ws_stream.split();
     // send join message
-    let _ = write.send(Message::Text(msgs.join(room_data))).await;
+    let _ = write.send(Message::Binary(pull())).await;
     // wait for joining the room
     read.for_each(|_| async {}).await;
 }
 
-fn spawn_editor(room_data: &'static StaticRoomData) -> JoinHandle<()> {
-    spawn(async move { editor_task(&MESSAGES, &room_data).await })
+fn spawn_editor(room_data: &'static RoomDataStatic) -> JoinHandle<()> {
+    spawn(async move { editor_task(&room_data).await })
 }
 
-fn spawn_user(room_data: &'static StaticRoomData) -> JoinHandle<()> {
-    spawn(async move { user_task(&MESSAGES, &room_data).await })
+fn spawn_user(room_data: &'static RoomDataStatic) -> JoinHandle<()> {
+    spawn(async move { user_task(&room_data).await })
 }
 
 fn spawn_room(editors_amount: usize, users_amount: usize) -> JoinHandle<()> {
     spawn(async move {
         let client = Client::new();
-        let room_data: &'static StaticRoomData =
-            Box::leak(Box::new(create_room(&client).await.as_leaked_hashmap()));
+        let room_data: &'static RoomDataStatic =
+            Box::leak(Box::new(create_room(&client).await.into()));
 
         for _ in 0..editors_amount {
             spawn_user(&room_data);

@@ -39,17 +39,14 @@ argon2 = "0.5.2"
 fast_log = { version = "1.6", features = ["lz4"]}
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_info"] }
 reqwest = { version = "0.12.3", features = ["json"] }
-handlebars = "3"
 tokio-tungstenite = "*"
 lazy_static = "1.4.0"
 clap = { version = "4.5.4", features = ["derive"] }
-datasize = "0.2.15"
 console-subscriber = "0.2.0"
 cookie = "0.18.1"
 bb8 = "0.8.3"
 bb8-postgres = "0.8.1"
 anyhow = "1.0.82"
-ordered_hash_map = "0.4.0"
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
 

@@ -30,6 +30,7 @@ pub async fn cleanup(rooms: Rooms) {
                 }
                 Err(e) => {
                     error!("cannot receive response to HasUsers msg: {}", e);
+                    expired_rooms.insert(id.to_owned());
                 }
             }
         }

@@ -40,7 +40,7 @@ lazy_static! {
 
             parsed
         }
-        Err(_) => 10,
+        Err(_) => 30,
     };
     pub static ref CLEANUP_INTERVAL_MINUTES: u64 = match &env::var("CLEANUP_INTERVAL_MINUTES") {
         Ok(t) => t
@@ -130,7 +130,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         NoTls,
     )
     .expect("failed to create db connection pool");
-    let pool = Box::leak(Box::new(Pool::builder().build(manager).await.unwrap()));
+    let pool = Box::leak(Box::new(
+        Pool::builder()
+            // TODO: change to ENV vars
+            .max_size(12)
+            .connection_timeout(std::time::Duration::from_secs(30))
+            .build(manager)
+            .await
+            .unwrap(),
+    ));
     // initialize db
     let pool_wrapper = Box::leak(Box::new(PoolWrapper { inner: pool }));
     pool.get_owned()

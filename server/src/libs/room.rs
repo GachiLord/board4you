@@ -425,7 +425,6 @@ pub async fn task(
             }
             UserMessage::HasUsers(sender) => {
                 room.users.remove_expired();
-                dbg!(&room.users);
                 let _ = sender.send(room.users.len() > 0);
                 // if room has no users, stop task execution
                 if room.users.len() == 0 {

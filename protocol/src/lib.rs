@@ -59,6 +59,13 @@ pub fn encode_user_msg(msg: UserMessage) -> Vec<u8> {
 }
 
 #[cfg(target_family = "unix")]
+pub fn encode_user_msg(msg: UserMessage) -> Vec<u8> {
+    let mut buf = Vec::with_capacity(msg.encoded_len());
+    msg.encode(&mut buf).unwrap();
+    buf
+}
+
+#[cfg(target_family = "unix")]
 pub fn decode_user_msg(buf: &[u8]) -> Result<UserMessage, String> {
     UserMessage::decode(buf).map_err(|err| err.to_string())
 }
