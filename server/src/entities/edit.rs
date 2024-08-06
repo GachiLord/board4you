@@ -1,14 +1,19 @@
 use chrono::prelude::*;
-use futures::{future::join4, pin_mut};
-use log::{debug, error, warn};
-use postgres_types::{FromSql, Kind, ToSql, Type};
+use data_encoding::HEXUPPER;
+use futures::future::join4;
+use log::{error, warn};
+use postgres_types::{FromSql, ToSql};
 use protocol::{
     board_protocol::{server_message::Msg, Edit, PushData, ServerMessage},
     decode_server_msg, encode_server_msg,
 };
 use std::{collections::HashMap, fmt::Write as _, time::SystemTime};
-use tokio::{sync::oneshot, task::spawn_blocking};
-use tokio_postgres::binary_copy::BinaryCopyInWriter;
+use tokio::{
+    fs::File,
+    io::{AsyncWriteExt, BufWriter},
+    sync::oneshot,
+    task::spawn_blocking,
+};
 use uuid::Uuid;
 
 use crate::libs::{
@@ -204,55 +209,53 @@ pub async fn create(
     if chunks.is_empty() {
         return Ok(0);
     }
-    let edit_status_type: Type = Type::new(
-        "edit_status".to_owned(),
-        0, // Scary but works
-        Kind::Enum(vec!["current".to_owned(), "undone".to_owned()]),
-        "".to_owned(),
-    );
-
-    let sink = db_client
-        .copy_in("COPY edits (board_id, edit_id, status, changed_at, data) FROM STDIN BINARY")
-        .await?;
-    let writer = BinaryCopyInWriter::new(
-        sink,
-        &[
-            Type::UUID,
-            Type::UUID,
-            edit_status_type,
-            Type::TIMESTAMP,
-            Type::BYTEA,
-        ],
-    );
-    pin_mut!(writer);
+    let file_name = format!("/tmp/board4you/{}.csv", Uuid::now_v7().to_string());
+    let file = File::create_new(&file_name).await.unwrap();
+    let mut writer = BufWriter::new(file);
     let mut ready_list = Vec::new();
 
     for chunk in chunks {
         for (stamp, edit) in chunk.items {
             let id = Uuid::try_parse(edit.edit.as_ref().unwrap().id()).unwrap();
-            writer
-                .as_mut()
-                .write(&[
-                    &chunk.public_id,
-                    &id,
-                    &chunk.status,
-                    &stamp,
-                    &encode_edit_async(edit).await,
-                ])
-                .await
-                .unwrap();
+            let stamp: DateTime<Utc> = DateTime::from(stamp);
+            let status = match chunk.status {
+                EditStatus::Current => "current",
+                EditStatus::Undone => "undone",
+            };
+            //                 &chunk.public_id,
+            //                 &id,
+            //                 &chunk.status,
+            //                 &stamp,
+            //                 &encode_edit_async(edit).await,
+            let buf = format!(
+                "{},{},{},{},\\x{}\n",
+                chunk.public_id.to_string(),
+                id,
+                status,
+                stamp.format("%+"),
+                HEXUPPER.encode(&encode_edit_async(edit).await)
+            );
+            writer.write(buf.as_bytes()).await.unwrap();
         }
         ready_list.push(chunk.ready);
     }
+    writer.flush().await.unwrap();
 
-    match writer.finish().await {
-        Ok(r) => {
+    match db_client
+        .execute(&format!(
+            "COPY edits (board_id, edit_id, status, changed_at, data) FROM '{file_name}' WITH (FORMAT csv);",
+        ), &[])
+        .await
+    {
+        Ok(c) => {
             ready_list.into_iter().for_each(|c| {
                 if let Err(_) = c.send(()) {
                     warn!("Cannot send create result to the room");
                 }
             });
-            Ok(r)
+            drop(writer);
+            tokio::fs::remove_file(file_name).await.unwrap();
+            Ok(c)
         }
         Err(e) => {
             error!("Failed to finish COPY: {}", e);
