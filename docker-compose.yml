@@ -18,14 +18,16 @@ services:
         condition: service_healthy
   db:
     container_name: board4you-db
-    image: postgres:14
+    image: postgres:16
     restart: always
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
     environment:
       POSTGRES_USER: "board4you"
       POSTGRES_PASSWORD_FILE: "/run/secrets/db_password"
       PGDATA: "/var/lib/postgresql/data/pgdata"
     volumes:
       - /var/lib/postgresql/data:/var/lib/postgresql/data
+      - ./db/postgres.conf/:/etc/postgresql/postgresql.conf
     secrets:
       - db_password
     ports:
@@ -38,10 +40,13 @@ services:
       start_period: 10s
   adminer:
     container_name: board4you-db-adminer
-    image: adminer
+    image: dpage/pgadmin4
     restart: always
+    environment:
+        PGADMIN_DEFAULT_EMAIL: dev@examle.com
+        PGADMIN_DEFAULT_PASSWORD: root
     ports:
-      - 8080:8080
+      - 8080:80
 
 secrets:
   db_password:

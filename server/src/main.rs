@@ -5,7 +5,7 @@ use bb8_postgres::PostgresConnectionManager;
 use fast_log::config::Config;
 use jwt_simple::prelude::*;
 use lazy_static::lazy_static;
-use log::error;
+use libs::db_queue::{new_db_queue, queue_task, DbQueueSender};
 use std::{env, fs, path::PathBuf, sync::atomic::AtomicUsize};
 use std::{error::Error, path::Path};
 use tokio::signal::unix::signal;
@@ -28,6 +28,37 @@ mod websocket;
 // env vars
 
 lazy_static! {
+    pub static ref DB_QUEUE_ITER_TIME_MS: std::time::Duration = match &env::var("DB_QUEUE_ITER_TIME_MS") {
+        Ok(v) => std::time::Duration::from_millis(v
+            .parse()
+            // TODO: must be greater than 0
+            .expect("$DB_QUEUE_ITER_TIME_MS must be usize integer")),
+        Err(_) => std::time::Duration::from_millis(200),
+    };
+    pub static ref DB_QUEUE_ITEM_CONNECTIONS: usize = match &env::var("DB_QUEUE_ITEM_CONNECTIONS") {
+        Ok(v) => v
+            .parse()
+            // TODO: must be greater than 0
+            .expect("$DB_QUEUE_ITEM_CONNECTIONS must be usize integer"),
+        Err(_) => 2,
+    };
+    pub static ref DB_QUEUE_ITEM_SIZE: usize = match &env::var("DB_QUEUE_ITEM_SIZE") {
+        // TODO: must be greater than 0
+        Ok(v) => v.parse().expect("$DB_QUEUE_ITEM_SIZE must be usize integer"),
+        Err(_) => 1000,
+    };
+    pub static ref CONNECTION_POOL_SIZE: u32 = match &env::var("CONNECTION_POOL_SIZE") {
+        Ok(v) => v
+            .parse()
+            .expect("$CONNECTION_POOL_SIZE must be u32 integer"),
+        Err(_) => 12,
+    };
+    pub static ref CONNECTION_TIMEOUT_SECONDS: u64 = match &env::var("CONNECTION_TIMEOUT_SECONDS") {
+        Ok(v) => v
+            .parse()
+            .expect("$CONNECTION_TIMEOUT_SECONDS must be u64  integer"),
+        Err(_) => 30,
+    };
     pub static ref OPERATION_QUEUE_SIZE: usize = match &env::var("OPERATION_QUEUE_SIZE") {
         Ok(s) => {
             let parsed = s
@@ -87,11 +118,10 @@ impl PoolWrapper {
         match self.inner.get_owned().await {
             Ok(c) => c,
             Err(e) => {
-                error!(
-                    "failed to get a postgres client from connection pool: {}",
+                panic!(
+                    "Failed to get a postgres client from connection pool: {}",
                     e.to_string()
                 );
-                panic!("failed to get a postgres client from connection pool");
             }
         }
     }
@@ -103,6 +133,7 @@ impl PoolWrapper {
 
 #[derive(Clone)]
 struct AppState {
+    db_queue: &'static DbQueueSender,
     pool: &'static PoolWrapper,
     rooms: Rooms,
 }
@@ -132,9 +163,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     .expect("failed to create db connection pool");
     let pool = Box::leak(Box::new(
         Pool::builder()
-            // TODO: change to ENV vars
-            .max_size(12)
-            .connection_timeout(std::time::Duration::from_secs(30))
+            .max_size(*CONNECTION_POOL_SIZE)
+            .connection_timeout(std::time::Duration::from_secs(*CONNECTION_TIMEOUT_SECONDS))
             .build(manager)
             .await
             .unwrap(),
@@ -146,12 +176,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .unwrap()
         .batch_execute(&init_sql)
         .await?;
+    // create db queue
+    let (db_queue_sender, db_queue_receiver) = new_db_queue(*DB_QUEUE_ITEM_SIZE);
     // create state of the app
     let rooms = Rooms::default();
     let state = AppState {
+        db_queue: db_queue_sender,
         pool: pool_wrapper,
         rooms: rooms.clone(),
     };
+    // start edit_queue task
+    tokio::spawn(async move {
+        queue_task(&state.pool, db_queue_receiver).await;
+    });
     // routes
     let mut routes = Router::new();
     // apis

@@ -8,6 +8,7 @@ use axum::{
     Json, Router,
 };
 use data_encoding::BASE64URL;
+use futures::future::join;
 use jwt_simple::algorithms::HS256Key;
 use log::{debug, error};
 use protocol::board_protocol::{BoardSize, Edit};
@@ -18,11 +19,12 @@ use weak_table::WeakKeyHashMap;
 
 use crate::{
     entities::{
-        board::{self, get_by_owner, save, RoomCredentials},
-        edit::{create, EditStatus},
+        board::{self, get_by_owner, RoomCredentials},
+        edit::EditStatus,
         Paginated,
     },
     libs::{
+        db_queue::{BoardCreateChunk, EditCreateChunk},
         room::{task, UserMessage},
         state::{Board, Room},
     },
@@ -64,7 +66,7 @@ async fn create_room(
     let (tx, rx) = oneshot::channel();
     // use blocking task because these ops are CPU-bound
     tokio::task::spawn_blocking(move || {
-        let public_id = Uuid::new_v4().to_string().into_boxed_str();
+        let public_id = Uuid::now_v7();
         let private_id = BASE64URL
             .encode(&HS256Key::generate().to_bytes())
             .into_boxed_str();
@@ -84,13 +86,14 @@ async fn create_room(
         );
     }
     // create Room instance
-    let mut room = Room {
-        public_id: public_id.to_owned(),
+    let room = Room {
+        public_id,
         private_id: private_id.to_owned(),
         users: WeakKeyHashMap::with_capacity(10),
         board: Board {
             pool: &state.pool,
-            id: 0,
+            public_id,
+            db_queue: &state.db_queue,
             queue: Vec::with_capacity(*OPERATION_QUEUE_SIZE),
             size: room_init.size,
             title: room_init.title,
@@ -99,53 +102,59 @@ async fn create_room(
         owner_id,
     };
     // get client
-    let client = state.pool.get().await;
     let now = SystemTime::now();
     // create board record
-    if let Err(e) = save(&client, &mut room).await {
-        error!("Failed to create board: {}", e);
-    }
+    let (tx, rx) = oneshot::channel();
+    let _ = state
+        .db_queue
+        .create_board
+        .send(BoardCreateChunk {
+            public_id,
+            private_id: private_id.clone(),
+            title: room.board.title.clone(),
+            owner_id,
+            ready: tx,
+        })
+        .await;
+    let _ = rx.await;
     // create edit records
-    if let Err(e) = create(
-        &client,
-        room.board.id,
-        &EditStatus::Current,
-        room_init
-            .current
-            .into_iter()
-            .map(|edit| (now, edit))
-            .collect(),
+    let (tx1, rx1) = oneshot::channel();
+    let (tx2, rx2) = oneshot::channel();
+    let _ = join(
+        state.db_queue.create_edit.send(EditCreateChunk {
+            public_id: room.public_id,
+            status: EditStatus::Current,
+            items: room_init
+                .current
+                .into_iter()
+                .map(|edit| (now, edit))
+                .collect(),
+            ready: tx1,
+        }),
+        state.db_queue.create_edit.send(EditCreateChunk {
+            public_id: room.public_id,
+            status: EditStatus::Undone,
+            items: room_init
+                .undone
+                .into_iter()
+                .map(|edit| (now, edit))
+                .collect(),
+            ready: tx2,
+        }),
     )
-    .await
-    {
-        error!("Failed to create board: {}", e);
-    }
-    if let Err(e) = create(
-        &client,
-        room.board.id,
-        &EditStatus::Undone,
-        room_init
-            .undone
-            .into_iter()
-            .map(|edit| (now, edit))
-            .collect(),
-    )
-    .await
-    {
-        error!("Failed to create board: {}", e);
-    }
+    .await;
+    let _ = join(rx1, rx2).await;
     // update rooms
     let (tx, rx) = unbounded_channel();
-    let public_id_c = public_id.clone();
     tokio::spawn(async move {
-        task(public_id_c, room, &state.pool, rx).await;
+        task(public_id, room, &state.pool, state.db_queue, rx).await;
     });
-    state.rooms.write().await.insert(public_id.to_owned(), tx);
+    state.rooms.write().await.insert(public_id, tx);
     // response
     return (
         StatusCode::OK,
         Json(RoomCredentials {
-            public_id,
+            public_id: public_id.to_string().into_boxed_str(),
             private_id,
         }),
     );
@@ -176,11 +185,16 @@ async fn delete_room(
     State(state): State<AppState>,
     Json(room_info): Json<RoomCredentials>,
 ) -> Response {
+    let id = match Uuid::try_parse(&room_info.public_id) {
+        Ok(id) => id,
+        Err(_) => return generate_res(StatusCode::BAD_REQUEST, Some("Not a uuid")),
+    };
     // get client
     let client = state.pool.get().await;
     // prepare room for delete
     let mut rooms = state.rooms.write().await;
-    match rooms.get_mut(&room_info.public_id) {
+
+    match rooms.get_mut(&id) {
         Some(room) => {
             let (tx, rx) = oneshot::channel();
             let _ = room.send(UserMessage::DeleteRoom {
@@ -205,17 +219,15 @@ async fn delete_room(
         }
         None => {
             // if there is no room in the global state, delete it from db
-            if let Err(_) =
-                board::delete(&client, &room_info.public_id, &room_info.private_id).await
-            {
+            if let Err(_) = board::delete(&client, id, &room_info.private_id).await {
                 return generate_res(StatusCode::NOT_FOUND, Some("no such room"));
             }
         }
     }
     // delete room from global state
-    rooms.remove(&room_info.public_id);
+    rooms.remove(&id);
     // delete room from db
-    let _ = board::delete(&client, &room_info.public_id, &room_info.private_id).await;
+    let _ = board::delete(&client, id, &room_info.private_id).await;
     // send response
     return generate_res(StatusCode::OK, Some("deleted"));
 }
@@ -242,7 +254,12 @@ async fn read_co_editors(
     State(state): State<AppState>,
     Json(room): Json<RoomCredentials>,
 ) -> Response {
-    match state.rooms.read().await.get(&room.public_id) {
+    let id = match Uuid::try_parse(&room.public_id) {
+        Ok(id) => id,
+        Err(_) => return generate_res(StatusCode::BAD_REQUEST, Some("Not a uuid")),
+    };
+
+    match state.rooms.read().await.get(&id) {
         Some(room_chan) => {
             let (tx, rx) = oneshot::channel();
             let _ = room_chan.send(UserMessage::GetCoEditorToken {
@@ -282,7 +299,11 @@ async fn check_co_editor(
     State(state): State<AppState>,
     Json(check_info): Json<CheckInfo>,
 ) -> Response {
-    match state.rooms.read().await.get(&check_info.public_id) {
+    let id = match Uuid::try_parse(&check_info.public_id) {
+        Ok(id) => id,
+        Err(_) => return generate_res(StatusCode::BAD_REQUEST, Some("Not a uuid")),
+    };
+    match state.rooms.read().await.get(&id) {
         Some(room) => {
             let (tx, rx) = oneshot::channel();
             let _ = room.send(UserMessage::VerifyCoEditorToken {
@@ -304,7 +325,11 @@ async fn update_co_editor(
     State(state): State<AppState>,
     Json(room_info): Json<RoomCredentials>,
 ) -> Response {
-    match state.rooms.write().await.get_mut(&room_info.public_id) {
+    let id = match Uuid::try_parse(&room_info.public_id) {
+        Ok(id) => id,
+        Err(_) => return generate_res(StatusCode::BAD_REQUEST, Some("Not a uuid")),
+    };
+    match state.rooms.write().await.get_mut(&id) {
         Some(room) => {
             let (tx, rx) = oneshot::channel();
             let _ = room.send(UserMessage::GetUpdatedCoEditorToken {

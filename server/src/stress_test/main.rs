@@ -66,7 +66,7 @@ fn pull() -> Vec<u8> {
 }
 
 fn push() -> Vec<u8> {
-    let id = Uuid::new_v4().to_string();
+    let id = Uuid::now_v7().to_string();
     let edit = EditInner::Add(Add {
         id: id.to_owned(),
         shape: Some(Shape {

@@ -1,22 +1,30 @@
-use postgres_types::{FromSql, ToSql};
+use chrono::prelude::*;
+use futures::{future::join4, pin_mut};
+use log::{debug, error, warn};
+use postgres_types::{FromSql, Kind, ToSql, Type};
 use protocol::{
     board_protocol::{server_message::Msg, Edit, PushData, ServerMessage},
     decode_server_msg, encode_server_msg,
 };
-use std::{collections::HashMap, time::SystemTime};
+use std::{collections::HashMap, fmt::Write as _, time::SystemTime};
 use tokio::{sync::oneshot, task::spawn_blocking};
+use tokio_postgres::binary_copy::BinaryCopyInWriter;
+use uuid::Uuid;
 
-use crate::libs::state::{DbClient, ExposeId, QueueOp};
+use crate::libs::{
+    db_queue::{DbQueueSender, EditCreateChunk, EditReadChunk, EditUpdateChunk},
+    state::{DbClient, ExposeId, QueueOp},
+};
 
 // helpers
 
 async fn encode_edit_async(edit: Edit) -> Vec<u8> {
     let (tx, rx) = oneshot::channel();
     spawn_blocking(move || {
-        tx.send(encode_server_msg(&ServerMessage {
+        let encoded = encode_server_msg(&ServerMessage {
             msg: Some(Msg::PushData(PushData { data: vec![edit] })),
-        }))
-        .unwrap();
+        });
+        tx.send(encoded).unwrap();
     })
     .await
     .unwrap();
@@ -39,9 +47,8 @@ async fn decode_edit_async(buf: Vec<u8>) -> Edit {
 
 // types
 
-type IdAction = (SystemTime, Box<str>);
-type IdActionRef<'a> = (SystemTime, &'a str);
-type EditAction = (SystemTime, Edit);
+pub type IdAction = (SystemTime, Box<str>);
+pub type EditAction = (SystemTime, Edit);
 
 // enums
 
@@ -54,7 +61,7 @@ pub enum EditStatus {
     Undone,
 }
 
-// methods
+// structs
 
 #[derive(PartialEq, Debug)]
 struct SyncData {
@@ -63,6 +70,14 @@ struct SyncData {
     set_status_current: Vec<IdAction>,
     set_status_undone: Vec<IdAction>,
 }
+
+#[derive(PartialEq, Debug)]
+pub struct EditState {
+    pub current: Vec<Edit>,
+    pub undone: Vec<Edit>,
+}
+
+// methods
 
 fn get_sync_data(queue: Vec<QueueOp>) -> SyncData {
     let mut current = HashMap::new();
@@ -109,114 +124,258 @@ fn get_sync_data(queue: Vec<QueueOp>) -> SyncData {
 }
 
 pub async fn sync_with_queue(
-    db_client: &DbClient<'_>,
-    board_id: i32,
+    edit_queue: &DbQueueSender,
+    public_id: Uuid,
     queue: Vec<QueueOp>,
 ) -> Result<u64, tokio_postgres::Error> {
     let data = get_sync_data(queue);
+    let (tx1, rx1) = oneshot::channel();
+    let (tx2, rx2) = oneshot::channel();
+    let (tx3, rx3) = oneshot::channel();
+    let (tx4, rx4) = oneshot::channel();
     // execute the ops
-    let (q1, q2, q3, q4) = futures_util::join!(
-        create(
-            db_client,
-            board_id,
-            &EditStatus::Current,
-            data.current_create
-        ),
-        create(db_client, board_id, &EditStatus::Undone, data.undone_create),
-        set_status(
-            db_client,
-            data.set_status_current
-                .iter()
-                .map(|(stamp, id)| (*stamp, id.as_ref()))
-                .collect(),
-            &EditStatus::Current,
-        ),
-        set_status(
-            db_client,
-            data.set_status_undone
-                .iter()
-                .map(|(stamp, id)| (*stamp, id.as_ref()))
-                .collect(),
-            &EditStatus::Undone,
-        ),
-    );
+    let _ = join4(
+        async {
+            if !data.current_create.is_empty() {
+                return edit_queue
+                    .create_edit
+                    .send(EditCreateChunk {
+                        public_id,
+                        status: EditStatus::Current,
+                        items: data.current_create,
+                        ready: tx1,
+                    })
+                    .await;
+            }
+            Ok(())
+        },
+        async {
+            if !data.undone_create.is_empty() {
+                return edit_queue
+                    .create_edit
+                    .send(EditCreateChunk {
+                        public_id,
+                        status: EditStatus::Undone,
+                        items: data.undone_create,
+                        ready: tx2,
+                    })
+                    .await;
+            }
+            Ok(())
+        },
+        async {
+            if !data.set_status_current.is_empty() {
+                return edit_queue
+                    .update_edit
+                    .send(EditUpdateChunk {
+                        status: EditStatus::Current,
+                        items: data.set_status_current,
+                        ready: tx3,
+                    })
+                    .await;
+            }
+            Ok(())
+        },
+        async {
+            if !data.set_status_undone.is_empty() {
+                return edit_queue
+                    .update_edit
+                    .send(EditUpdateChunk {
+                        status: EditStatus::Undone,
+                        items: data.set_status_undone,
+                        ready: tx4,
+                    })
+                    .await;
+            }
+            Ok(())
+        },
+    )
+    .await;
 
-    Ok(q1? + q2? + q3? + q4?)
+    let _ = join4(rx1, rx2, rx3, rx4).await;
+
+    Ok(4)
 }
 
 pub async fn create(
     db_client: &DbClient<'_>,
-    board_id: i32,
-    status: &EditStatus,
-    edits: Vec<EditAction>,
+    chunks: Vec<EditCreateChunk>,
 ) -> Result<u64, tokio_postgres::Error> {
-    let statement = db_client.prepare("INSERT INTO edits (board_id, edit_id, status, changed_at, data) VALUES ($1, $2, $3, $4, $5)").await?;
-    let mut count = 0;
+    if chunks.is_empty() {
+        return Ok(0);
+    }
+    let edit_status_type: Type = Type::new(
+        "edit_status".to_owned(),
+        0, // Scary but works
+        Kind::Enum(vec!["current".to_owned(), "undone".to_owned()]),
+        "".to_owned(),
+    );
 
-    for (stamp, edit) in edits {
-        count += db_client
-            .execute(
-                &statement,
-                &[
-                    &board_id,
-                    &edit.edit.as_ref().unwrap().id().to_owned(),
-                    &status,
+    let sink = db_client
+        .copy_in("COPY edits (board_id, edit_id, status, changed_at, data) FROM STDIN BINARY")
+        .await?;
+    let writer = BinaryCopyInWriter::new(
+        sink,
+        &[
+            Type::UUID,
+            Type::UUID,
+            edit_status_type,
+            Type::TIMESTAMP,
+            Type::BYTEA,
+        ],
+    );
+    pin_mut!(writer);
+    let mut ready_list = Vec::new();
+
+    for chunk in chunks {
+        for (stamp, edit) in chunk.items {
+            let id = Uuid::try_parse(edit.edit.as_ref().unwrap().id()).unwrap();
+            writer
+                .as_mut()
+                .write(&[
+                    &chunk.public_id,
+                    &id,
+                    &chunk.status,
                     &stamp,
                     &encode_edit_async(edit).await,
-                ],
-            )
-            .await?;
+                ])
+                .await
+                .unwrap();
+        }
+        ready_list.push(chunk.ready);
     }
 
-    Ok(count)
+    match writer.finish().await {
+        Ok(r) => {
+            ready_list.into_iter().for_each(|c| {
+                if let Err(_) = c.send(()) {
+                    warn!("Cannot send create result to the room");
+                }
+            });
+            Ok(r)
+        }
+        Err(e) => {
+            error!("Failed to finish COPY: {}", e);
+            Ok(0)
+        }
+    }
 }
 
 pub async fn read(
     db_client: &DbClient<'_>,
-    board_id: i32,
-    status: &EditStatus,
-) -> Result<Vec<Edit>, tokio_postgres::Error> {
-    let query = db_client
-        .query(
-            "SELECT (data) FROM edits WHERE board_id = $1 AND status = $2 ORDER BY changed_at ASC",
-            &[&board_id, &status],
-        )
-        .await?;
-    let mut output = Vec::with_capacity(query.len());
+    chunks: Vec<EditReadChunk>,
+) -> Result<(), tokio_postgres::Error> {
+    let mut res: HashMap<Uuid, EditState> = HashMap::with_capacity(chunks.len());
+    if chunks.len() == 0 {
+        return Ok(());
+    }
+    // form query
+    let mut statement =
+        String::from("SELECT status, board_id, data FROM edits WHERE board_id in (");
+    for chunk in chunks.iter() {
+        write!(&mut statement, "'{}',", chunk.public_id).unwrap();
+    }
+    statement.pop();
+    statement.push_str(") ORDER BY changed_at ASC");
+    // store results
+    for row in db_client.query(&statement, &[]).await.unwrap() {
+        let status = row.get("status");
+        let data = decode_edit_async(row.get::<&str, Vec<u8>>("data")).await;
+        let id = row.get("board_id");
+        match res.get_mut(&id) {
+            Some(entry) => match status {
+                EditStatus::Current => entry.current.push(data),
+                EditStatus::Undone => entry.undone.push(data),
+            },
+            None => match status {
+                EditStatus::Current => {
+                    res.insert(
+                        id,
+                        EditState {
+                            current: vec![data],
+                            undone: vec![],
+                        },
+                    );
+                }
 
-    for row in query {
-        output.push(decode_edit_async(row.get::<&str, Vec<u8>>("data")).await);
+                EditStatus::Undone => {
+                    res.insert(
+                        id,
+                        EditState {
+                            current: vec![],
+                            undone: vec![data],
+                        },
+                    );
+                }
+            },
+        }
+    }
+    // send results
+    for chunk in chunks {
+        let _ = chunk
+            .ready
+            .send(res.remove(&chunk.public_id).unwrap_or(EditState {
+                current: vec![],
+                undone: vec![],
+            }));
     }
 
-    Ok(output)
+    Ok(())
 }
 
 pub async fn set_status(
     db_client: &DbClient<'_>,
-    edit_ids: Vec<IdActionRef<'_>>,
-    status: &EditStatus,
+    chunks: Vec<EditUpdateChunk>,
 ) -> Result<u64, tokio_postgres::Error> {
-    let mut count = 0;
-    let query = db_client
-        .prepare("UPDATE edits SET status = $1, changed_at = $2 WHERE edit_id = $3")
-        .await?;
-
-    for (stamp, id) in edit_ids {
-        count += db_client.execute(&query, &[status, &stamp, &id]).await?;
+    if chunks.is_empty() {
+        return Ok(0);
     }
+    let mut statement = String::from("BEGIN;");
+    let mut ready_list = Vec::with_capacity(chunks.len());
 
-    Ok(count)
+    // form query
+    for chunk in chunks {
+        let status = match chunk.status {
+            EditStatus::Current => "'current'",
+            EditStatus::Undone => "'undone'",
+        };
+
+        for (stamp, id) in chunk.items {
+            let dt: DateTime<Utc> = stamp.into();
+            write!(
+                &mut statement,
+                "UPDATE edits SET status = {}, changed_at = '{}' WHERE edit_id = '{}';",
+                status,
+                dt.format("%Y-%m-%d %H:%M:%S%.3f"),
+                id
+            )
+            .unwrap();
+        }
+        ready_list.push(chunk.ready);
+    }
+    statement.push_str("COMMIT;");
+
+    // execute
+    db_client.batch_execute(&statement).await?;
+    // notify listeners
+    ready_list.into_iter().for_each(|c| {
+        if let Err(_) = c.send(()) {
+            warn!("Failed to send update result");
+        }
+    });
+
+    Ok(1)
 }
 
 pub async fn delete(
     db_client: &DbClient<'_>,
-    board_id: i32,
+    public_id: Uuid,
     status: &EditStatus,
 ) -> Result<u64, tokio_postgres::Error> {
     db_client
         .execute(
             "DELETE FROM edits WHERE status = $1 AND board_id = $2",
-            &[&status, &board_id],
+            &[&status, &public_id],
         )
         .await
 }

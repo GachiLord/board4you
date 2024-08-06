@@ -1,9 +1,13 @@
 use crate::{
     entities::edit::{delete, read, sync_with_queue, EditStatus},
+    libs::db_queue::EditReadChunk,
     PoolWrapper, OPERATION_QUEUE_SIZE,
 };
 
-use super::room::{UserChannel, UserMessage};
+use super::{
+    db_queue::DbQueueSender,
+    room::{UserChannel, UserMessage},
+};
 use bb8::PooledConnection;
 use bb8_postgres::PostgresConnectionManager;
 use data_encoding::BASE64URL;
@@ -18,7 +22,7 @@ use std::{
     sync::{Arc, Weak},
     time::SystemTime,
 };
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{mpsc, oneshot, RwLock};
 use tokio_postgres::NoTls;
 use uuid::Uuid;
 use weak_table::WeakKeyHashMap;
@@ -31,10 +35,11 @@ use weak_table::WeakKeyHashMap;
 #[derive(Clone)]
 pub struct Board {
     pub pool: &'static PoolWrapper,
-    pub id: i32,
+    pub db_queue: &'static DbQueueSender,
     pub queue: Vec<QueueOp>,
     pub size: BoardSize,
     pub title: Box<str>,
+    pub public_id: Uuid,
     pub co_editor_private_id: Box<str>,
 }
 
@@ -106,15 +111,18 @@ impl Board {
         user_undone: Vec<Box<str>>,
     ) -> Result<PullData, tokio_postgres::Error> {
         // fetch edits from db
-        let db_client = self.pool.get().await;
-        let (db_current, db_undone) = join(
-            read(&db_client, self.id, &EditStatus::Current),
-            read(&db_client, self.id, &EditStatus::Undone),
-        )
-        .await;
+        let (tx, rx) = oneshot::channel();
+        self.db_queue
+            .read_edit
+            .send(EditReadChunk {
+                public_id: self.public_id,
+                ready: tx,
+            })
+            .await
+            .unwrap();
         // apply queue's changes to db's values
-        let db_current = db_current?;
-        let db_undone = db_undone?;
+        let res = rx.await.unwrap();
+        let (db_current, db_undone) = (res.current, res.undone);
         debug!("queue - {}", self.queue.len(),);
         debug!(
             "db_current - {}, db_undone - {}",
@@ -276,7 +284,7 @@ impl Board {
         if self.queue.len() + 1 > *OPERATION_QUEUE_SIZE {
             let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
             buf.append(&mut self.queue);
-            sync_with_queue(&self.pool.get().await, self.id, buf)
+            sync_with_queue(self.db_queue, self.public_id, buf)
                 .await
                 .map_err(|_| PushError::DbError)?;
         }
@@ -317,7 +325,7 @@ impl Board {
                     let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
                     buf.append(&mut self.queue);
 
-                    sync_with_queue(&self.pool.get().await, self.id, buf)
+                    sync_with_queue(self.db_queue, self.public_id, buf)
                         .await
                         .map_err(|_| "Error during queue saving")?;
                 }
@@ -329,7 +337,7 @@ impl Board {
                 if self.queue.len() + 1 > *OPERATION_QUEUE_SIZE {
                     let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
                     buf.append(&mut self.queue);
-                    sync_with_queue(&self.pool.get().await, self.id, buf)
+                    sync_with_queue(self.db_queue, self.public_id, buf)
                         .await
                         .map_err(|_| "Error during queue saving")?;
                 }
@@ -345,16 +353,16 @@ impl Board {
     pub async fn empty_current(&mut self) -> Result<u64, tokio_postgres::Error> {
         let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
         buf.append(&mut self.queue);
-        sync_with_queue(&self.pool.get().await, self.id, buf).await?;
-        delete(&self.pool.get().await, self.id, &EditStatus::Current).await
+        sync_with_queue(self.db_queue, self.public_id, buf).await?;
+        delete(&self.pool.get().await, self.public_id, &EditStatus::Current).await
     }
 
     /// clears self.undone
     pub async fn empty_undone(&mut self) -> Result<u64, tokio_postgres::Error> {
         let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
         buf.append(&mut self.queue);
-        sync_with_queue(&self.pool.get().await, self.id, buf).await?;
-        delete(&self.pool.get().await, self.id, &EditStatus::Undone).await
+        sync_with_queue(self.db_queue, self.public_id, buf).await?;
+        delete(&self.pool.get().await, self.public_id, &EditStatus::Undone).await
     }
 
     pub fn set_size(&mut self, height: u32, width: u32) -> Result<(), PushError> {
@@ -373,7 +381,7 @@ impl Board {
 /// board - state of the room
 /// onwer_id - id of the creator, is_some if the author was authed
 pub struct Room {
-    pub public_id: Box<str>,
+    pub public_id: Uuid,
     pub private_id: Box<str>,
     pub users: WeakKeyHashMap<Weak<usize>, UserChannel>,
     pub board: Board,
@@ -395,6 +403,6 @@ impl Room {
     }
 }
 
-pub type Rooms = Arc<RwLock<HashMap<Box<str>, mpsc::UnboundedSender<UserMessage>>>>;
+pub type Rooms = Arc<RwLock<HashMap<Uuid, mpsc::UnboundedSender<UserMessage>>>>;
 pub type DbClient<'a> = PooledConnection<'static, PostgresConnectionManager<NoTls>>;
 pub type UserId = Arc<usize>;

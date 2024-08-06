@@ -22,16 +22,22 @@ use tokio::sync::{
     mpsc::{error::SendError, unbounded_channel},
     oneshot,
 };
+use uuid::Uuid;
 
 pub async fn handle_client(
     public_id: Box<str>,
     app_state: AppState,
     fut: upgrade::UpgradeFut,
 ) -> Result<(), WebSocketError> {
+    // parse public_id
+    let public_id = match Uuid::try_parse(&public_id) {
+        Ok(id) => id,
+        Err(_) => return Ok(()),
+    };
     // try to find room in RAM or DB
     // if there is a room, join it
     // otherwise, close the connection
-    let room_chan = match retrive_room_channel(app_state.pool, app_state.rooms, public_id).await {
+    let room_chan = match retrive_room_channel(app_state, public_id).await {
         Ok(c) => c,
         Err(e) => {
             debug!(

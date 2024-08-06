@@ -1,12 +1,13 @@
 use crate::{
-    entities::{
-        board::{delete, save},
-        edit::sync_with_queue,
-    },
+    entities::{board::delete, edit::sync_with_queue},
+    libs::db_queue::BoardUpdateChunk,
     PoolWrapper,
 };
 
-use super::state::{Command, CommandName, Room};
+use super::{
+    db_queue::DbQueueSender,
+    state::{Command, CommandName, Room},
+};
 use axum::body::Bytes;
 use log::{debug, error};
 use protocol::{
@@ -21,6 +22,7 @@ use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
     oneshot,
 };
+use uuid::Uuid;
 
 pub type UserChannel = UnboundedSender<Bytes>;
 pub type RoomChannel = UnboundedSender<UserMessage>;
@@ -98,9 +100,10 @@ impl ToBytes for ServerMessage {
 }
 
 pub async fn task(
-    public_id: Box<str>,
+    public_id: Uuid,
     mut room: Room,
     client_pool: &PoolWrapper,
+    db_queue: &DbQueueSender,
     mut message_receiver: UnboundedReceiver<UserMessage>,
 ) {
     debug!("start task");
@@ -175,14 +178,18 @@ pub async fn task(
                 // changes
                 room.board.title = title.clone();
                 // update title in db
-                let _ = client_pool
-                    .get()
+                let (tx, rx) = oneshot::channel();
+                db_queue
+                    .update_board
+                    .send(BoardUpdateChunk {
+                        title: room.board.title.clone(),
+                        size: room.board.size.clone(),
+                        public_id: room.public_id,
+                        ready: tx,
+                    })
                     .await
-                    .execute(
-                        "UPDATE boards SET title = ($1) WHERE public_id = ($2)",
-                        &[&title, &public_id],
-                    )
-                    .await;
+                    .unwrap();
+                rx.await.unwrap();
                 // send changes
                 send_to_everyone(
                     &room,
@@ -428,9 +435,19 @@ pub async fn task(
                 let _ = sender.send(room.users.len() > 0);
                 // if room has no users, stop task execution
                 if room.users.len() == 0 {
-                    let db_client = &client_pool.get().await;
-                    let _ = save(db_client, &mut room).await;
-                    let _ = sync_with_queue(db_client, room.board.id, room.board.queue).await;
+                    let (tx, rx) = oneshot::channel();
+                    db_queue
+                        .update_board
+                        .send(BoardUpdateChunk {
+                            title: room.board.title,
+                            size: room.board.size.clone(),
+                            public_id: room.board.public_id,
+                            ready: tx,
+                        })
+                        .await
+                        .unwrap();
+                    let _ = rx.await;
+                    let _ = sync_with_queue(db_queue, room.public_id, room.board.queue).await;
                     break;
                 }
             }
@@ -448,16 +465,26 @@ pub async fn task(
                         },
                     );
                     debug!("QuitData message sent");
-                    let _ = delete(&client_pool.get().await, &public_id, &private_id).await;
+                    let _ = delete(&client_pool.get().await, public_id, &private_id).await;
                     let _ = deleted.send(true);
                 } else {
                     let _ = deleted.send(false);
                 }
             }
             UserMessage::Expire(completed) => {
-                let db_client = &client_pool.get().await;
-                let _ = save(db_client, &mut room).await;
-                let _ = sync_with_queue(db_client, room.board.id, room.board.queue).await;
+                let (tx, rx) = oneshot::channel();
+                db_queue
+                    .update_board
+                    .send(BoardUpdateChunk {
+                        title: room.board.title,
+                        size: room.board.size.clone(),
+                        public_id: room.board.public_id,
+                        ready: tx,
+                    })
+                    .await
+                    .unwrap();
+                let _ = rx.await;
+                let _ = sync_with_queue(db_queue, room.public_id, room.board.queue).await;
                 let _ = completed.send(());
                 break;
             }
