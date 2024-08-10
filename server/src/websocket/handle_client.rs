@@ -17,10 +17,16 @@ use protocol::{
     },
     decode_user_msg, encode_server_msg,
 };
-use std::sync::{atomic::Ordering, Arc};
-use tokio::sync::{
-    mpsc::{error::SendError, unbounded_channel},
-    oneshot,
+use std::{
+    sync::{atomic::Ordering, Arc},
+    time::Duration,
+};
+use tokio::{
+    sync::{
+        mpsc::{error::SendError, unbounded_channel},
+        oneshot,
+    },
+    time::timeout,
 };
 use uuid::Uuid;
 
@@ -50,7 +56,8 @@ pub async fn handle_client(
     let user_id = Arc::new(NEXT_USER_ID.fetch_add(1, Ordering::Relaxed));
     // handle the connection
     debug!("connected a user with id: {}", *user_id);
-    let ws = fut.await?;
+    let mut ws = fut.await?;
+    ws.set_writev_threshold(4096);
     let (rx_s, mut tx_s) = ws.split(tokio::io::split);
     let mut rx_s = FragmentCollectorRead::new(rx_s);
     let (tx_m, mut rx_m) = unbounded_channel();
@@ -64,11 +71,27 @@ pub async fn handle_client(
             let payload = Payload::Borrowed(&msg);
             let frame = Frame::binary(payload);
             // if we can't send a message there is no point to continue this loop
-            if let Err(e) = tx_s.write_frame(frame).await {
-                debug!("failed to send a message, closing the connection: {}", e);
+            if let Err(e) = timeout(Duration::from_secs(30), tx_s.write_frame(frame)).await {
+                warn!("failed to send a message, closing the connection: {}", e);
                 break;
             }
         }
+        // let mut buf = Vec::new();
+        // loop {
+        //     rx_m.recv_many(&mut buf, 10).await;
+
+        //     for msg in buf.drain(..) {
+        //         let payload = Payload::Borrowed(&msg);
+        //         let frame = Frame::binary(payload);
+        //         // if we can't send a message there is no point to continue this loop
+        //         if let Err(e) = timeout(Duration::from_secs(30), tx_s.write_frame(frame)).await {
+        //             debug!("failed to send a message, closing the connection: {}", e);
+        //             break;
+        //         }
+        //     }
+
+        //     tokio::time::sleep(Duration::from_millis(5000)).await;
+        // }
     });
     let mut is_authed = false;
 
@@ -129,7 +152,6 @@ async fn handle_message(
 
     match msg.msg.unwrap() {
         ProtcolUserMessageVariant::Auth(data) => {
-            debug!("Auth message received");
             let (sender, receiver) = oneshot::channel();
             r.send(UserMessage::Auth {
                 user_id,
@@ -138,75 +160,55 @@ async fn handle_message(
             })?;
             if let Ok(r) = receiver.await {
                 *is_authed = r;
-            } else {
-                debug!("Failed to receive auth result");
             }
         }
         ProtcolUserMessageVariant::SetTitle(data) => {
-            debug!("SetTitle message received");
             if *is_authed {
                 r.send(UserMessage::SetTitle {
                     user_id,
                     title: data.title.into(),
                 })?
-            } else {
-                debug!("Trying to work without auth");
             }
         }
         ProtcolUserMessageVariant::Push(data) => {
-            debug!("Push message received");
             if *is_authed {
                 r.send(UserMessage::Push {
                     user_id,
                     data: data.data,
                     silent: data.silent,
                 })?
-            } else {
-                debug!("Trying to work without auth");
             }
         }
         ProtcolUserMessageVariant::UndoRedo(data) => {
-            debug!("UndoRedo message received");
             if *is_authed {
                 r.send(UserMessage::UndoRedo {
                     user_id,
                     action_type: ActionType::try_from(data.action_type).unwrap(),
                     action_id: data.action_id.into(),
                 })?
-            } else {
-                debug!("Trying to work without auth");
             }
         }
         ProtcolUserMessageVariant::Empty(data) => {
-            debug!("Empty message received");
             if *is_authed {
                 r.send(UserMessage::Empty {
                     user_id,
                     action_type: EmptyActionType::try_from(data.action_type).unwrap(),
                 })?
-            } else {
-                debug!("Trying to work without auth");
             }
         }
         ProtcolUserMessageVariant::SetSize(data) => {
-            debug!("SetSize message received");
             if *is_authed {
                 r.send(UserMessage::SetSize {
                     user_id,
                     data: data.data,
                 })?
-            } else {
-                debug!("Trying to work without auth");
             }
         }
-        ProtcolUserMessageVariant::Pull(data) => {
-            debug!("Pull message received");
-            r.send(UserMessage::Pull {
-                user_id,
-                current: data.current.into_iter().map(|d| d.into()).collect(),
-                undone: data.undone.into_iter().map(|d| d.into()).collect(),
-            })?
-        }
+        ProtcolUserMessageVariant::Pull(data) => r.send(UserMessage::Pull {
+            user_id,
+            current: data.current.into_iter().map(|d| d.into()).collect(),
+            undone: data.undone.into_iter().map(|d| d.into()).collect(),
+        })?,
     }
 
     Ok(())

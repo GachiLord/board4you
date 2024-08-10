@@ -1,9 +1,11 @@
-use log::info;
+use futures::future::{join, join3};
+use log::{debug, error};
 use protocol::board_protocol::BoardSize;
 use std::time::Duration;
 use tokio::{
+    select,
     sync::{mpsc, oneshot},
-    time::sleep,
+    time::{sleep, timeout},
 };
 use uuid::Uuid;
 
@@ -14,8 +16,6 @@ use crate::{
     },
     PoolWrapper, DB_QUEUE_ITEM_SIZE, DB_QUEUE_ITER_TIME_MS,
 };
-
-use super::state::DbClient;
 
 // edit
 
@@ -72,12 +72,12 @@ pub struct DbQueueReceiver {
     pub update_board: mpsc::Receiver<BoardUpdateChunk>,
 }
 
-pub fn new_db_queue(size: usize) -> (&'static DbQueueSender, DbQueueReceiver) {
-    let (tx1, rx1) = mpsc::channel(size);
-    let (tx2, rx2) = mpsc::channel(size);
-    let (tx3, rx3) = mpsc::channel(size);
-    let (tx4, rx4) = mpsc::channel(size);
-    let (tx5, rx5) = mpsc::channel(size);
+pub fn new_db_queue() -> (&'static DbQueueSender, DbQueueReceiver) {
+    let (tx1, rx1) = mpsc::channel(*DB_QUEUE_ITEM_SIZE);
+    let (tx2, rx2) = mpsc::channel(*DB_QUEUE_ITEM_SIZE);
+    let (tx3, rx3) = mpsc::channel(*DB_QUEUE_ITEM_SIZE);
+    let (tx4, rx4) = mpsc::channel(*DB_QUEUE_ITEM_SIZE);
+    let (tx5, rx5) = mpsc::channel(*DB_QUEUE_ITEM_SIZE);
 
     let tx = Box::leak(Box::new(DbQueueSender {
         create_edit: tx1,
@@ -99,137 +99,87 @@ pub fn new_db_queue(size: usize) -> (&'static DbQueueSender, DbQueueReceiver) {
 
 // tasks
 
-pub async fn queue_task(pool: &'static PoolWrapper, db_queue_receiver: DbQueueReceiver) {
-    // get clients for tasks
-    let queue_size = *DB_QUEUE_ITEM_SIZE;
-    let iter_time = *DB_QUEUE_ITER_TIME_MS;
-    // spawn edit create task
-    tokio::spawn(async move {
-        create_edit_task(
-            &pool.get().await,
-            db_queue_receiver.create_edit,
-            queue_size,
-            iter_time,
-        )
-        .await;
+macro_rules! spawn_task {
+    ($pool:expr, $receiver:expr, $task_fn:expr, $task_name:expr) => {
+        tokio::spawn(async move {
+            let mut db_client = $pool.inner.dedicated_connection().await.unwrap();
+            let mut chunks = Vec::with_capacity(*DB_QUEUE_ITEM_SIZE);
+            loop {
+                $receiver.recv_many(&mut chunks, *DB_QUEUE_ITEM_SIZE).await;
+                debug!("received {} chunks by {}", chunks.len(), $task_name);
+                match timeout(
+                    Duration::from_secs(30),
+                    $task_fn(&db_client, chunks.drain(..).collect()),
+                )
+                .await
+                {
+                    Ok(_) => (),
+                    Err(e) => {
+                        error!("Cannot perform {}: {}", $task_name, e);
+                        db_client = $pool.inner.dedicated_connection().await.unwrap();
+                    }
+                }
+                sleep(*DB_QUEUE_ITER_TIME_MS).await;
+            }
+        });
+    };
+}
+
+fn spawn_edit_task(
+    pool: &'static PoolWrapper,
+    mut create_edit: mpsc::Receiver<EditCreateChunk>,
+    mut update_edit: mpsc::Receiver<EditUpdateChunk>,
+    mut read_edit: mpsc::Receiver<EditReadChunk>,
+) {
+    // spawn edit file writer task
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        edit::edit_writer(rx);
     });
-    // spawn edit update task
+    // spawn edit db write/read task
     tokio::spawn(async move {
-        update_edit_task(
-            &pool.get().await,
-            db_queue_receiver.update_edit,
-            queue_size,
-            iter_time,
-        )
-        .await;
-    });
-    // spawn edit read task
-    tokio::spawn(async move {
-        read_edit_task(
-            &pool.get().await,
-            db_queue_receiver.read_edit,
-            queue_size,
-            iter_time,
-        )
-        .await;
-    });
-    // spawn board create task
-    tokio::spawn(async move {
-        create_board_task(
-            &pool.get().await,
-            db_queue_receiver.create_board,
-            queue_size,
-            iter_time,
-        )
-        .await;
-    });
-    // spawn board update task
-    tokio::spawn(async move {
-        update_board_task(
-            &pool.get().await,
-            db_queue_receiver.update_board,
-            queue_size,
-            iter_time,
-        )
-        .await;
+        let db_client = pool.inner.dedicated_connection().await.unwrap();
+        let mut chunks_c = Vec::with_capacity(*DB_QUEUE_ITEM_SIZE);
+        let mut chunks_u = Vec::with_capacity(*DB_QUEUE_ITEM_SIZE);
+        let mut chunks_r = Vec::with_capacity(*DB_QUEUE_ITEM_SIZE);
+        loop {
+            select! {
+                _ = create_edit.recv_many(&mut chunks_c, *DB_QUEUE_ITEM_SIZE) => {
+                    debug!("create");
+                    let _ = edit::create(&db_client, &tx, chunks_c.drain(..).collect()).await;
+                },
+                _ = update_edit.recv_many(&mut chunks_u, *DB_QUEUE_ITEM_SIZE) => {
+                    debug!("update");
+                    let _ = edit::set_status(&db_client, chunks_u.drain(..).collect()).await;
+
+                },
+                _ = read_edit.recv_many(&mut chunks_r, *DB_QUEUE_ITEM_SIZE) => {
+                    debug!("read");
+                    let _ = edit::read(&db_client, chunks_r.drain(..).collect()).await;
+                }
+            }
+            sleep(*DB_QUEUE_ITER_TIME_MS).await;
+        }
     });
 }
 
-async fn create_edit_task(
-    db_client: &DbClient<'_>,
-    mut receiver: mpsc::Receiver<EditCreateChunk>,
-    limit: usize,
-    iter_time: Duration,
-) {
-    loop {
-        let mut chunks = Vec::with_capacity(limit);
-        info!("create edit rx len - {}", receiver.len());
-        receiver.recv_many(&mut chunks, limit).await;
-        info!("chunks len - {}", chunks.len());
-        let _ = edit::create(db_client, chunks).await;
-        sleep(iter_time).await;
-        info!("create edit iter");
-    }
-}
-async fn update_edit_task(
-    db_client: &DbClient<'_>,
-    mut receiver: mpsc::Receiver<EditUpdateChunk>,
-    limit: usize,
-    iter_time: Duration,
-) {
-    loop {
-        let mut chunks = Vec::with_capacity(limit);
-        receiver.recv_many(&mut chunks, 100).await;
-        info!("chunks len - {}", chunks.len());
-        let _ = edit::set_status(db_client, chunks).await;
-        sleep(iter_time).await;
-        info!("update edit iter");
-    }
-}
-
-async fn read_edit_task(
-    db_client: &DbClient<'_>,
-    mut receiver: mpsc::Receiver<EditReadChunk>,
-    limit: usize,
-    iter_time: Duration,
-) {
-    loop {
-        let mut chunks = Vec::with_capacity(limit);
-        receiver.recv_many(&mut chunks, limit).await;
-        info!("chunks len - {}", chunks.len());
-        let _ = edit::read(db_client, chunks).await;
-        sleep(iter_time).await;
-        info!("read edit iter");
-    }
-}
-
-async fn create_board_task(
-    db_client: &DbClient<'_>,
-    mut receiver: mpsc::Receiver<BoardCreateChunk>,
-    limit: usize,
-    iter_time: Duration,
-) {
-    loop {
-        let mut chunks = Vec::with_capacity(limit);
-        receiver.recv_many(&mut chunks, limit).await;
-        info!("chunks len - {}", chunks.len());
-        let _ = board::create(db_client, chunks).await;
-        sleep(iter_time).await;
-        info!("create board iter");
-    }
-}
-async fn update_board_task(
-    db_client: &DbClient<'_>,
-    mut receiver: mpsc::Receiver<BoardUpdateChunk>,
-    limit: usize,
-    iter_time: Duration,
-) {
-    loop {
-        let mut chunks = Vec::with_capacity(limit);
-        receiver.recv_many(&mut chunks, limit).await;
-        info!("chunks len - {}", chunks.len());
-        let _ = board::update(db_client, chunks).await;
-        sleep(iter_time).await;
-        info!("update board iter");
-    }
+pub async fn queue_task(pool: &'static PoolWrapper, mut db_queue_receiver: DbQueueReceiver) {
+    spawn_task!(
+        pool,
+        db_queue_receiver.create_board,
+        board::create,
+        "create_board"
+    );
+    spawn_task!(
+        pool,
+        db_queue_receiver.update_board,
+        board::update,
+        "update_board"
+    );
+    spawn_edit_task(
+        pool,
+        db_queue_receiver.create_edit,
+        db_queue_receiver.update_edit,
+        db_queue_receiver.read_edit,
+    );
 }

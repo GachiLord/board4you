@@ -18,7 +18,7 @@ use tokio_postgres::binary_copy::BinaryCopyInWriter;
 use uuid::Uuid;
 
 pub async fn create(
-    db_client: &DbClient<'_>,
+    db_client: &tokio_postgres::Client,
     chunks: Vec<BoardCreateChunk>,
 ) -> Result<u64, tokio_postgres::Error> {
     // populate
@@ -74,7 +74,7 @@ pub async fn create(
 }
 
 pub async fn update(
-    db_client: &DbClient<'_>,
+    db_client: &tokio_postgres::Client,
     chunks: Vec<BoardUpdateChunk>,
 ) -> Result<(), tokio_postgres::Error> {
     let mut statement = String::from("BEGIN;");

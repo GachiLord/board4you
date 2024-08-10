@@ -18,10 +18,16 @@ pub async fn cleanup(rooms: Rooms) {
         // remove unused rooms
         let mut rooms_p = rooms.write().await;
         let mut expired_rooms = HashSet::new();
-        // collect and expire unused rooms
-        for (id, room) in rooms_p.iter() {
+        let mut receivers = Vec::with_capacity(rooms_p.len());
+        // send messages to rooms
+        for (_, room) in rooms_p.iter() {
             let (tx, rx) = oneshot::channel();
             let _ = room.send(UserMessage::HasUsers(tx));
+            receivers.push(rx);
+        }
+        // collect and expire unused rooms
+        for (i, (id, _)) in rooms_p.iter().enumerate() {
+            let rx = &mut receivers[i];
             match rx.await {
                 Ok(res) => {
                     if !res {

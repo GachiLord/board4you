@@ -177,7 +177,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .batch_execute(&init_sql)
         .await?;
     // create db queue
-    let (db_queue_sender, db_queue_receiver) = new_db_queue(*DB_QUEUE_ITEM_SIZE);
+    let (db_queue_sender, db_queue_receiver) = new_db_queue();
     // create state of the app
     let rooms = Rooms::default();
     let state = AppState {

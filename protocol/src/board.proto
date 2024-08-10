@@ -180,3 +180,6 @@ message ServerMessage {
   }
 }
 
+message ServerMessagePackage {
+  repeated ServerMessage messages = 1;
+}

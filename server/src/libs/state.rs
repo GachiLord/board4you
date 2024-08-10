@@ -1,5 +1,5 @@
 use crate::{
-    entities::edit::{delete, read, sync_with_queue, EditStatus},
+    entities::edit::{delete, sync_with_queue, EditStatus},
     libs::db_queue::EditReadChunk,
     PoolWrapper, OPERATION_QUEUE_SIZE,
 };
@@ -11,7 +11,6 @@ use super::{
 use bb8::PooledConnection;
 use bb8_postgres::PostgresConnectionManager;
 use data_encoding::BASE64URL;
-use futures_util::future::join;
 use jwt_simple::algorithms::HS256Key;
 use log::debug;
 use protocol::board_protocol::{
@@ -282,11 +281,13 @@ impl Board {
         }
         // if the queue will be overflowed, clear it and save to db
         if self.queue.len() + 1 > *OPERATION_QUEUE_SIZE {
-            let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
-            buf.append(&mut self.queue);
-            sync_with_queue(self.db_queue, self.public_id, buf)
-                .await
-                .map_err(|_| PushError::DbError)?;
+            sync_with_queue(
+                self.db_queue,
+                self.public_id,
+                self.queue.drain(..).collect(),
+            )
+            .await
+            .map_err(|_| PushError::DbError)?;
         }
         self.queue.push(QueueOp::Push(SystemTime::now(), edit));
         Ok(())
@@ -322,12 +323,13 @@ impl Board {
             CommandName::Undo => {
                 // if undone will be overflowed, clear it and save to db
                 if self.queue.len() + 1 > *OPERATION_QUEUE_SIZE {
-                    let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
-                    buf.append(&mut self.queue);
-
-                    sync_with_queue(self.db_queue, self.public_id, buf)
-                        .await
-                        .map_err(|_| "Error during queue saving")?;
+                    sync_with_queue(
+                        self.db_queue,
+                        self.public_id,
+                        self.queue.drain(..).collect(),
+                    )
+                    .await
+                    .map_err(|_| "Error during queue saving")?;
                 }
                 self.queue
                     .push(QueueOp::Undo(SystemTime::now(), command.id));
@@ -335,11 +337,13 @@ impl Board {
             CommandName::Redo => {
                 // if current will be overflowed, clear it and save to db
                 if self.queue.len() + 1 > *OPERATION_QUEUE_SIZE {
-                    let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
-                    buf.append(&mut self.queue);
-                    sync_with_queue(self.db_queue, self.public_id, buf)
-                        .await
-                        .map_err(|_| "Error during queue saving")?;
+                    sync_with_queue(
+                        self.db_queue,
+                        self.public_id,
+                        self.queue.drain(..).collect(),
+                    )
+                    .await
+                    .map_err(|_| "Error during queue saving")?;
                 }
                 self.queue
                     .push(QueueOp::Redo(SystemTime::now(), command.id));
@@ -351,17 +355,23 @@ impl Board {
 
     /// clears self.current
     pub async fn empty_current(&mut self) -> Result<u64, tokio_postgres::Error> {
-        let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
-        buf.append(&mut self.queue);
-        sync_with_queue(self.db_queue, self.public_id, buf).await?;
+        sync_with_queue(
+            self.db_queue,
+            self.public_id,
+            self.queue.drain(..).collect(),
+        )
+        .await?;
         delete(&self.pool.get().await, self.public_id, &EditStatus::Current).await
     }
 
     /// clears self.undone
     pub async fn empty_undone(&mut self) -> Result<u64, tokio_postgres::Error> {
-        let mut buf = Vec::with_capacity(*OPERATION_QUEUE_SIZE);
-        buf.append(&mut self.queue);
-        sync_with_queue(self.db_queue, self.public_id, buf).await?;
+        sync_with_queue(
+            self.db_queue,
+            self.public_id,
+            self.queue.drain(..).collect(),
+        )
+        .await?;
         delete(&self.pool.get().await, self.public_id, &EditStatus::Undone).await
     }
 

@@ -75,6 +75,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             && !line.contains("UserMessage ")
             && !line.contains("EditData ")
             && !line.contains("PushData ")
+            && !line.contains("ServerMessagePackage ")
             && !line_has_copy_data_type
         {
             output.push_str("#[wasm_bindgen(getter_with_clone)]\n");

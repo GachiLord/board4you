@@ -7,13 +7,14 @@ use protocol::{
     board_protocol::{server_message::Msg, Edit, PushData, ServerMessage},
     decode_server_msg, encode_server_msg,
 };
-use std::{collections::HashMap, fmt::Write as _, time::SystemTime};
-use tokio::{
+use std::{
+    collections::HashMap,
+    fmt::Write as _,
     fs::File,
-    io::{AsyncWriteExt, BufWriter},
-    sync::oneshot,
-    task::spawn_blocking,
+    io::{BufWriter, Write as _},
+    time::SystemTime,
 };
+use tokio::{sync::oneshot, task::spawn_blocking};
 use uuid::Uuid;
 
 use crate::libs::{
@@ -23,13 +24,13 @@ use crate::libs::{
 
 // helpers
 
-async fn encode_edit_async(edit: Edit) -> Vec<u8> {
+async fn encode_edit_async(edit: Edit) -> String {
     let (tx, rx) = oneshot::channel();
     spawn_blocking(move || {
         let encoded = encode_server_msg(&ServerMessage {
             msg: Some(Msg::PushData(PushData { data: vec![edit] })),
         });
-        tx.send(encoded).unwrap();
+        tx.send(HEXUPPER.encode(&encoded)).unwrap();
     })
     .await
     .unwrap();
@@ -202,44 +203,33 @@ pub async fn sync_with_queue(
     Ok(4)
 }
 
+struct EditCreateFileResult {
+    notifiers: Vec<oneshot::Sender<()>>,
+    path: String,
+}
+
+pub struct EditCreateFileChunk {
+    chunks: Vec<EditCreateChunk>,
+    ready: oneshot::Sender<EditCreateFileResult>,
+}
+
 pub async fn create(
-    db_client: &DbClient<'_>,
+    db_client: &tokio_postgres::Client,
+    writer: &std::sync::mpsc::Sender<EditCreateFileChunk>,
     chunks: Vec<EditCreateChunk>,
 ) -> Result<u64, tokio_postgres::Error> {
     if chunks.is_empty() {
         return Ok(0);
     }
-    let file_name = format!("/tmp/board4you/{}.csv", Uuid::now_v7().to_string());
-    let file = File::create_new(&file_name).await.unwrap();
-    let mut writer = BufWriter::new(file);
-    let mut ready_list = Vec::new();
+    let (tx, rx) = oneshot::channel();
 
-    for chunk in chunks {
-        for (stamp, edit) in chunk.items {
-            let id = Uuid::try_parse(edit.edit.as_ref().unwrap().id()).unwrap();
-            let stamp: DateTime<Utc> = DateTime::from(stamp);
-            let status = match chunk.status {
-                EditStatus::Current => "current",
-                EditStatus::Undone => "undone",
-            };
-            //                 &chunk.public_id,
-            //                 &id,
-            //                 &chunk.status,
-            //                 &stamp,
-            //                 &encode_edit_async(edit).await,
-            let buf = format!(
-                "{},{},{},{},\\x{}\n",
-                chunk.public_id.to_string(),
-                id,
-                status,
-                stamp.format("%+"),
-                HEXUPPER.encode(&encode_edit_async(edit).await)
-            );
-            writer.write(buf.as_bytes()).await.unwrap();
-        }
-        ready_list.push(chunk.ready);
-    }
-    writer.flush().await.unwrap();
+    writer
+        .send(EditCreateFileChunk { chunks, ready: tx })
+        .unwrap();
+
+    let ready = rx.await.unwrap();
+    let file_name = ready.path;
+    let ready_list = ready.notifiers;
 
     match db_client
         .execute(&format!(
@@ -253,19 +243,63 @@ pub async fn create(
                     warn!("Cannot send create result to the room");
                 }
             });
-            drop(writer);
             tokio::fs::remove_file(file_name).await.unwrap();
             Ok(c)
         }
         Err(e) => {
+            // TODO: handle failure
+            ready_list.into_iter().for_each(|c| {
+                if let Err(_) = c.send(()) {
+                    warn!("Cannot send create result to the room");
+                }
+            });
             error!("Failed to finish COPY: {}", e);
             Ok(0)
         }
     }
 }
 
+pub fn edit_writer(rx: std::sync::mpsc::Receiver<EditCreateFileChunk>) {
+    while let Ok(file_chunk) = rx.recv() {
+        let file_name = format!("/tmp/board4you/{}.csv", Uuid::now_v7().to_string());
+        let file =
+            File::create_new(&file_name).expect("Need read/write permission for /tmp/board4you/");
+        let mut writer = BufWriter::new(file);
+        let mut ready_list = Vec::new();
+
+        for chunk in file_chunk.chunks {
+            for (stamp, edit) in chunk.items {
+                let status = match chunk.status {
+                    EditStatus::Current => "current",
+                    EditStatus::Undone => "undone",
+                };
+                let id = Uuid::try_parse(edit.edit.as_ref().unwrap().id()).unwrap();
+                let stamp: DateTime<Utc> = DateTime::from(stamp);
+                let encoded = encode_server_msg(&ServerMessage {
+                    msg: Some(Msg::PushData(PushData { data: vec![edit] })),
+                });
+                let buf = format!(
+                    "{},{},{},{},\\x{}\n",
+                    chunk.public_id.to_string(),
+                    id,
+                    status,
+                    stamp.format("%+"),
+                    HEXUPPER.encode(&encoded)
+                );
+                writer.write(buf.as_bytes()).unwrap();
+            }
+            ready_list.push(chunk.ready);
+        }
+        writer.flush().unwrap();
+        let _ = file_chunk.ready.send(EditCreateFileResult {
+            notifiers: ready_list,
+            path: file_name,
+        });
+    }
+}
+
 pub async fn read(
-    db_client: &DbClient<'_>,
+    db_client: &tokio_postgres::Client,
     chunks: Vec<EditReadChunk>,
 ) -> Result<(), tokio_postgres::Error> {
     let mut res: HashMap<Uuid, EditState> = HashMap::with_capacity(chunks.len());
@@ -281,7 +315,7 @@ pub async fn read(
     statement.pop();
     statement.push_str(") ORDER BY changed_at ASC");
     // store results
-    for row in db_client.query(&statement, &[]).await.unwrap() {
+    for row in db_client.query(&statement, &[]).await? {
         let status = row.get("status");
         let data = decode_edit_async(row.get::<&str, Vec<u8>>("data")).await;
         let id = row.get("board_id");
@@ -327,7 +361,7 @@ pub async fn read(
 }
 
 pub async fn set_status(
-    db_client: &DbClient<'_>,
+    db_client: &tokio_postgres::Client,
     chunks: Vec<EditUpdateChunk>,
 ) -> Result<u64, tokio_postgres::Error> {
     if chunks.is_empty() {
