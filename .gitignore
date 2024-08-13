@@ -16,4 +16,6 @@ electron-builder.env
 target/
 bun.lockb
 secrets/
-log/*.log
+*.log
+*.zst
+profile.json

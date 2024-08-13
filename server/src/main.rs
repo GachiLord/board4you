@@ -99,6 +99,7 @@ lazy_static! {
             .leak();
         Path::new(s)
     };
+    pub static ref NO_PERSIST: bool = &env::var("NO_PERSIST").unwrap_or("0".to_owned()) == "1";
 }
 
 // app state
@@ -235,11 +236,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // wait for a signal
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
-            on_shutdown(rooms.clone()).await;
+            if !*NO_PERSIST {
+                on_shutdown(rooms.clone()).await;
+            }
             tx.send(()).unwrap();
         },
         _ = stream.recv() => {
-            on_shutdown(rooms.clone()).await;
+            if !*NO_PERSIST {
+                on_shutdown(rooms.clone()).await;
+            }
             tx.send(()).unwrap();
         }
     }

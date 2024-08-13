@@ -448,7 +448,6 @@ pub async fn task(
             } => {
                 if room.private_id == private_id {
                     // kick users from the room
-                    // TODO: try wrap in spawn blocking
                     send_to_everyone(
                         &room,
                         None,
@@ -486,12 +485,7 @@ pub async fn task(
 }
 
 pub async fn send_to_everyone(room: &Room, except: Option<usize>, msg: ServerMessage) {
-    let (tx, rx) = oneshot::channel();
-    tokio::task::spawn_blocking(move || {
-        let msg = msg.as_bytes();
-        tx.send(msg).unwrap();
-    });
-    let msg = rx.await.unwrap();
+    let msg = msg.as_bytes();
 
     room.users.iter().for_each(|(id, chan)| match except {
         Some(except) => {
@@ -506,12 +500,7 @@ pub async fn send_to_everyone(room: &Room, except: Option<usize>, msg: ServerMes
 }
 
 pub async fn send_by_id(room: &Room, id: usize, msg: ServerMessage) {
-    let (tx, rx) = oneshot::channel();
-    tokio::task::spawn_blocking(move || {
-        let msg = msg.as_bytes();
-        tx.send(msg).unwrap();
-    });
-    let msg = rx.await.unwrap();
+    let msg = msg.as_bytes();
 
     if let Some(chan) = room.users.get(&id) {
         let _ = chan.send(msg);

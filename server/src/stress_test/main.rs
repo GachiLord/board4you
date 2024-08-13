@@ -148,7 +148,11 @@ async fn user_task(room_data: &RoomDataStatic) {
     // send join message
     let _ = write.send(Message::Binary(pull())).await;
     // wait for joining the room
-    read.for_each(|_| async {}).await;
+    read.for_each(|m| async {
+        println!("len - {}", m.unwrap().len());
+    })
+    .await;
+    println!("end");
 }
 
 fn spawn_editor(room_data: &'static RoomDataStatic) -> JoinHandle<()> {
