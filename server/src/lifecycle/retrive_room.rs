@@ -1,6 +1,5 @@
 use tokio::sync::mpsc::unbounded_channel;
 use uuid::Uuid;
-use weak_table::WeakKeyHashMap;
 
 use crate::{
     entities::board,
@@ -8,7 +7,7 @@ use crate::{
         room::{self, RoomChannel},
         state::Room,
     },
-    AppState, OPERATION_QUEUE_SIZE,
+    AppState,
 };
 
 pub async fn retrive_room_channel(state: AppState, public_id: Uuid) -> Result<RoomChannel, Uuid> {
@@ -22,15 +21,10 @@ pub async fn retrive_room_channel(state: AppState, public_id: Uuid) -> Result<Ro
             match board::get(state.pool, state.db_queue, public_id).await {
                 // if there is a room in db, spawn it
                 Ok((private_id, board)) => {
-                    let room = Room {
-                        public_id: public_id.clone(),
-                        private_id,
-                        board,
-                        users: WeakKeyHashMap::with_capacity(*OPERATION_QUEUE_SIZE),
-                        owner_id: None, // we don't need to provide owner_id here, because
-                                        // it had already been saved in db earler during
-                                        // last cleanup.
-                    };
+                    // we don't need to provide owner_id here, because
+                    // it had already been saved in db earler during
+                    // last cleanup.
+                    let room = Room::load(board, private_id, None).await;
                     // spawn room_task
                     let (tx, rx) = unbounded_channel();
                     let public_id_c = public_id.clone();

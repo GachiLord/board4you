@@ -1,15 +1,10 @@
 use crate::{
-    libs::{
-        room::{RoomChannel, UserMessage},
-        state::UserId,
-    },
+    libs::room::{RoomChannel, UserMessage},
     lifecycle::retrive_room_channel,
     AppState, NEXT_USER_ID,
 };
 use axum::body::Bytes;
-use fastwebsockets::{
-    upgrade, FragmentCollector, FragmentCollectorRead, Frame, OpCode, Payload, WebSocketError,
-};
+use fastwebsockets::{upgrade, FragmentCollectorRead, Frame, OpCode, Payload, WebSocketError};
 use log::{debug, warn};
 use protocol::{
     board_protocol::{
@@ -19,12 +14,8 @@ use protocol::{
     },
     decode_user_msg, encode_server_msg,
 };
-use std::{
-    sync::{atomic::Ordering, Arc},
-    time::Duration,
-};
+use std::{sync::atomic::Ordering, time::Duration};
 use tokio::{
-    select,
     sync::{
         mpsc::{error::SendError, unbounded_channel},
         oneshot,
@@ -56,74 +47,86 @@ pub async fn handle_client(
             return Ok(());
         }
     };
-    let user_id = Arc::new(NEXT_USER_ID.fetch_add(1, Ordering::Relaxed));
+    let user_id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed);
     // handle the connection
-    debug!("connected a user with id: {}", *user_id);
-    let mut ws = FragmentCollector::new(fut.await?);
+    debug!("connected a user with id: {}", user_id);
+    let ws = fut.await?;
+    let (rx_s, mut tx_s) = ws.split(tokio::io::split);
+    let mut rx_s = FragmentCollectorRead::new(rx_s);
     let (tx_m, mut rx_m) = unbounded_channel();
     let _ = room_chan.send(UserMessage::Join {
-        user_id: user_id.clone(),
+        user_id,
         chan: tx_m.to_owned(),
     });
     // read/write messages
+    let (tx_disconnect, mut rx_disconnect) = oneshot::channel();
+    tokio::spawn(async move {
+        while let Some(msg) = rx_m.recv().await {
+            let payload = Payload::Borrowed(msg.as_ref());
+            let frame = Frame::binary(payload);
+            if let Err(e) = timeout(Duration::from_secs(5), tx_s.write_frame(frame)).await {
+                warn!("failed to send a message, closing the connection: {}", e);
+                let _ = tx_disconnect.send(());
+                break;
+            }
+        }
+    });
+
     let mut is_authed = false;
     loop {
-        select! {
-            Some(msg) = rx_m.recv() => {
-                let payload = Payload::Borrowed(msg.as_ref());
-                let frame = Frame::binary(payload);
-                if let Err(e) = timeout(Duration::from_secs(5), ws.write_frame(frame)).await {
-                    warn!("failed to send a message, closing the connection: {}", e);
-                    break;
-                }
-            },
-            Ok(mut frame) = ws.read_frame() => {
-                match frame.opcode {
-                    OpCode::Close => break,
-                    OpCode::Text | OpCode::Binary => {
-                        match decode_user_msg(frame.payload.to_mut()) {
-                            Ok(msg) => {
-                                if let Err(e) =
-                                    handle_message(&room_chan, user_id.clone(), &mut is_authed, msg).await
-                                {
-                                    // if we can't send a msg, the room was most likely deleted
-                                    // So we should disconnect the user
-                                    warn!("try to send to non-existent room: {}", e);
-                                    break;
-                                }
-                            }
-                            Err(e) => {
-                                let msg = ProtocolServerMessage {
-                                    msg: Some(InfoVariant(Info {
-                                        status: "bad".to_owned(),
-                                        action: "unknown".to_owned(),
-                                        payload: "failed to decode the message".to_owned(),
-                                    })),
-                                };
-                                let bytes = Bytes::from(encode_server_msg(&msg).to_vec());
-                                let _ = tx_m.send(bytes);
-                                warn!("cannot decode the message: {}", e);
+        if let Ok(mut frame) = rx_s
+            .read_frame::<_, WebSocketError>(&mut move |_| async { Ok(()) })
+            .await
+        {
+            match frame.opcode {
+                OpCode::Close => break,
+                OpCode::Text | OpCode::Binary => {
+                    match decode_user_msg(frame.payload.to_mut()) {
+                        Ok(msg) => {
+                            if let Err(e) =
+                                handle_message(&room_chan, user_id, &mut is_authed, msg).await
+                            {
+                                // if we can't send a msg, the room was most likely deleted
+                                // So we should disconnect the user
+                                warn!("try to send to non-existent room: {}", e);
                                 break;
                             }
                         }
-                    }
-                    _ => {
-                        break;
+                        Err(e) => {
+                            let msg = ProtocolServerMessage {
+                                msg: Some(InfoVariant(Info {
+                                    status: "bad".to_owned(),
+                                    action: "unknown".to_owned(),
+                                    payload: "failed to decode the message".to_owned(),
+                                })),
+                            };
+                            let bytes = Bytes::from(encode_server_msg(&msg).to_vec());
+                            let _ = tx_m.send(bytes);
+                            warn!("cannot decode the message: {}", e);
+                            break;
                         }
                     }
-                },
-                else => break
+                }
+                _ => {
+                    break;
+                }
+            }
+        } else {
+            break;
+        }
+        if let Ok(_) = rx_disconnect.try_recv() {
+            break;
         }
     }
-    // drop user_id after disconnect to automatically remove user from room
-    debug!("disconnect user with id: {}", *user_id);
-    drop(user_id);
+    // send Quit message after disconnect to remove user from room
+    let _ = room_chan.send(UserMessage::Quit { user_id });
+    debug!("disconnect user with id: {}", user_id);
     Ok(())
 }
 
 async fn handle_message(
     r: &RoomChannel,
-    user_id: UserId,
+    user_id: usize,
     is_authed: &mut bool,
     msg: ProtocolUserMessage,
 ) -> Result<(), SendError<UserMessage>> {

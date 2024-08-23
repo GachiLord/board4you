@@ -33,13 +33,12 @@ use weak_table::WeakKeyHashMap;
 /// co_editor_private_id - token for co-editors, may change if author asks
 #[derive(Clone)]
 pub struct Board {
-    pub pool: &'static PoolWrapper,
-    pub db_queue: &'static DbQueueSender,
-    pub queue: Vec<QueueOp>,
-    pub size: BoardSize,
-    pub title: Box<str>,
-    pub public_id: Uuid,
-    pub co_editor_private_id: Box<str>,
+    pool: &'static PoolWrapper,
+    db_queue: &'static DbQueueSender,
+    queue: Vec<QueueOp>,
+    size: BoardSize,
+    title: Box<str>,
+    public_id: Uuid,
 }
 
 // queue
@@ -99,6 +98,39 @@ impl ExposeId for EditInner {
 }
 
 impl Board {
+    pub fn new(
+        pool: &'static PoolWrapper,
+        db_queue: &'static DbQueueSender,
+        title: Box<str>,
+        size: BoardSize,
+    ) -> Self {
+        Board {
+            pool,
+            db_queue,
+            public_id: Uuid::now_v7(),
+            queue: Vec::with_capacity(*OPERATION_QUEUE_SIZE),
+            size,
+            title,
+        }
+    }
+
+    pub fn load(
+        pool: &'static PoolWrapper,
+        db_queue: &'static DbQueueSender,
+        title: Box<str>,
+        size: BoardSize,
+        public_id: Uuid,
+    ) -> Self {
+        Board {
+            pool,
+            db_queue,
+            public_id,
+            queue: Vec::with_capacity(*OPERATION_QUEUE_SIZE),
+            size,
+            title,
+        }
+    }
+
     /// Returns a diff which lets user sync his state with server's
     ///
     /// # Panics
@@ -383,6 +415,10 @@ impl Board {
         self.size.width = width;
         Ok(())
     }
+
+    pub fn op_queue(self) -> Vec<QueueOp> {
+        self.queue
+    }
 }
 
 /// public_id - id for connection to the room
@@ -391,25 +427,103 @@ impl Board {
 /// board - state of the room
 /// onwer_id - id of the creator, is_some if the author was authed
 pub struct Room {
-    pub public_id: Uuid,
-    pub private_id: Box<str>,
-    pub users: WeakKeyHashMap<Weak<usize>, UserChannel>,
+    private_id: Box<str>,
+    co_editor_private_id: Box<str>,
+    users: HashMap<usize, UserChannel>,
     pub board: Board,
-    pub owner_id: Option<i32>,
+    owner_id: Option<i32>,
 }
 
 impl Room {
-    /// Adds user to the room
-    pub fn add_user(&mut self, id: UserId, chan: UserChannel) {
+    pub async fn new(board: Board, owner_id: Option<i32>) -> Self {
+        Room {
+            private_id: Room::generate_private_id().await,
+            co_editor_private_id: Room::generate_editor_private_id().await,
+            users: HashMap::with_capacity(20),
+            board,
+            owner_id,
+        }
+    }
+
+    pub async fn load(board: Board, private_id: Box<str>, owner_id: Option<i32>) -> Self {
+        Room {
+            private_id,
+            co_editor_private_id: Room::generate_editor_private_id().await,
+            users: HashMap::with_capacity(20),
+            board,
+            owner_id,
+        }
+    }
+
+    // getters
+
+    pub fn users(&self) -> &HashMap<usize, UserChannel> {
+        &self.users
+    }
+
+    pub fn public_id(&self) -> Uuid {
+        self.board.public_id
+    }
+
+    pub fn private_id(&self) -> &str {
+        &self.private_id
+    }
+
+    pub fn co_editor_private_id(&self) -> &str {
+        &self.co_editor_private_id
+    }
+
+    pub fn title(&self) -> &str {
+        &self.board.title
+    }
+
+    pub fn size(&self) -> &BoardSize {
+        &self.board.size
+    }
+
+    // setters
+
+    pub fn set_title(&mut self, title: Box<str>) {
+        self.board.title = title;
+    }
+
+    pub fn add_user(&mut self, id: usize, chan: UserChannel) {
         self.users.insert(id, chan);
+    }
+    pub fn remove_user(&mut self, id: &usize) {
+        self.users.remove(id);
+    }
+
+    async fn generate_private_id() -> Box<str> {
+        let (tx, rx) = oneshot::channel();
+        tokio::task::spawn_blocking(move || {
+            tx.send(
+                BASE64URL
+                    .encode(&HS256Key::generate().to_bytes())
+                    .into_boxed_str(),
+            )
+            .unwrap()
+        });
+        rx.await.unwrap()
+    }
+
+    async fn generate_editor_private_id() -> Box<str> {
+        let (tx, rx) = oneshot::channel();
+        tokio::task::spawn_blocking(move || {
+            tx.send(
+                (BASE64URL.encode(&HS256Key::generate().to_bytes()) + "_co_editor")
+                    .into_boxed_str(),
+            )
+            .unwrap()
+        });
+        rx.await.unwrap()
     }
 
     /// Updates self.co_editor_private_id and returns new one
-    pub fn update_editor_private_id(&mut self) -> Box<str> {
-        let id =
-            (BASE64URL.encode(&HS256Key::generate().to_bytes()) + "_co_editor").into_boxed_str();
-        self.board.co_editor_private_id = id.to_owned();
-        id
+    pub async fn update_editor_private_id(&mut self) -> Box<str> {
+        self.co_editor_private_id = Room::generate_editor_private_id().await;
+
+        self.co_editor_private_id.to_owned()
     }
 }
 

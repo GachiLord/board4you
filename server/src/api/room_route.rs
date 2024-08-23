@@ -62,19 +62,6 @@ async fn create_room(
     UserDataFromJWT(user_data): UserDataFromJWT,
     Json(room_init): Json<RoomInitials>,
 ) -> (StatusCode, Json<RoomCredentials>) {
-    // ids
-    let (tx, rx) = oneshot::channel();
-    // use blocking task because these ops are CPU-bound
-    tokio::task::spawn_blocking(move || {
-        let public_id = Uuid::now_v7();
-        let private_id = BASE64URL
-            .encode(&HS256Key::generate().to_bytes())
-            .into_boxed_str();
-        let co_editor_private_id =
-            (BASE64URL.encode(&HS256Key::generate().to_bytes()) + "_co_editor").into_boxed_str();
-        let _ = tx.send((public_id, private_id, co_editor_private_id));
-    });
-    let (public_id, private_id, co_editor_private_id) = rx.await.expect("failed to create ids");
     // owner info
     let mut owner_id: Option<i32> = None;
     //add owner if user is authed
@@ -86,21 +73,9 @@ async fn create_room(
         );
     }
     // create Room instance
-    let room = Room {
-        public_id,
-        private_id: private_id.to_owned(),
-        users: WeakKeyHashMap::with_capacity(10),
-        board: Board {
-            pool: &state.pool,
-            public_id,
-            db_queue: &state.db_queue,
-            queue: Vec::with_capacity(*OPERATION_QUEUE_SIZE),
-            size: room_init.size,
-            title: room_init.title,
-            co_editor_private_id,
-        },
-        owner_id,
-    };
+    let board = Board::new(state.pool, state.db_queue, room_init.title, room_init.size);
+    let room = Room::new(board, owner_id).await;
+    let (public_id, private_id) = (room.public_id(), room.private_id().into());
     // get client
     let now = SystemTime::now();
     // create board record
@@ -109,9 +84,9 @@ async fn create_room(
         .db_queue
         .create_board
         .send(BoardCreateChunk {
-            public_id,
-            private_id: private_id.clone(),
-            title: room.board.title.clone(),
+            public_id: room.public_id(),
+            private_id: room.private_id().into(),
+            title: room.title().into(),
             owner_id,
             ready: tx,
         })
@@ -122,7 +97,7 @@ async fn create_room(
     let (tx2, rx2) = oneshot::channel();
     let _ = join(
         state.db_queue.create_edit.send(EditCreateChunk {
-            public_id: room.public_id,
+            public_id: room.public_id(),
             status: EditStatus::Current,
             items: room_init
                 .current
@@ -132,7 +107,7 @@ async fn create_room(
             ready: tx1,
         }),
         state.db_queue.create_edit.send(EditCreateChunk {
-            public_id: room.public_id,
+            public_id: room.public_id(),
             status: EditStatus::Undone,
             items: room_init
                 .undone

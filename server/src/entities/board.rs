@@ -115,20 +115,16 @@ pub async fn get(
         .query_one("SELECT * FROM boards WHERE public_id = $1", &[&public_id])
         .await?;
 
-    // TODO: handle old db schema values
-    let board = Board {
+    let board = Board::load(
         pool,
         db_queue,
-        queue: Vec::with_capacity(*OPERATION_QUEUE_SIZE),
-        public_id,
-        size: BoardSize {
+        sql_res.get("title"),
+        BoardSize {
             height: sql_res.get::<&str, i16>("height").try_into().unwrap_or(900),
             width: sql_res.get::<&str, i16>("width").try_into().unwrap_or(1720),
         },
-        title: sql_res.get("title"),
-        co_editor_private_id: (BASE64URL.encode(&HS256Key::generate().to_bytes()) + "_co_editor")
-            .into_boxed_str(),
-    };
+        public_id,
+    );
     let private_id = sql_res.get("private_id");
 
     Ok((private_id, board))

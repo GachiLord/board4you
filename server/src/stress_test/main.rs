@@ -1,5 +1,19 @@
+use axum::body::Bytes;
 use clap::Parser;
-use futures_util::{SinkExt, StreamExt};
+use fastwebsockets::FragmentCollector;
+use fastwebsockets::Frame;
+use fastwebsockets::Payload;
+use fastwebsockets::WebSocket;
+use fastwebsockets::WebSocketError;
+use http_body_util::Empty;
+use hyper::header::CONNECTION;
+use hyper::header::UPGRADE;
+use hyper::upgrade::Upgraded;
+use hyper::Request;
+use hyper_util::rt::TokioIo;
+use lazy_static::lazy_static;
+use log::debug;
+use log::info;
 use protocol::board_protocol::edit::Edit as EditInner;
 use protocol::board_protocol::user_message::Msg;
 use protocol::board_protocol::Add;
@@ -14,10 +28,11 @@ use protocol::board_protocol::UserMessage;
 use protocol::encode_user_msg;
 use reqwest::Client;
 use serde::Deserialize;
+use std::future::Future;
 use std::{fs, usize};
+use tokio::net::TcpStream;
 use tokio::task::JoinHandle;
 use tokio::{signal, spawn, time};
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use uuid::Uuid;
 
 // stress test implementaion
@@ -40,6 +55,12 @@ impl Into<RoomDataStatic> for RoomData {
 struct RoomDataStatic {
     public_id: &'static mut str,
     private_id: &'static mut str,
+}
+
+// messages
+
+lazy_static! {
+    static ref PUSH: Vec<u8> = push();
 }
 
 async fn create_room(client: &Client) -> RoomData {
@@ -108,51 +129,85 @@ fn auth(token: String) -> Vec<u8> {
     encode_user_msg(msg)
 }
 
+struct SpawnExecutor;
+
+impl<Fut> hyper::rt::Executor<Fut> for SpawnExecutor
+where
+    Fut: Future + Send + 'static,
+    Fut::Output: Send + 'static,
+{
+    fn execute(&self, fut: Fut) {
+        tokio::task::spawn(fut);
+    }
+}
+
+async fn connect(path: &str) -> anyhow::Result<WebSocket<TokioIo<hyper::upgrade::Upgraded>>> {
+    let stream = TcpStream::connect("localhost:3000").await?;
+
+    let req = Request::builder()
+        .method("GET")
+        .uri(format!("http://localhost:3000/ws/board/{}", path))
+        .header("Host", "localhost:3000")
+        .header(UPGRADE, "websocket")
+        .header(CONNECTION, "upgrade")
+        .header(
+            "Sec-WebSocket-Key",
+            fastwebsockets::handshake::generate_key(),
+        )
+        .header("Sec-WebSocket-Version", "13")
+        .body(Empty::<Bytes>::new())?;
+
+    let (ws, _) = fastwebsockets::handshake::client(&SpawnExecutor, req, stream).await?;
+    Ok(ws)
+}
+
 async fn editor_task(room_data: &RoomDataStatic) {
     // connect to the socket
-    let (ws_stream, _) = connect_async(format!(
-        "ws://localhost:3000/ws/board/{}",
-        room_data.public_id
-    ))
-    .await
-    .expect(
+    let ws = connect(room_data.public_id).await.expect(
         "Failed to connect. Make sure your socket limit let you create desired amount of rooms.",
     );
-    let (mut write, mut read) = ws_stream.split();
-    // send pull message
-    let _ = write
-        .send(Message::Binary(auth(room_data.private_id.to_owned())))
+    let (mut rx, mut tx) = ws.split(tokio::io::split);
+    // send auth message
+    let _ = tx
+        .write_frame(Frame::binary(Payload::Owned(auth(
+            room_data.private_id.to_owned(),
+        ))))
         .await;
-    let _ = write.send(Message::Binary(pull())).await;
-    // wait for PullData
-    let _ = read.next().await;
-    let _ = read.next().await;
-    // send a new shape periodically
-    loop {
-        // send push msg
-        let _ = write.send(Message::Binary(push())).await;
-        // await a second
-        time::sleep(time::Duration::from_secs(3)).await;
+    // send pull message
+    let _ = tx.write_frame(Frame::binary(Payload::Owned(pull()))).await;
+    // spawn sender
+    tokio::spawn(async move {
+        loop {
+            tx.write_frame(Frame::binary(Payload::Borrowed(&PUSH)))
+                .await
+                .unwrap();
+            time::sleep(time::Duration::from_secs(3)).await;
+        }
+    });
+    // start reading
+    while let Ok(msg) = rx
+        .read_frame::<_, WebSocketError>(&mut move |_| async { Ok(()) })
+        .await
+    {
+        debug!("{}", msg.payload.len());
     }
 }
 
 async fn user_task(room_data: &RoomDataStatic) {
     // connect to the socket
-    let (ws_stream, _) = connect_async(format!(
-        "ws://localhost:3000/ws/board/{}",
-        room_data.public_id
-    ))
-    .await
-    .expect("Failed to connect");
-    let (mut write, read) = ws_stream.split();
-    // send join message
-    let _ = write.send(Message::Binary(pull())).await;
-    // wait for joining the room
-    read.for_each(|m| async {
-        println!("len - {}", m.unwrap().len());
-    })
-    .await;
-    println!("end");
+    let ws = connect(room_data.public_id).await.expect(
+        "Failed to connect. Make sure your socket limit let you create desired amount of rooms.",
+    );
+    let (mut rx, mut tx) = ws.split(tokio::io::split);
+    // send pull message
+    let _ = tx.write_frame(Frame::binary(Payload::Owned(pull()))).await;
+    // start reading
+    while let Ok(msg) = rx
+        .read_frame::<_, WebSocketError>(&mut move |_| async { Ok(()) })
+        .await
+    {
+        info!("{}", msg.payload.len());
+    }
 }
 
 fn spawn_editor(room_data: &'static RoomDataStatic) -> JoinHandle<()> {
