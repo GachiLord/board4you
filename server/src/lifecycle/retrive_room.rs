@@ -1,4 +1,4 @@
-use tokio::sync::mpsc::unbounded_channel;
+use tokio::sync::mpsc::channel;
 use uuid::Uuid;
 
 use crate::{
@@ -26,7 +26,7 @@ pub async fn retrive_room_channel(state: AppState, public_id: Uuid) -> Result<Ro
                     // last cleanup.
                     let room = Room::load(board, private_id, None).await;
                     // spawn room_task
-                    let (tx, rx) = unbounded_channel();
+                    let (tx, rx) = channel(1);
                     let public_id_c = public_id.clone();
                     tokio::spawn(async move {
                         room::task(public_id_c, room, state.pool, state.db_queue, rx).await;

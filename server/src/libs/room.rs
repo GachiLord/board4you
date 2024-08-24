@@ -17,15 +17,15 @@ use protocol::{
     },
     encode_server_msg,
 };
-use std::{mem, sync::Arc};
+use std::mem;
 use tokio::sync::{
-    mpsc::{UnboundedReceiver, UnboundedSender},
+    mpsc::{Receiver, Sender, UnboundedReceiver, UnboundedSender},
     oneshot,
 };
 use uuid::Uuid;
 
 pub type UserChannel = UnboundedSender<Bytes>;
-pub type RoomChannel = UnboundedSender<UserMessage>;
+pub type RoomChannel = Sender<UserMessage>;
 
 pub enum UserMessage {
     // Messages that don't require any auth
@@ -107,7 +107,7 @@ pub async fn task(
     mut room: Room,
     client_pool: &PoolWrapper,
     db_queue: &DbQueueSender,
-    mut message_receiver: UnboundedReceiver<UserMessage>,
+    mut message_receiver: Receiver<UserMessage>,
 ) {
     // handle room events
     while let Some(msg) = message_receiver.recv().await {

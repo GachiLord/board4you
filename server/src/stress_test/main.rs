@@ -225,10 +225,10 @@ fn spawn_room(editors_amount: usize, users_amount: usize) -> JoinHandle<()> {
             Box::leak(Box::new(create_room(&client).await.into()));
 
         for _ in 0..editors_amount {
-            spawn_user(&room_data);
+            spawn_editor(&room_data);
         }
         for _ in 0..users_amount {
-            spawn_editor(&room_data);
+            spawn_user(&room_data);
         }
     })
 }

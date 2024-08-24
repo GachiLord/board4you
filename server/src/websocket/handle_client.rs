@@ -54,10 +54,12 @@ pub async fn handle_client(
     let (rx_s, mut tx_s) = ws.split(tokio::io::split);
     let mut rx_s = FragmentCollectorRead::new(rx_s);
     let (tx_m, mut rx_m) = unbounded_channel();
-    let _ = room_chan.send(UserMessage::Join {
-        user_id,
-        chan: tx_m.to_owned(),
-    });
+    let _ = room_chan
+        .send(UserMessage::Join {
+            user_id,
+            chan: tx_m.to_owned(),
+        })
+        .await;
     // read/write messages
     let (tx_disconnect, mut rx_disconnect) = oneshot::channel();
     tokio::spawn(async move {
@@ -142,7 +144,8 @@ async fn handle_message(
                 user_id,
                 token: data.token.into(),
                 sender,
-            })?;
+            })
+            .await?;
             if let Ok(r) = receiver.await {
                 *is_authed = r;
             }
@@ -152,7 +155,8 @@ async fn handle_message(
                 r.send(UserMessage::SetTitle {
                     user_id,
                     title: data.title.into(),
-                })?
+                })
+                .await?
             }
         }
         ProtcolUserMessageVariant::Push(data) => {
@@ -161,7 +165,8 @@ async fn handle_message(
                     user_id,
                     data: data.data,
                     silent: data.silent,
-                })?
+                })
+                .await?
             }
         }
         ProtcolUserMessageVariant::UndoRedo(data) => {
@@ -170,7 +175,8 @@ async fn handle_message(
                     user_id,
                     action_type: ActionType::try_from(data.action_type).unwrap(),
                     action_id: data.action_id.into(),
-                })?
+                })
+                .await?
             }
         }
         ProtcolUserMessageVariant::Empty(data) => {
@@ -178,7 +184,8 @@ async fn handle_message(
                 r.send(UserMessage::Empty {
                     user_id,
                     action_type: EmptyActionType::try_from(data.action_type).unwrap(),
-                })?
+                })
+                .await?
             }
         }
         ProtcolUserMessageVariant::SetSize(data) => {
@@ -186,14 +193,18 @@ async fn handle_message(
                 r.send(UserMessage::SetSize {
                     user_id,
                     data: data.data,
-                })?
+                })
+                .await?
             }
         }
-        ProtcolUserMessageVariant::Pull(data) => r.send(UserMessage::Pull {
-            user_id,
-            current: data.current.into_iter().map(|d| d.into()).collect(),
-            undone: data.undone.into_iter().map(|d| d.into()).collect(),
-        })?,
+        ProtcolUserMessageVariant::Pull(data) => {
+            r.send(UserMessage::Pull {
+                user_id,
+                current: data.current.into_iter().map(|d| d.into()).collect(),
+                undone: data.undone.into_iter().map(|d| d.into()).collect(),
+            })
+            .await?
+        }
     }
 
     Ok(())

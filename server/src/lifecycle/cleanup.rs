@@ -22,7 +22,7 @@ pub async fn cleanup(rooms: Rooms) {
         // send messages to rooms
         for (_, room) in rooms_p.iter() {
             let (tx, rx) = oneshot::channel();
-            let _ = room.send(UserMessage::HasUsers(tx));
+            let _ = room.send(UserMessage::HasUsers(tx)).await;
             receivers.push(rx);
         }
         // collect and expire unused rooms

@@ -10,10 +10,13 @@ use axum::{
 use data_encoding::BASE64URL;
 use futures::future::join;
 use jwt_simple::algorithms::HS256Key;
-use log::{debug, error};
+use log::{debug, error, info};
 use protocol::board_protocol::{BoardSize, Edit};
 use serde::{Deserialize, Serialize};
-use tokio::sync::{mpsc::unbounded_channel, oneshot};
+use tokio::sync::{
+    mpsc::{channel, unbounded_channel},
+    oneshot,
+};
 use uuid::Uuid;
 use weak_table::WeakKeyHashMap;
 
@@ -120,11 +123,12 @@ async fn create_room(
     .await;
     let _ = join(rx1, rx2).await;
     // update rooms
-    let (tx, rx) = unbounded_channel();
+    let (tx, rx) = channel(1);
     tokio::spawn(async move {
         task(public_id, room, &state.pool, state.db_queue, rx).await;
     });
     state.rooms.write().await.insert(public_id, tx);
+    info!("Created room with public_id: {}", public_id);
     // response
     return (
         StatusCode::OK,
@@ -237,10 +241,12 @@ async fn read_co_editors(
     match state.rooms.read().await.get(&id) {
         Some(room_chan) => {
             let (tx, rx) = oneshot::channel();
-            let _ = room_chan.send(UserMessage::GetCoEditorToken {
-                private_id: room.private_id,
-                sender: tx,
-            });
+            let _ = room_chan
+                .send(UserMessage::GetCoEditorToken {
+                    private_id: room.private_id,
+                    sender: tx,
+                })
+                .await;
             // check result of operation
             if let Ok(res) = rx.await {
                 match res {

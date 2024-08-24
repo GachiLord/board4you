@@ -18,13 +18,12 @@ use protocol::board_protocol::{
 };
 use std::{
     collections::{HashMap, HashSet},
-    sync::{Arc, Weak},
+    sync::Arc,
     time::SystemTime,
 };
 use tokio::sync::{mpsc, oneshot, RwLock};
 use tokio_postgres::NoTls;
 use uuid::Uuid;
-use weak_table::WeakKeyHashMap;
 
 /// current - edits that are accepted
 /// undone - edits that are not accepted
@@ -154,12 +153,6 @@ impl Board {
         // apply queue's changes to db's values
         let res = rx.await.unwrap();
         let (db_current, db_undone) = (res.current, res.undone);
-        debug!("queue - {}", self.queue.len(),);
-        debug!(
-            "db_current - {}, db_undone - {}",
-            db_current.len(),
-            db_undone.len()
-        );
         let mut full_current = Vec::from(db_current);
         let mut full_undone = Vec::from(db_undone);
         for op in self.queue.iter() {
@@ -189,21 +182,12 @@ impl Board {
                 }
             }
         }
-        debug!(
-            "full_current - {}, full_undone - {}",
-            full_current.len(),
-            full_undone.len()
-        );
-        debug!("<====> full_current start <====>");
         full_current
             .iter()
             .for_each(|e| debug!("{}", e.edit.as_ref().unwrap().id()));
-        debug!("<====> full_current end <====>");
-        debug!("<====> full_undone start <====>");
         full_undone
             .iter()
             .for_each(|e| debug!("{}", e.edit.as_ref().unwrap().id()));
-        debug!("<====> full_undone  end <====>");
         // convert Maps' keys to HashSets
         let current: HashSet<&str> = HashSet::from_iter(
             full_current
@@ -527,6 +511,5 @@ impl Room {
     }
 }
 
-pub type Rooms = Arc<RwLock<HashMap<Uuid, mpsc::UnboundedSender<UserMessage>>>>;
+pub type Rooms = Arc<RwLock<HashMap<Uuid, mpsc::Sender<UserMessage>>>>;
 pub type DbClient<'a> = PooledConnection<'static, PostgresConnectionManager<NoTls>>;
-pub type UserId = Arc<usize>;
