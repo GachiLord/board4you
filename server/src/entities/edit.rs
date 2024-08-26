@@ -77,7 +77,7 @@ struct SyncData {
     set_status_undone: Vec<IdAction>,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct EditState {
     pub current: Vec<Edit>,
     pub undone: Vec<Edit>,

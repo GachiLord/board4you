@@ -121,7 +121,7 @@ pub async fn handle_client(
         }
     }
     // send Quit message after disconnect to remove user from room
-    let _ = room_chan.send(UserMessage::Quit { user_id });
+    let _ = room_chan.send(UserMessage::Quit { user_id }).await;
     debug!("disconnect user with id: {}", user_id);
     Ok(())
 }

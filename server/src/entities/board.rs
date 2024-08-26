@@ -4,11 +4,9 @@ use crate::{
         db_queue::{BoardCreateChunk, BoardUpdateChunk, DbQueueSender},
         state::{Board, DbClient},
     },
-    PoolWrapper, OPERATION_QUEUE_SIZE,
+    PoolWrapper,
 };
-use data_encoding::BASE64URL;
 use futures::pin_mut;
-use jwt_simple::algorithms::HS256Key;
 use log::{error, warn};
 use postgres_types::Type;
 use protocol::board_protocol::BoardSize;

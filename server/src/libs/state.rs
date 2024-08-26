@@ -1,7 +1,7 @@
 use crate::{
-    entities::edit::{delete, sync_with_queue, EditStatus},
+    entities::edit::{delete, sync_with_queue, EditState, EditStatus},
     libs::db_queue::EditReadChunk,
-    PoolWrapper, OPERATION_QUEUE_SIZE,
+    PoolWrapper, CACHE_CLEANUP_INTERVAL_SECONDS, OPERATION_QUEUE_SIZE,
 };
 
 use super::{
@@ -12,7 +12,6 @@ use bb8::PooledConnection;
 use bb8_postgres::PostgresConnectionManager;
 use data_encoding::BASE64URL;
 use jwt_simple::algorithms::HS256Key;
-use log::debug;
 use protocol::board_protocol::{
     edit::Edit as EditInner, BoardSize, Edit, EditData, PullData, Shape,
 };
@@ -34,6 +33,8 @@ use uuid::Uuid;
 pub struct Board {
     pool: &'static PoolWrapper,
     db_queue: &'static DbQueueSender,
+    db_cache: Option<EditState>,
+    db_cache_used_at: SystemTime,
     queue: Vec<QueueOp>,
     size: BoardSize,
     title: Box<str>,
@@ -106,8 +107,10 @@ impl Board {
         Board {
             pool,
             db_queue,
-            public_id: Uuid::now_v7(),
+            db_cache: None,
+            db_cache_used_at: SystemTime::now(),
             queue: Vec::with_capacity(*OPERATION_QUEUE_SIZE),
+            public_id: Uuid::now_v7(),
             size,
             title,
         }
@@ -123,10 +126,26 @@ impl Board {
         Board {
             pool,
             db_queue,
-            public_id,
+            db_cache: None,
+            db_cache_used_at: SystemTime::now(),
             queue: Vec::with_capacity(*OPERATION_QUEUE_SIZE),
+            public_id,
             size,
             title,
+        }
+    }
+
+    pub fn clear_db_cache(&mut self) {
+        let now = SystemTime::now();
+        match now.duration_since(self.db_cache_used_at) {
+            Ok(d) => {
+                if d.as_secs() > *CACHE_CLEANUP_INTERVAL_SECONDS {
+                    self.db_cache = None;
+                }
+            }
+            Err(_) => {
+                self.db_cache = None;
+            }
         }
     }
 
@@ -136,22 +155,31 @@ impl Board {
     ///
     /// Panics if there is an edit without id property
     pub async fn pull(
-        &self,
+        &mut self,
         user_current: Vec<Box<str>>,
         user_undone: Vec<Box<str>>,
-    ) -> Result<PullData, tokio_postgres::Error> {
-        // fetch edits from db
-        let (tx, rx) = oneshot::channel();
-        self.db_queue
-            .read_edit
-            .send(EditReadChunk {
-                public_id: self.public_id,
-                ready: tx,
-            })
-            .await
-            .unwrap();
+    ) -> PullData {
+        // update timestamp to extend cache lifetime
+        self.db_cache_used_at = SystemTime::now();
+        // try using values from cache or fetch them from db
+        let res = match &self.db_cache {
+            Some(c) => c.clone(),
+            None => {
+                let (tx, rx) = oneshot::channel();
+                self.db_queue
+                    .read_edit
+                    .send(EditReadChunk {
+                        public_id: self.public_id,
+                        ready: tx,
+                    })
+                    .await
+                    .unwrap();
+                let data = rx.await.unwrap();
+                self.db_cache = Some(data.clone());
+                data
+            }
+        };
         // apply queue's changes to db's values
-        let res = rx.await.unwrap();
         let (db_current, db_undone) = (res.current, res.undone);
         let mut full_current = Vec::from(db_current);
         let mut full_undone = Vec::from(db_undone);
@@ -182,12 +210,6 @@ impl Board {
                 }
             }
         }
-        full_current
-            .iter()
-            .for_each(|e| debug!("{}", e.edit.as_ref().unwrap().id()));
-        full_undone
-            .iter()
-            .for_each(|e| debug!("{}", e.edit.as_ref().unwrap().id()));
         // convert Maps' keys to HashSets
         let current: HashSet<&str> = HashSet::from_iter(
             full_current
@@ -235,7 +257,7 @@ impl Board {
             .collect();
         // return needed edits
 
-        return Ok(PullData {
+        return PullData {
             current: Some(EditData {
                 should_be_created_edits: full_current
                     .into_iter()
@@ -250,7 +272,7 @@ impl Board {
                     .collect(),
                 should_be_deleted_ids: Vec::from_iter(undone_delete.into_iter().map(|v| v.into())),
             }),
-        });
+        };
     }
 
     /// Pushes a new edit to self.current or saves current buffer to db
@@ -297,6 +319,7 @@ impl Board {
         }
         // if the queue will be overflowed, clear it and save to db
         if self.queue.len() + 1 > *OPERATION_QUEUE_SIZE {
+            self.db_cache = None;
             sync_with_queue(
                 self.db_queue,
                 self.public_id,

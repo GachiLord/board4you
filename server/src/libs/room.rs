@@ -19,7 +19,7 @@ use protocol::{
 };
 use std::mem;
 use tokio::sync::{
-    mpsc::{Receiver, Sender, UnboundedReceiver, UnboundedSender},
+    mpsc::{Receiver, Sender, UnboundedSender},
     oneshot,
 };
 use uuid::Uuid;
@@ -89,6 +89,7 @@ pub enum UserMessage {
     // Messages that used only by app(user cannot send them)
     HasUsers(oneshot::Sender<bool>),
     Expire(oneshot::Sender<()>),
+    TryExpireCache,
 }
 
 trait ToBytes {
@@ -110,7 +111,7 @@ pub async fn task(
     mut message_receiver: Receiver<UserMessage>,
 ) {
     // handle room events
-    while let Some(msg) = message_receiver.recv().await {
+    'MessageLoop: while let Some(msg) = message_receiver.recv().await {
         match msg {
             UserMessage::Auth {
                 token,
@@ -127,8 +128,7 @@ pub async fn task(
                             ServerMessage {
                                 msg: Some(Msg::Authed(Authed {})),
                             },
-                        )
-                        .await;
+                        );
                     }
                 } else {
                     let _ = sender.send(false);
@@ -142,8 +142,7 @@ pub async fn task(
                                 payload: "token is invalid".to_owned(),
                             })),
                         },
-                    )
-                    .await;
+                    );
                 }
             }
             UserMessage::Join { user_id, chan } => {
@@ -156,8 +155,7 @@ pub async fn task(
                             data: Some(room.size().clone()),
                         })),
                     },
-                )
-                .await;
+                );
             }
             UserMessage::Quit { user_id } => {
                 room.remove_user(&user_id);
@@ -175,8 +173,7 @@ pub async fn task(
                                 payload: "title is too long".to_owned(),
                             })),
                         },
-                    )
-                    .await;
+                    );
                     continue;
                 }
                 // changes
@@ -203,8 +200,7 @@ pub async fn task(
                             title: title.into(),
                         })),
                     },
-                )
-                .await;
+                );
             }
             UserMessage::Push {
                 user_id,
@@ -227,8 +223,8 @@ pub async fn task(
                                             payload: e.to_string(),
                                         })),
                                     },
-                                )
-                                .await;
+                                );
+                                continue 'MessageLoop;
                             }
                         }
                     }
@@ -237,6 +233,7 @@ pub async fn task(
                         match room.board.push(edit).await {
                             Ok(()) => (),
                             Err(e) => {
+                                debug!("failed");
                                 send_by_id(
                                     &room,
                                     user_id,
@@ -247,8 +244,8 @@ pub async fn task(
                                             payload: e.to_string(),
                                         })),
                                     },
-                                )
-                                .await;
+                                );
+                                continue 'MessageLoop;
                             }
                         }
                     }
@@ -259,7 +256,7 @@ pub async fn task(
                         })),
                     };
                     // send
-                    send_to_everyone(&room, Some(user_id), push_data).await;
+                    send_to_everyone(&room, Some(user_id), push_data);
                 }
             }
             UserMessage::UndoRedo {
@@ -283,33 +280,27 @@ pub async fn task(
                     .await;
                 // handle command result
                 match exec_command {
-                    Ok(()) => {
-                        send_to_everyone(
-                            &room,
-                            Some(user_id),
-                            ServerMessage {
-                                msg: Some(Msg::UndoRedoData(UndoRedoData {
-                                    action_type: action_type.into(),
-                                    action_id: action_id.into(),
-                                })),
-                            },
-                        )
-                        .await
-                    }
-                    Err(e) => {
-                        send_by_id(
-                            &room,
-                            user_id,
-                            ServerMessage {
-                                msg: Some(Msg::Info(Info {
-                                    status: "bad".to_owned(),
-                                    action: "UndoRedo".to_owned(),
-                                    payload: e.to_owned(),
-                                })),
-                            },
-                        )
-                        .await
-                    }
+                    Ok(()) => send_to_everyone(
+                        &room,
+                        Some(user_id),
+                        ServerMessage {
+                            msg: Some(Msg::UndoRedoData(UndoRedoData {
+                                action_type: action_type.into(),
+                                action_id: action_id.into(),
+                            })),
+                        },
+                    ),
+                    Err(e) => send_by_id(
+                        &room,
+                        user_id,
+                        ServerMessage {
+                            msg: Some(Msg::Info(Info {
+                                status: "bad".to_owned(),
+                                action: "UndoRedo".to_owned(),
+                                payload: e.to_owned(),
+                            })),
+                        },
+                    ),
                 }
             }
             UserMessage::Empty {
@@ -338,8 +329,7 @@ pub async fn task(
                             action_type: action_type.into(),
                         })),
                     },
-                )
-                .await;
+                );
             }
             UserMessage::SetSize { user_id, data } => {
                 // update board state
@@ -354,8 +344,7 @@ pub async fn task(
                                 payload: "size is None".to_owned(),
                             })),
                         },
-                    )
-                    .await;
+                    );
                     continue;
                 }
                 if let Err(e) = room
@@ -374,8 +363,7 @@ pub async fn task(
                                 payload: e.to_string(),
                             })),
                         },
-                    )
-                    .await;
+                    );
                     continue;
                 }
                 send_to_everyone(
@@ -384,8 +372,7 @@ pub async fn task(
                     ServerMessage {
                         msg: Some(Msg::SizeData(SizeData { data })),
                     },
-                )
-                .await;
+                );
             }
             UserMessage::GetUpdatedCoEditorToken { private_id, sender } => {
                 if room.private_id() != private_id.as_ref()
@@ -403,8 +390,7 @@ pub async fn task(
                     ServerMessage {
                         msg: Some(Msg::UpdateCoEditorData(UpdateCoEditorData {})),
                     },
-                )
-                .await;
+                );
             }
             UserMessage::GetCoEditorToken { private_id, sender } => {
                 if room.private_id() == private_id.as_ref() {
@@ -421,20 +407,17 @@ pub async fn task(
                 user_id,
                 current,
                 undone,
-            } => match room.board.pull(current, undone).await {
-                Ok(r) => {
-                    let pull_data = ServerMessage {
-                        msg: Some(Msg::PullData(r)),
-                    };
-                    send_by_id(&room, user_id, pull_data).await;
-                }
-                Err(e) => {
-                    error!("Failed to pull: {}", e);
-                }
-            },
+            } => {
+                let r = room.board.pull(current, undone).await;
+                let pull_data = ServerMessage {
+                    msg: Some(Msg::PullData(r)),
+                };
+                send_by_id(&room, user_id, pull_data);
+            }
             UserMessage::HasUsers(sender) => {
                 // if room has no users, stop task execution
-                if room.users().len() == 0 {
+                let users_count = room.users().len();
+                if users_count == 0 {
                     let (tx, rx) = oneshot::channel();
                     db_queue
                         .update_board
@@ -449,9 +432,10 @@ pub async fn task(
                     let _ = rx.await;
                     let _ =
                         sync_with_queue(db_queue, room.public_id(), room.board.op_queue()).await;
+                    let _ = sender.send(users_count > 0);
                     break;
                 }
-                let _ = sender.send(room.users().len() > 0);
+                let _ = sender.send(users_count > 0);
             }
             UserMessage::DeleteRoom {
                 private_id,
@@ -465,8 +449,7 @@ pub async fn task(
                         ServerMessage {
                             msg: Some(Msg::QuitData(QuitData {})),
                         },
-                    )
-                    .await;
+                    );
 
                     let _ = delete(&client_pool.get().await, public_id, &private_id).await;
                     let _ = deleted.send(true);
@@ -491,11 +474,14 @@ pub async fn task(
                 let _ = completed.send(());
                 break;
             }
+            UserMessage::TryExpireCache => {
+                room.board.clear_db_cache();
+            }
         }
     }
 }
 
-pub async fn send_to_everyone(room: &Room, except: Option<usize>, msg: ServerMessage) {
+pub fn send_to_everyone(room: &Room, except: Option<usize>, msg: ServerMessage) {
     let msg = msg.as_bytes();
 
     room.users().iter().for_each(|(id, chan)| match except {
@@ -510,7 +496,7 @@ pub async fn send_to_everyone(room: &Room, except: Option<usize>, msg: ServerMes
     });
 }
 
-pub async fn send_by_id(room: &Room, id: usize, msg: ServerMessage) {
+pub fn send_by_id(room: &Room, id: usize, msg: ServerMessage) {
     let msg = msg.as_bytes();
 
     if let Some(chan) = room.users().get(&id) {

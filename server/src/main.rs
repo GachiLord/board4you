@@ -15,8 +15,8 @@ use tower_http::services::{ServeDir, ServeFile};
 
 use crate::websocket::ws_handler;
 use libs::state::{DbClient, Rooms};
-use lifecycle::on_shutdown;
 use lifecycle::{cleanup, monitor};
+use lifecycle::{cleanup_cache, on_shutdown};
 
 // modules
 mod api;
@@ -28,6 +28,7 @@ mod websocket;
 // env vars
 
 lazy_static! {
+    // database
     pub static ref DB_QUEUE_ITER_TIME_MS: std::time::Duration = match &env::var("DB_QUEUE_ITER_TIME_MS") {
         Ok(v) => std::time::Duration::from_millis(v
             .parse()
@@ -59,6 +60,8 @@ lazy_static! {
             .expect("$CONNECTION_TIMEOUT_SECONDS must be u64  integer"),
         Err(_) => 30,
     };
+    pub static ref NO_PERSIST: bool = &env::var("NO_PERSIST").unwrap_or("0".to_owned()) == "1";
+    // board state
     pub static ref OPERATION_QUEUE_SIZE: usize = match &env::var("OPERATION_QUEUE_SIZE") {
         Ok(s) => {
             let parsed = s
@@ -71,20 +74,29 @@ lazy_static! {
 
             parsed
         }
-        Err(_) => 30,
+        Err(_) => 100,
     };
+    // cleanup
     pub static ref CLEANUP_INTERVAL_MINUTES: u64 = match &env::var("CLEANUP_INTERVAL_MINUTES") {
         Ok(t) => t
             .parse()
             .expect("$CLEANUP_INTERVAL_MINUTES must be u64 integer"),
         Err(_) => 30,
     };
+    pub static ref CACHE_CLEANUP_INTERVAL_SECONDS: u64 = match &env::var("CACHE_CLEANUP_INTERVAL_SECONDS") {
+        Ok(t) => t
+            .parse()
+            .expect("$CACHE_CLEANUP_INTERVAL_SECONDS must be u64 integer"),
+        Err(_) => 10,
+    };
+    // monitoring
     pub static ref MONITOR_INTERVAL_MINUTES: u64 = match &env::var("MONITOR_INTERVAL_MINUTES") {
         Ok(t) => t
             .parse()
             .expect("$MONITOR_INTERVAL_MINUTES must be u64 integer"),
         Err(_) => 5,
     };
+    // paths
     pub static ref JWT_SECRET_KEY: &'static HS256Key = {
         let key = fs::read_to_string(
             &env::var("JWT_SECRET_PATH").unwrap_or("/run/secrets/jwt_secret".to_string()),
@@ -99,7 +111,6 @@ lazy_static! {
             .leak();
         Path::new(s)
     };
-    pub static ref NO_PERSIST: bool = &env::var("NO_PERSIST").unwrap_or("0".to_owned()) == "1";
 }
 
 // app state
@@ -211,12 +222,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     routes = routes.nest_service("/folders", ServeFile::new(&index_path));
     routes = routes.nest_service("/public", ServeDir::new(*PUBLIC_PATH));
     // cleanup task
-    let rooms_clean_up = rooms.clone();
-    let rooms_to_monitor = rooms.clone();
+    let rooms_cleanup = rooms.clone();
     tokio::spawn(async move {
-        cleanup(rooms_clean_up).await;
+        cleanup(rooms_cleanup).await;
     });
+    // cache cleanup task
+    let rooms_cache_cleanup = rooms.clone();
+    tokio::spawn(async move { cleanup_cache(rooms_cache_cleanup).await });
     // create monitoring task
+    let rooms_to_monitor = rooms.clone();
     tokio::spawn(async move {
         monitor(rooms_to_monitor).await;
     });
