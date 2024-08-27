@@ -12,7 +12,7 @@ export JWT_SECRET_PATH="${PWD}/secrets/jwt_secret.txt"
 export LOG_PATH="${PWD}/log"
 export MONITOR_INTERVAL_MINUTES=1
 export DB_QUEUE_ITER_TIME_MS=1000
-export OPERATION_QUEUE_SIZE=100
+export OPERATION_QUEUE_SIZE=10
 export NO_PERSIST=1
 # rust
 export RUST_BACKTRACE=1

@@ -49,8 +49,8 @@ ALTER TABLE edits
     ADD COLUMN IF NOT EXISTS changed_at timestamp DEFAULT CURRENT_TIMESTAMP,
     ADD COLUMN IF NOT EXISTS data bytea NOT NULL;
 
--- CREATE INDEX IF NOT EXISTS board_id_idx ON edits (board_id);
--- CREATE UNIQUE INDEX IF NOT EXISTS edit_id_idx ON edits (edit_id);
+CREATE INDEX IF NOT EXISTS board_id_idx ON edits (board_id);
+CREATE INDEX IF NOT EXISTS edit_id_idx ON edits (edit_id);
 
 -- jwt
 CREATE TABLE IF NOT EXISTS expired_jwts (

@@ -309,16 +309,8 @@ pub async fn task(
             } => {
                 // save changes
                 match action_type {
-                    EmptyActionType::Current => {
-                        if let Err(e) = room.board.empty_current().await {
-                            error!("Failed to empty current buffer: {}", e);
-                        }
-                    }
-                    EmptyActionType::Undone => {
-                        if let Err(e) = room.board.empty_undone().await {
-                            error!("Failed to empty undone buffer: {}", e);
-                        }
-                    }
+                    EmptyActionType::Current => room.board.empty_current().await,
+                    EmptyActionType::Undone => room.board.empty_undone().await,
                 }
                 // send
                 send_to_everyone(

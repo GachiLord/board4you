@@ -15,10 +15,11 @@ use std::{
     time::SystemTime,
 };
 use tokio::{sync::oneshot, task::spawn_blocking};
+use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::libs::{
-    db_queue::{DbQueueSender, EditCreateChunk, EditReadChunk, EditUpdateChunk},
+    db_queue::{DbQueueSender, EditCreateChunk, EditDeleteChunk, EditReadChunk, EditUpdateChunk},
     state::{DbClient, ExposeId, QueueOp},
 };
 
@@ -129,11 +130,7 @@ fn get_sync_data(queue: Vec<QueueOp>) -> SyncData {
     }
 }
 
-pub async fn sync_with_queue(
-    edit_queue: &DbQueueSender,
-    public_id: Uuid,
-    queue: Vec<QueueOp>,
-) -> Result<u64, tokio_postgres::Error> {
+pub async fn sync_with_queue(edit_queue: &DbQueueSender, public_id: Uuid, queue: Vec<QueueOp>) {
     let data = get_sync_data(queue);
     let (tx1, rx1) = oneshot::channel();
     let (tx2, rx2) = oneshot::channel();
@@ -199,8 +196,6 @@ pub async fn sync_with_queue(
     .await;
 
     let _ = join4(rx1, rx2, rx3, rx4).await;
-
-    Ok(4)
 }
 
 struct EditCreateFileResult {
@@ -383,7 +378,7 @@ pub async fn set_status(
                 &mut statement,
                 "UPDATE edits SET status = {}, changed_at = '{}' WHERE edit_id = '{}';",
                 status,
-                dt.format("%Y-%m-%d %H:%M:%S%.3f"),
+                dt.format("%+"),
                 id
             )
             .unwrap();
@@ -402,6 +397,44 @@ pub async fn set_status(
     });
 
     Ok(1)
+}
+
+pub async fn delete_bulk(
+    db_client: &tokio_postgres::Client,
+    chunks: Vec<EditDeleteChunk>,
+) -> Result<(), tokio_postgres::Error> {
+    if chunks.len() == 0 {
+        return Ok(());
+    }
+    let mut statement = String::from("BEGIN;");
+    let mut ready_list = Vec::with_capacity(chunks.len());
+
+    // form query
+    for chunk in chunks {
+        let status = match chunk.status {
+            EditStatus::Current => "'current'",
+            EditStatus::Undone => "'undone'",
+        };
+
+        write!(
+            &mut statement,
+            "DELETE FROM edits WHERE status = {} AND board_id = '{}';",
+            status, chunk.public_id
+        )
+        .unwrap();
+        ready_list.push(chunk.ready);
+    }
+    statement.push_str("COMMIT;");
+
+    // execute
+    db_client.batch_execute(&statement).await?;
+    // notify listeners
+    ready_list.into_iter().for_each(|c| {
+        if let Err(_) = c.send(()) {
+            warn!("Failed to send update result");
+        }
+    });
+    Ok(())
 }
 
 pub async fn delete(
@@ -469,7 +502,7 @@ mod tests {
     }
 
     #[test]
-    fn get_sync_data_undo_push_case() {
+    fn get_sync_data_undo_push() {
         let t_1 = SystemTime::now();
         let t_2 = t_1 + SEC;
         let queue = vec![
@@ -485,13 +518,13 @@ mod tests {
                 current_create: vec![(t_2, get_edit_sample("2"))],
                 undone_create: vec![],
                 set_status_undone: vec![(t_1, "1".into())],
-                set_status_current: vec![]
+                set_status_current: vec![],
             }
         );
     }
 
     #[test]
-    fn get_sync_data_redo_push_case() {
+    fn get_sync_data_redo_push() {
         let t_1 = SystemTime::now();
         let t_2 = t_1 + SEC;
         let queue = vec![
@@ -513,7 +546,7 @@ mod tests {
     }
 
     #[test]
-    fn get_sync_data_undo_redo_push_case() {
+    fn get_sync_data_undo_redo_push() {
         let t_0 = SystemTime::now();
         let t_1 = t_0 + SEC;
         let t_2 = t_1 + SEC;

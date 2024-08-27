@@ -5,7 +5,7 @@ use crate::{
 };
 
 use super::{
-    db_queue::DbQueueSender,
+    db_queue::{DbQueueSender, EditDeleteChunk},
     room::{UserChannel, UserMessage},
 };
 use bb8::PooledConnection;
@@ -325,8 +325,7 @@ impl Board {
                 self.public_id,
                 self.queue.drain(..).collect(),
             )
-            .await
-            .map_err(|_| PushError::DbError)?;
+            .await;
         }
         self.queue.push(QueueOp::Push(SystemTime::now(), edit));
         Ok(())
@@ -362,13 +361,13 @@ impl Board {
             CommandName::Undo => {
                 // if undone will be overflowed, clear it and save to db
                 if self.queue.len() + 1 > *OPERATION_QUEUE_SIZE {
+                    self.db_cache = None;
                     sync_with_queue(
                         self.db_queue,
                         self.public_id,
                         self.queue.drain(..).collect(),
                     )
-                    .await
-                    .map_err(|_| "Error during queue saving")?;
+                    .await;
                 }
                 self.queue
                     .push(QueueOp::Undo(SystemTime::now(), command.id));
@@ -376,13 +375,13 @@ impl Board {
             CommandName::Redo => {
                 // if current will be overflowed, clear it and save to db
                 if self.queue.len() + 1 > *OPERATION_QUEUE_SIZE {
+                    self.db_cache = None;
                     sync_with_queue(
                         self.db_queue,
                         self.public_id,
                         self.queue.drain(..).collect(),
                     )
-                    .await
-                    .map_err(|_| "Error during queue saving")?;
+                    .await;
                 }
                 self.queue
                     .push(QueueOp::Redo(SystemTime::now(), command.id));
@@ -393,25 +392,47 @@ impl Board {
     }
 
     /// clears self.current
-    pub async fn empty_current(&mut self) -> Result<u64, tokio_postgres::Error> {
+    pub async fn empty_current(&mut self) {
+        self.db_cache = None;
         sync_with_queue(
             self.db_queue,
             self.public_id,
             self.queue.drain(..).collect(),
         )
-        .await?;
-        delete(&self.pool.get().await, self.public_id, &EditStatus::Current).await
+        .await;
+        let (tx, rx) = oneshot::channel();
+        self.db_queue
+            .delete_edit
+            .send(EditDeleteChunk {
+                public_id: self.public_id,
+                status: EditStatus::Current,
+                ready: tx,
+            })
+            .await
+            .unwrap();
+        rx.await.unwrap();
     }
 
     /// clears self.undone
-    pub async fn empty_undone(&mut self) -> Result<u64, tokio_postgres::Error> {
+    pub async fn empty_undone(&mut self) {
+        self.db_cache = None;
         sync_with_queue(
             self.db_queue,
             self.public_id,
             self.queue.drain(..).collect(),
         )
-        .await?;
-        delete(&self.pool.get().await, self.public_id, &EditStatus::Undone).await
+        .await;
+        let (tx, rx) = oneshot::channel();
+        self.db_queue
+            .delete_edit
+            .send(EditDeleteChunk {
+                public_id: self.public_id,
+                status: EditStatus::Undone,
+                ready: tx,
+            })
+            .await
+            .unwrap();
+        rx.await.unwrap();
     }
 
     pub fn set_size(&mut self, height: u32, width: u32) -> Result<(), PushError> {

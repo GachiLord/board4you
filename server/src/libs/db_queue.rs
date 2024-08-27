@@ -31,6 +31,12 @@ pub struct EditUpdateChunk {
     pub ready: oneshot::Sender<()>,
 }
 
+pub struct EditDeleteChunk {
+    pub public_id: Uuid,
+    pub status: EditStatus,
+    pub ready: oneshot::Sender<()>,
+}
+
 pub struct EditReadChunk {
     pub public_id: Uuid,
     pub ready: oneshot::Sender<EditState>,
@@ -57,6 +63,7 @@ pub struct BoardUpdateChunk {
 pub struct DbQueueSender {
     pub create_edit: mpsc::Sender<EditCreateChunk>,
     pub update_edit: mpsc::Sender<EditUpdateChunk>,
+    pub delete_edit: mpsc::Sender<EditDeleteChunk>,
     pub read_edit: mpsc::Sender<EditReadChunk>,
     pub create_board: mpsc::Sender<BoardCreateChunk>,
     pub update_board: mpsc::Sender<BoardUpdateChunk>,
@@ -66,6 +73,7 @@ pub struct DbQueueSender {
 pub struct DbQueueReceiver {
     pub create_edit: mpsc::Receiver<EditCreateChunk>,
     pub update_edit: mpsc::Receiver<EditUpdateChunk>,
+    pub delete_edit: mpsc::Receiver<EditDeleteChunk>,
     pub read_edit: mpsc::Receiver<EditReadChunk>,
     pub create_board: mpsc::Receiver<BoardCreateChunk>,
     pub update_board: mpsc::Receiver<BoardUpdateChunk>,
@@ -77,20 +85,23 @@ pub fn new_db_queue() -> (&'static DbQueueSender, DbQueueReceiver) {
     let (tx3, rx3) = mpsc::channel(*DB_QUEUE_ITEM_SIZE);
     let (tx4, rx4) = mpsc::channel(*DB_QUEUE_ITEM_SIZE);
     let (tx5, rx5) = mpsc::channel(*DB_QUEUE_ITEM_SIZE);
+    let (tx6, rx6) = mpsc::channel(*DB_QUEUE_ITEM_SIZE);
 
     let tx = Box::leak(Box::new(DbQueueSender {
         create_edit: tx1,
         update_edit: tx2,
-        read_edit: tx3,
-        create_board: tx4,
-        update_board: tx5,
+        delete_edit: tx3,
+        read_edit: tx4,
+        create_board: tx5,
+        update_board: tx6,
     }));
     let rx = DbQueueReceiver {
         create_edit: rx1,
         update_edit: rx2,
-        read_edit: rx3,
-        create_board: rx4,
-        update_board: rx5,
+        delete_edit: rx3,
+        read_edit: rx4,
+        create_board: rx5,
+        update_board: rx6,
     };
 
     return (tx, rx);
@@ -128,6 +139,7 @@ fn spawn_edit_task(
     pool: &'static PoolWrapper,
     mut create_edit: mpsc::Receiver<EditCreateChunk>,
     mut update_edit: mpsc::Receiver<EditUpdateChunk>,
+    mut delete_edit: mpsc::Receiver<EditDeleteChunk>,
     mut read_edit: mpsc::Receiver<EditReadChunk>,
 ) {
     // spawn edit file writer task
@@ -140,6 +152,7 @@ fn spawn_edit_task(
         let db_client = pool.inner.dedicated_connection().await.unwrap();
         let mut chunks_c = Vec::with_capacity(*DB_QUEUE_ITEM_SIZE);
         let mut chunks_u = Vec::with_capacity(*DB_QUEUE_ITEM_SIZE);
+        let mut chunks_d = Vec::with_capacity(*DB_QUEUE_ITEM_SIZE);
         let mut chunks_r = Vec::with_capacity(*DB_QUEUE_ITEM_SIZE);
         loop {
             select! {
@@ -150,6 +163,11 @@ fn spawn_edit_task(
                 _ = update_edit.recv_many(&mut chunks_u, *DB_QUEUE_ITEM_SIZE) => {
                     debug!("update");
                     let _ = edit::set_status(&db_client, chunks_u.drain(..).collect()).await;
+
+                },
+                _ = delete_edit.recv_many(&mut chunks_d, *DB_QUEUE_ITEM_SIZE) => {
+                    debug!("delete");
+                    let _ = edit::delete_bulk(&db_client, chunks_d.drain(..).collect()).await;
 
                 },
                 _ = read_edit.recv_many(&mut chunks_r, *DB_QUEUE_ITEM_SIZE) => {
@@ -179,6 +197,7 @@ pub async fn queue_task(pool: &'static PoolWrapper, mut db_queue_receiver: DbQue
         pool,
         db_queue_receiver.create_edit,
         db_queue_receiver.update_edit,
+        db_queue_receiver.delete_edit,
         db_queue_receiver.read_edit,
     );
 }
