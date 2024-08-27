@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 pub mod board;
+pub mod edit;
 pub mod folder;
 pub mod jwt;
 pub mod user;

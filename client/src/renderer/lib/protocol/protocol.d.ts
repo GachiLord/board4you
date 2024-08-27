@@ -15,15 +15,12 @@ export function decode_server_msg(buf: Uint8Array): any;
 export function encode_user_msg(msg: any): Uint8Array;
 /**
 */
-export enum ActionType {
-  Undo = 0,
-  Redo = 1,
-}
-/**
-*/
-export enum EmptyActionType {
-  Current = 0,
-  Undone = 1,
+export enum ShapeType {
+  Line = 0,
+  Arrow = 1,
+  Rect = 2,
+  Ellipse = 3,
+  Img = 4,
 }
 /**
 */
@@ -40,12 +37,15 @@ export enum Tool {
 }
 /**
 */
-export enum ShapeType {
-  Line = 0,
-  Arrow = 1,
-  Rect = 2,
-  Ellipse = 3,
-  Img = 4,
+export enum ActionType {
+  Undo = 0,
+  Redo = 1,
+}
+/**
+*/
+export enum EmptyActionType {
+  Current = 0,
+  Undone = 1,
 }
 /**
 */

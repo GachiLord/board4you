@@ -5,7 +5,7 @@ use bb8_postgres::PostgresConnectionManager;
 use fast_log::config::Config;
 use jwt_simple::prelude::*;
 use lazy_static::lazy_static;
-use log::error;
+use libs::db_queue::{new_db_queue, queue_task, DbQueueSender};
 use std::{env, fs, path::PathBuf, sync::atomic::AtomicUsize};
 use std::{error::Error, path::Path};
 use tokio::signal::unix::signal;
@@ -15,8 +15,8 @@ use tower_http::services::{ServeDir, ServeFile};
 
 use crate::websocket::ws_handler;
 use libs::state::{DbClient, Rooms};
-use lifecycle::on_shutdown;
 use lifecycle::{cleanup, monitor};
+use lifecycle::{cleanup_cache, on_shutdown};
 
 // modules
 mod api;
@@ -28,19 +28,75 @@ mod websocket;
 // env vars
 
 lazy_static! {
+    // database
+    pub static ref DB_QUEUE_ITER_TIME_MS: std::time::Duration = match &env::var("DB_QUEUE_ITER_TIME_MS") {
+        Ok(v) => std::time::Duration::from_millis(v
+            .parse()
+            // TODO: must be greater than 0
+            .expect("$DB_QUEUE_ITER_TIME_MS must be usize integer")),
+        Err(_) => std::time::Duration::from_millis(200),
+    };
+    pub static ref DB_QUEUE_ITEM_CONNECTIONS: usize = match &env::var("DB_QUEUE_ITEM_CONNECTIONS") {
+        Ok(v) => v
+            .parse()
+            // TODO: must be greater than 0
+            .expect("$DB_QUEUE_ITEM_CONNECTIONS must be usize integer"),
+        Err(_) => 2,
+    };
+    pub static ref DB_QUEUE_ITEM_SIZE: usize = match &env::var("DB_QUEUE_ITEM_SIZE") {
+        // TODO: must be greater than 0
+        Ok(v) => v.parse().expect("$DB_QUEUE_ITEM_SIZE must be usize integer"),
+        Err(_) => 1000,
+    };
+    pub static ref CONNECTION_POOL_SIZE: u32 = match &env::var("CONNECTION_POOL_SIZE") {
+        Ok(v) => v
+            .parse()
+            .expect("$CONNECTION_POOL_SIZE must be u32 integer"),
+        Err(_) => 12,
+    };
+    pub static ref CONNECTION_TIMEOUT_SECONDS: u64 = match &env::var("CONNECTION_TIMEOUT_SECONDS") {
+        Ok(v) => v
+            .parse()
+            .expect("$CONNECTION_TIMEOUT_SECONDS must be u64  integer"),
+        Err(_) => 30,
+    };
     pub static ref NO_PERSIST: bool = &env::var("NO_PERSIST").unwrap_or("0".to_owned()) == "1";
+    // board state
+    pub static ref OPERATION_QUEUE_SIZE: usize = match &env::var("OPERATION_QUEUE_SIZE") {
+        Ok(s) => {
+            let parsed = s
+                .parse()
+                .expect("$OPERATION_QUEUE_SIZE must be u8 integer >= 5");
+
+            if parsed < 5 {
+                panic!("$OPERATION_QUEUE_SIZE must be >= 5");
+            }
+
+            parsed
+        }
+        Err(_) => 100,
+    };
+    // cleanup
     pub static ref CLEANUP_INTERVAL_MINUTES: u64 = match &env::var("CLEANUP_INTERVAL_MINUTES") {
         Ok(t) => t
             .parse()
             .expect("$CLEANUP_INTERVAL_MINUTES must be u64 integer"),
         Err(_) => 30,
     };
+    pub static ref CACHE_CLEANUP_INTERVAL_SECONDS: u64 = match &env::var("CACHE_CLEANUP_INTERVAL_SECONDS") {
+        Ok(t) => t
+            .parse()
+            .expect("$CACHE_CLEANUP_INTERVAL_SECONDS must be u64 integer"),
+        Err(_) => 10,
+    };
+    // monitoring
     pub static ref MONITOR_INTERVAL_MINUTES: u64 = match &env::var("MONITOR_INTERVAL_MINUTES") {
         Ok(t) => t
             .parse()
             .expect("$MONITOR_INTERVAL_MINUTES must be u64 integer"),
         Err(_) => 5,
     };
+    // paths
     pub static ref JWT_SECRET_KEY: &'static HS256Key = {
         let key = fs::read_to_string(
             &env::var("JWT_SECRET_PATH").unwrap_or("/run/secrets/jwt_secret".to_string()),
@@ -74,11 +130,10 @@ impl PoolWrapper {
         match self.inner.get_owned().await {
             Ok(c) => c,
             Err(e) => {
-                error!(
-                    "failed to get a postgres client from connection pool: {}",
+                panic!(
+                    "Failed to get a postgres client from connection pool: {}",
                     e.to_string()
                 );
-                panic!("failed to get a postgres client from connection pool");
             }
         }
     }
@@ -90,6 +145,7 @@ impl PoolWrapper {
 
 #[derive(Clone)]
 struct AppState {
+    db_queue: &'static DbQueueSender,
     pool: &'static PoolWrapper,
     rooms: Rooms,
 }
@@ -117,7 +173,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         NoTls,
     )
     .expect("failed to create db connection pool");
-    let pool = Box::leak(Box::new(Pool::builder().build(manager).await.unwrap()));
+    let pool = Box::leak(Box::new(
+        Pool::builder()
+            .max_size(*CONNECTION_POOL_SIZE)
+            .connection_timeout(std::time::Duration::from_secs(*CONNECTION_TIMEOUT_SECONDS))
+            .build(manager)
+            .await
+            .unwrap(),
+    ));
     // initialize db
     let pool_wrapper = Box::leak(Box::new(PoolWrapper { inner: pool }));
     pool.get_owned()
@@ -125,12 +188,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .unwrap()
         .batch_execute(&init_sql)
         .await?;
+    // create db queue
+    let (db_queue_sender, db_queue_receiver) = new_db_queue();
     // create state of the app
     let rooms = Rooms::default();
     let state = AppState {
+        db_queue: db_queue_sender,
         pool: pool_wrapper,
         rooms: rooms.clone(),
     };
+    // start edit_queue task
+    tokio::spawn(async move {
+        queue_task(&state.pool, db_queue_receiver).await;
+    });
     // routes
     let mut routes = Router::new();
     // apis
@@ -152,12 +222,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     routes = routes.nest_service("/folders", ServeFile::new(&index_path));
     routes = routes.nest_service("/public", ServeDir::new(*PUBLIC_PATH));
     // cleanup task
-    let rooms_clean_up = rooms.clone();
-    let rooms_to_monitor = rooms.clone();
+    let rooms_cleanup = rooms.clone();
     tokio::spawn(async move {
-        cleanup(rooms_clean_up).await;
+        cleanup(rooms_cleanup).await;
     });
+    // cache cleanup task
+    let rooms_cache_cleanup = rooms.clone();
+    tokio::spawn(async move { cleanup_cache(rooms_cache_cleanup).await });
     // create monitoring task
+    let rooms_to_monitor = rooms.clone();
     tokio::spawn(async move {
         monitor(rooms_to_monitor).await;
     });
@@ -178,14 +251,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
             if !*NO_PERSIST {
-                on_shutdown(rooms.clone()).await
-            };
+                on_shutdown(rooms.clone()).await;
+            }
             tx.send(()).unwrap();
         },
         _ = stream.recv() => {
             if !*NO_PERSIST {
-                on_shutdown(rooms.clone()).await
-            };
+                on_shutdown(rooms.clone()).await;
+            }
             tx.send(()).unwrap();
         }
     }

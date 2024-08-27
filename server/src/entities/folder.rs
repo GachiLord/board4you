@@ -34,7 +34,7 @@ pub async fn create(
     owner_id: i32,
 ) -> Result<Uuid, tokio_postgres::Error> {
     // create a folder
-    let public_id = Uuid::new_v4();
+    let public_id = Uuid::now_v7();
     db_client
         .execute(
             "INSERT INTO folders(title, owner_id, public_id) VALUES ($1, $2, $3)",
@@ -196,7 +196,7 @@ pub async fn update(
     // update folder
     try_join!(
         async {
-            if db_folder.get::<&str, String>("title") == folder.title {
+            if db_folder.get::<&str, &str>("title") == folder.title {
                 return Ok(0);
             }
             db_client

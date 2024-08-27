@@ -61,7 +61,10 @@ export default class EditManager {
   undo(edit_id?: string, silent?: boolean) {
     const current = store.getState().history.current
     const lastEdit = edit_id ? current.findLast(v => v.id === edit_id) : current.at(-1)
-    if (!lastEdit) return
+    if (!lastEdit) {
+      console.warn("attempt to undo non-existent edit with id: ", edit_id)
+      return
+    }
 
     this.cancelEdit(lastEdit)
     store.dispatch(undo(edit_id))
@@ -72,7 +75,10 @@ export default class EditManager {
   redo(edit_id?: string, silent?: boolean) {
     const undone = store.getState().history.undone
     const lastEdit = edit_id ? undone.findLast(v => v.id === edit_id) : undone.at(-1)
-    if (!lastEdit) return
+    if (!lastEdit) {
+      console.warn("attempt to redo non-existent edit with id: ", edit_id)
+      return
+    }
 
     this.applyEdit(lastEdit)
     store.dispatch(redo())

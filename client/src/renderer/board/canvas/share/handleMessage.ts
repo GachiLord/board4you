@@ -10,6 +10,7 @@ import { setMode, setTitle } from "../../../features/board"
 import { deleteRoom } from "../../../features/rooms"
 import { set } from "../../../features/tool"
 import { decode_server_msg } from "../../../lib/protocol/protocol"
+import { ActionType, EmptyActionType } from "../../../lib/protocol/protocol_bg"
 
 
 interface props {
@@ -37,15 +38,14 @@ export default function(msg: Uint8Array, { editManager, boardManager, setLoading
       setLoading(false)
       break
     case 'UndoRedoData': {
-      if (data.action_type === 'Undo') editManager.undo(data.action_id, true)
+      if (data.action_type === ActionType.Undo) editManager.undo(data.action_id, true)
       else editManager.redo(data.action_id, true)
       break
     }
     case 'EmptyData': {
       const t = data.action_type
-      if (t === 'undone') store.dispatch(emptyUndone())
-      if (t === 'current') store.dispatch(emptyCurrent())
-      if (t === 'history') store.dispatch(emptyHistory())
+      if (t === EmptyActionType.Undone) store.dispatch(emptyUndone())
+      if (t === EmptyActionType.Current) store.dispatch(emptyCurrent())
       break
     }
     case 'SizeData': {

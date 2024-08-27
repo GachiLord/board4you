@@ -1,67 +1,129 @@
 use super::{get_page_query_params, Paginated};
-use crate::libs::state::{Board, DbClient, Room};
+use crate::{
+    libs::{
+        db_queue::{BoardCreateChunk, BoardUpdateChunk, DbQueueSender},
+        state::{Board, DbClient},
+    },
+    PoolWrapper,
+};
+use futures::pin_mut;
+use log::{error, warn};
+use postgres_types::Type;
+use protocol::board_protocol::BoardSize;
 use serde::{Deserialize, Serialize};
-use std::error::Error;
+use std::fmt::Write as _;
+use tokio_postgres::binary_copy::BinaryCopyInWriter;
+use uuid::Uuid;
 
-pub enum SaveAction {
-    Created,
-    Updated,
-}
-/// Inserts new row if there is no room in db
-/// or Updates existing row
-///
-/// # Panics
-///
-/// Panics if board_state cannot be serialized
-///
-/// # Errors
-///
-/// This function will return an error if:
-/// - failed to insert new row
-/// - failed to update existing row
-pub async fn save(client: &DbClient<'_>, room: &Room) -> Result<SaveAction, Box<dyn Error>> {
-    let board_state = serde_json::to_value(&room.board).expect("failed to serealize room.board");
-    match client
-        .query(
-            "SELECT * FROM boards WHERE public_id = $1",
-            &[&room.public_id],
-        )
-        .await
-    {
-        Ok(res) => {
-            if res.len() == 0 {
-                client.execute(
-                    "INSERT INTO boards(public_id, private_id, board_state, owner_id, title) VALUES ($1, $2, $3, $4, $5)",
-                    &[&room.public_id, &room.private_id, &board_state, &room.owner_id, &room.board.title]
-                ).await?;
-            } else {
-                client
-                    .execute(
-                        "UPDATE boards SET board_state = ($1), title = ($2) WHERE public_id = ($3)",
-                        &[&board_state, &room.board.title, &room.public_id],
-                    )
-                    .await?;
-                return Ok(SaveAction::Updated);
+pub async fn create(
+    db_client: &tokio_postgres::Client,
+    chunks: Vec<BoardCreateChunk>,
+) -> Result<u64, tokio_postgres::Error> {
+    // populate
+    let sink = db_client
+        .copy_in("COPY boards (owner_id, public_id, private_id, title) FROM STDIN BINARY")
+        .await?;
+    let writer = BinaryCopyInWriter::new(
+        sink,
+        &[Type::INT4, Type::UUID, Type::VARCHAR, Type::VARCHAR],
+    );
+    pin_mut!(writer);
+    let mut ready_list = Vec::new();
+
+    for chunk in chunks {
+        match chunk.owner_id {
+            Some(id) => {
+                writer
+                    .as_mut()
+                    .write(&[&id, &chunk.public_id, &chunk.private_id, &chunk.title])
+                    .await
+                    .unwrap();
+            }
+            None => {
+                writer
+                    .as_mut()
+                    .write(&[
+                        &None::<&i32>,
+                        &chunk.public_id,
+                        &chunk.private_id,
+                        &chunk.title,
+                    ])
+                    .await
+                    .unwrap();
             }
         }
-        Err(e) => return Err(Box::new(e)),
+        ready_list.push(chunk.ready);
     }
 
-    Ok(SaveAction::Created)
+    match writer.finish().await {
+        Ok(r) => {
+            ready_list.into_iter().for_each(|c| {
+                if let Err(_) = c.send(()) {
+                    warn!("Cannot send create result to the room");
+                }
+            });
+            Ok(r)
+        }
+        Err(e) => {
+            error!("Failed to finish COPY: {}", e);
+            Ok(0)
+        }
+    }
+}
+
+pub async fn update(
+    db_client: &tokio_postgres::Client,
+    chunks: Vec<BoardUpdateChunk>,
+) -> Result<(), tokio_postgres::Error> {
+    let mut statement = String::from("BEGIN;");
+    let mut ready_list = Vec::with_capacity(chunks.len());
+    // form query
+    for chunk in chunks {
+        write!(
+            &mut statement,
+            "UPDATE boards SET title = '{}', height = {}, width = {} WHERE public_id = '{}';",
+            chunk.title,
+            chunk.size.height,
+            chunk.size.width,
+            chunk.public_id.to_string()
+        )
+        .unwrap();
+        ready_list.push(chunk.ready);
+    }
+    statement.push_str("COMMIT;");
+    // execute
+    db_client.batch_execute(&statement).await?;
+    // notify listeners
+    ready_list.into_iter().for_each(|c| {
+        if let Err(_) = c.send(()) {
+            warn!("Failed to send update result");
+        }
+    });
+
+    Ok(())
 }
 
 pub async fn get(
-    client: &DbClient<'_>,
-    public_id: &str,
+    pool: &'static PoolWrapper,
+    db_queue: &'static DbQueueSender,
+    public_id: Uuid,
 ) -> Result<(Box<str>, Board), tokio_postgres::Error> {
-    let sql_res = client
+    let db_client = pool.get().await;
+    let sql_res = db_client
         .query_one("SELECT * FROM boards WHERE public_id = $1", &[&public_id])
         .await?;
 
-    let mut board: Board =
-        serde_json::from_value(sql_res.get("board_state")).expect("failed to parse board_state");
+    let board = Board::load(
+        pool,
+        db_queue,
+        sql_res.get("title"),
+        BoardSize {
+            height: sql_res.get::<&str, i16>("height").try_into().unwrap_or(900),
+            width: sql_res.get::<&str, i16>("width").try_into().unwrap_or(1720),
+        },
+        public_id,
+    );
     let private_id = sql_res.get("private_id");
-    board.title = sql_res.get("title");
 
     Ok((private_id, board))
 }
@@ -109,7 +171,7 @@ pub async fn get_by_owner(
 
 pub async fn delete(
     client: &DbClient<'_>,
-    public_id: &str,
+    public_id: Uuid,
     private_id: &str,
 ) -> Result<u64, tokio_postgres::Error> {
     client

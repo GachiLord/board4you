@@ -24,10 +24,33 @@ CREATE TABLE IF NOT EXISTS boards (
 );
 
 ALTER TABLE boards
-    ADD COLUMN IF NOT EXISTS public_id varchar(36) NOT NULL,
+    ADD COLUMN IF NOT EXISTS public_id uuid NOT NULL,
     ADD COLUMN IF NOT EXISTS private_id varchar(44) NOT NULL,
-    ADD COLUMN IF NOT EXISTS board_state json NOT NULL,
+    ADD COLUMN IF NOT EXISTS height SMALLINT DEFAULT 900,
+    ADD COLUMN IF NOT EXISTS width SMALLINT DEFAULT 1720,
     ADD COLUMN IF NOT EXISTS title varchar(36) DEFAULT 'untitled';
+
+CREATE UNIQUE INDEX IF NOT EXISTS public_id_idx ON boards (public_id);
+
+-- edits
+DO $$ BEGIN
+    CREATE TYPE edit_status AS ENUM ('current', 'undone');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS edits (
+  board_id uuid
+);
+
+ALTER TABLE edits 
+    ADD COLUMN IF NOT EXISTS edit_id uuid NOT NULL,
+    ADD COLUMN IF NOT EXISTS status edit_status NOT NULL,
+    ADD COLUMN IF NOT EXISTS changed_at timestamp DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS data bytea NOT NULL;
+
+CREATE INDEX IF NOT EXISTS board_id_idx ON edits (board_id);
+CREATE INDEX IF NOT EXISTS edit_id_idx ON edits (edit_id);
 
 -- jwt
 CREATE TABLE IF NOT EXISTS expired_jwts (
