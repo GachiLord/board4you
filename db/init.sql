@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS expired_jwts (
     expire_date DATE NOT NULL DEFAULT CURRENT_DATE
 );
 
+CREATE INDEX IF NOT EXISTS jwt_data_idx ON expired_jwts USING HASH (jwt_data);
+
 -- folders
 CREATE TABLE IF NOT EXISTS folders(
     id SERIAL PRIMARY KEY,

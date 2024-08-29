@@ -24,7 +24,7 @@ pub async fn retrive_room_channel(state: AppState, public_id: Uuid) -> Result<Ro
                     // we don't need to provide owner_id here, because
                     // it had already been saved in db earler during
                     // last cleanup.
-                    let room = Room::load(board, private_id, None).await;
+                    let room = Room::load(board, private_id).await;
                     // spawn room_task
                     let (tx, rx) = channel(1);
                     let public_id_c = public_id.clone();

@@ -85,7 +85,7 @@ pub async fn read(
                     .map(|row| BoardInfo {
                         title: row.get("title"),
                         id: row.get("id"),
-                        public_id: row.get("public_id"),
+                        public_id: row.get::<&str, Uuid>("public_id").to_string().into(),
                     })
                     .collect(),
                 owner_public_login: owner_info.public_login,

@@ -484,27 +484,24 @@ pub struct Room {
     co_editor_private_id: Box<str>,
     users: HashMap<usize, UserChannel>,
     pub board: Board,
-    owner_id: Option<i32>,
 }
 
 impl Room {
-    pub async fn new(board: Board, owner_id: Option<i32>) -> Self {
+    pub async fn new(board: Board) -> Self {
         Room {
             private_id: Room::generate_private_id().await,
             co_editor_private_id: Room::generate_editor_private_id().await,
             users: HashMap::with_capacity(20),
             board,
-            owner_id,
         }
     }
 
-    pub async fn load(board: Board, private_id: Box<str>, owner_id: Option<i32>) -> Self {
+    pub async fn load(board: Board, private_id: Box<str>) -> Self {
         Room {
             private_id,
             co_editor_private_id: Room::generate_editor_private_id().await,
             users: HashMap::with_capacity(20),
             board,
-            owner_id,
         }
     }
 
