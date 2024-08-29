@@ -5,7 +5,7 @@ import { Group } from "konva/lib/Group"
 import { itemIn } from "./twiks"
 import { Node } from "konva/lib/Node"
 import { Container } from "konva/lib/Container"
-import { ShapeType, Tool } from "./protocol/protocol_bg"
+import { LineType, ShapeType, Tool } from "./protocol/protocol_bg"
 
 export default class CanvasUtils {
 
@@ -54,7 +54,7 @@ export default class CanvasUtils {
             lineCap: "round",
             lineJoin: "round",
             hitStrokeWidth: shape.line_size * 15,
-            dash: shape.line_type === 'general' ? [] : [10, 10],
+            dash: shape.line_type === LineType.General ? [] : [10, 10],
             listening: true,
           })
         )
@@ -87,7 +87,7 @@ export default class CanvasUtils {
             strokeWidth: shape.line_size,
             hitStrokeWidth: 30,
             globalCompositeOperation: 'source-over',
-            dash: shape.line_type === 'general' ? [] : [10, 10],
+            dash: shape.line_type === LineType.General ? [] : [10, 10],
             listening: true,
           })
         )
@@ -98,7 +98,7 @@ export default class CanvasUtils {
             points: Array.from(shape.points),
             stroke: shape.color,
             strokeWidth: shape.line_size,
-            dash: shape.line_type === 'general' ? [] : [10, 10],
+            dash: shape.line_type === LineType.General ? [] : [10, 10],
             tension: 0.5,
             lineCap: "round",
             lineJoin: "round",
@@ -116,7 +116,7 @@ export default class CanvasUtils {
             stroke: shape.color,
             hitStrokeWidth: 30,
             strokeWidth: shape.line_size,
-            dash: shape.line_type === 'general' ? [] : [10, 10],
+            dash: shape.line_type === LineType.General ? [] : [10, 10],
             listening: true,
           })
         )

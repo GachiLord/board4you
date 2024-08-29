@@ -311,16 +311,19 @@ function handleError(f, args) {
 }
 /**
 */
-export const ShapeType = Object.freeze({ Line:0,"0":"Line",Arrow:1,"1":"Arrow",Rect:2,"2":"Rect",Ellipse:3,"3":"Ellipse",Img:4,"4":"Img", });
-/**
-*/
-export const Tool = Object.freeze({ PenTool:0,"0":"PenTool",LineTool:1,"1":"LineTool",ArrowTool:3,"3":"ArrowTool",RectTool:4,"4":"RectTool",EllipseTool:5,"5":"EllipseTool",EraserTool:6,"6":"EraserTool",MoveTool:7,"7":"MoveTool",SelectTool:8,"8":"SelectTool",ImgTool:9,"9":"ImgTool", });
-/**
-*/
 export const ActionType = Object.freeze({ Undo:0,"0":"Undo",Redo:1,"1":"Redo", });
 /**
 */
 export const EmptyActionType = Object.freeze({ Current:0,"0":"Current",Undone:1,"1":"Undone", });
+/**
+*/
+export const LineType = Object.freeze({ General:0,"0":"General",Dashed:1,"1":"Dashed", });
+/**
+*/
+export const ShapeType = Object.freeze({ Line:0,"0":"Line",Arrow:1,"1":"Arrow",Rect:2,"2":"Rect",Ellipse:3,"3":"Ellipse",Img:4,"4":"Img", });
+/**
+*/
+export const Tool = Object.freeze({ PenTool:0,"0":"PenTool",LineTool:1,"1":"LineTool",ArrowTool:3,"3":"ArrowTool",RectTool:4,"4":"RectTool",EllipseTool:5,"5":"EllipseTool",EraserTool:6,"6":"EraserTool",MoveTool:7,"7":"MoveTool",SelectTool:8,"8":"SelectTool",ImgTool:9,"9":"ImgTool", });
 
 const AddFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
@@ -1167,31 +1170,17 @@ export class Shape {
         wasm.__wbg_set_shape_line_size(this.__wbg_ptr, arg0);
     }
     /**
-    * @returns {string}
+    * @returns {number}
     */
     get line_type() {
-        let deferred1_0;
-        let deferred1_1;
-        try {
-            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-            wasm.__wbg_get_info_payload(retptr, this.__wbg_ptr);
-            var r0 = getInt32Memory0()[retptr / 4 + 0];
-            var r1 = getInt32Memory0()[retptr / 4 + 1];
-            deferred1_0 = r0;
-            deferred1_1 = r1;
-            return getStringFromWasm0(r0, r1);
-        } finally {
-            wasm.__wbindgen_add_to_stack_pointer(16);
-            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
-        }
+        const ret = wasm.__wbg_get_shape_line_type(this.__wbg_ptr);
+        return ret;
     }
     /**
-    * @param {string} arg0
+    * @param {number} arg0
     */
     set line_type(arg0) {
-        const ptr0 = passStringToWasm0(arg0, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.__wbg_set_info_payload(this.__wbg_ptr, ptr0, len0);
+        wasm.__wbg_set_shape_line_type(this.__wbg_ptr, arg0);
     }
     /**
     * @returns {number}

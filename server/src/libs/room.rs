@@ -9,7 +9,7 @@ use super::{
     state::{Command, CommandName, Room},
 };
 use axum::body::Bytes;
-use log::{debug, error};
+use log::debug;
 use protocol::{
     board_protocol::{
         server_message::Msg, ActionType, Authed, BoardSize, Edit, EmptyActionType, EmptyData, Info,

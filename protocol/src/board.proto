@@ -24,6 +24,11 @@ enum ShapeType {
   IMG = 4;
 }
 
+enum LineType {
+  GENERAL = 0;
+  DASHED = 1;
+}
+
 message Shape {
   float x = 1;
   float y = 2;
@@ -32,7 +37,7 @@ message Shape {
   string shape_id = 5;
   string color = 6;
   float line_size = 7;
-  string line_type = 8;
+  LineType line_type = 8;
   float height = 9;
   float width = 10;
   float radius_x = 11;
