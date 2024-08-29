@@ -7,18 +7,12 @@ use axum::{
     routing::{delete, get, post, put},
     Json, Router,
 };
-use data_encoding::BASE64URL;
 use futures::future::join;
-use jwt_simple::algorithms::HS256Key;
 use log::{debug, error, info};
 use protocol::board_protocol::{BoardSize, Edit};
 use serde::{Deserialize, Serialize};
-use tokio::sync::{
-    mpsc::{channel, unbounded_channel},
-    oneshot,
-};
+use tokio::sync::{mpsc::channel, oneshot};
 use uuid::Uuid;
-use weak_table::WeakKeyHashMap;
 
 use crate::{
     entities::{
@@ -31,7 +25,7 @@ use crate::{
         room::{task, UserMessage},
         state::{Board, Room},
     },
-    AppState, OPERATION_QUEUE_SIZE,
+    AppState,
 };
 
 use super::common::{generate_res, generate_res_json, UserDataFromJWT};
@@ -64,7 +58,26 @@ async fn create_room(
     State(state): State<AppState>,
     UserDataFromJWT(user_data): UserDataFromJWT,
     Json(room_init): Json<RoomInitials>,
-) -> (StatusCode, Json<RoomCredentials>) {
+) -> Response {
+    // validate edits
+    for edit in room_init.current.iter() {
+        if let Err(e) = Board::validate_edit(edit) {
+            return generate_res(StatusCode::BAD_REQUEST, Some(&e.to_string()));
+        }
+    }
+    for edit in room_init.undone.iter() {
+        if let Err(e) = Board::validate_edit(edit) {
+            return generate_res(StatusCode::BAD_REQUEST, Some(&e.to_string()));
+        }
+    }
+    // validate size
+    if let Err(e) = Board::validate_size(room_init.size.height, room_init.size.width) {
+        return generate_res(StatusCode::BAD_REQUEST, Some(&e.to_string()));
+    }
+    // validate title
+    if let Err(e) = Board::validate_title(&room_init.title) {
+        return generate_res(StatusCode::BAD_REQUEST, Some(&e.to_string()));
+    }
     // owner info
     let mut owner_id: Option<i32> = None;
     //add owner if user is authed
@@ -130,13 +143,10 @@ async fn create_room(
     state.rooms.write().await.insert(public_id, tx);
     info!("Created room with public_id: {}", public_id);
     // response
-    return (
-        StatusCode::OK,
-        Json(RoomCredentials {
-            public_id: public_id.to_string().into_boxed_str(),
-            private_id,
-        }),
-    );
+    return generate_res_json(RoomCredentials {
+        public_id: public_id.to_string().into_boxed_str(),
+        private_id,
+    });
 }
 
 async fn read_own_list(
