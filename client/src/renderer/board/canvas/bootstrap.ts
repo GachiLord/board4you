@@ -59,7 +59,7 @@ export default function bootstrap({
     else store.dispatch(setMode('viewer'))
   }
   // set listener for msgs
-  boardManager.handlers.onMessage = (msg: string) => handleMessage(msg, {
+  boardManager.handlers.onMessage = (msg: Uint8Array) => handleMessage(msg, {
     boardManager,
     editManager,
     setError,
