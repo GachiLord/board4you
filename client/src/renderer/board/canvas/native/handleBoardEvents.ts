@@ -29,8 +29,6 @@ export default function handleBoardEvents({ setLoading, navigate, editManager, s
     BoardManager.createRoom(history, size, title).then(roomInfo => {
       // save privateId to continue editing after reload
       store.dispatch(setRoom({ publicId: roomInfo.public_id, privateId: roomInfo.private_id }))
-      // go to new board page 
-      setLoading(false)
       navigate(`/board/${roomInfo.public_id}`)
     })
   })

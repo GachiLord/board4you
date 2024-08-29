@@ -78,8 +78,6 @@ export default function joinRoom({ navigate, setLoading, setRoomExists, boardMan
         store.dispatch(setShareInfo({}))
         store.dispatch(set('move'))
       }
-      // disable loading
-      setLoading(false)
     })
     // alert if there is no such room 
     .catch((e) => {
