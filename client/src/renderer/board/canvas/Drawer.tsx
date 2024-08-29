@@ -3,11 +3,10 @@ import { mouseDown, mouseEnter, mouseMove, mouseUpLeave, stageDragBound, stageDr
 import { useSelector, useDispatch } from "react-redux";
 import { Layer, Stage } from 'react-konva';
 import { ToolName } from "../../base/typing/ToolName";
-import { lineType } from "../../features/toolSettings";
 import store, { RootState } from "../../store/store";
 import Konva from "konva";
 import BoardManager from "../../lib/BoardManager/BoardManager";
-import { redirect, useLocation, useNavigate, useNavigation, useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { setMode } from "../../features/board";
 import Persister from "../../lib/Persister";
 import Alert from "../../base/components/Alert";
@@ -21,11 +20,12 @@ import { LocaleContext } from "../../base/constants/LocaleContext";
 import isMobile from '../../lib/isMobile'
 import useResize from '.././../lib/useResize'
 import bootstrap from "./bootstrap";
+import { LineType } from "../../lib/protocol/protocol";
 
 export interface IDrawerProps {
   tool: ToolName,
   color: string,
-  lineType: lineType,
+  lineType: LineType,
   lineSize: number,
 }
 // persist rooms state

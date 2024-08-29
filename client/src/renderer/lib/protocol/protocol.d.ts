@@ -15,6 +15,24 @@ export function decode_server_msg(buf: Uint8Array): any;
 export function encode_user_msg(msg: any): Uint8Array;
 /**
 */
+export enum ActionType {
+  Undo = 0,
+  Redo = 1,
+}
+/**
+*/
+export enum EmptyActionType {
+  Current = 0,
+  Undone = 1,
+}
+/**
+*/
+export enum LineType {
+  General = 0,
+  Dashed = 1,
+}
+/**
+*/
 export enum ShapeType {
   Line = 0,
   Arrow = 1,
@@ -34,18 +52,6 @@ export enum Tool {
   MoveTool = 7,
   SelectTool = 8,
   ImgTool = 9,
-}
-/**
-*/
-export enum ActionType {
-  Undo = 0,
-  Redo = 1,
-}
-/**
-*/
-export enum EmptyActionType {
-  Current = 0,
-  Undone = 1,
 }
 /**
 */
@@ -187,7 +193,7 @@ export class Shape {
   line_size: number;
 /**
 */
-  line_type: string;
+  line_type: number;
 /**
 */
   points: Uint32Array;

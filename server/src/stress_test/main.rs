@@ -1,6 +1,5 @@
 use axum::body::Bytes;
 use clap::Parser;
-use fastwebsockets::FragmentCollector;
 use fastwebsockets::Frame;
 use fastwebsockets::Payload;
 use fastwebsockets::WebSocket;
@@ -8,7 +7,6 @@ use fastwebsockets::WebSocketError;
 use http_body_util::Empty;
 use hyper::header::CONNECTION;
 use hyper::header::UPGRADE;
-use hyper::upgrade::Upgraded;
 use hyper::Request;
 use hyper_util::rt::TokioIo;
 use lazy_static::lazy_static;
@@ -19,6 +17,7 @@ use protocol::board_protocol::user_message::Msg;
 use protocol::board_protocol::Add;
 use protocol::board_protocol::Auth;
 use protocol::board_protocol::Edit;
+use protocol::board_protocol::LineType;
 use protocol::board_protocol::Pull;
 use protocol::board_protocol::Push;
 use protocol::board_protocol::Shape;
@@ -98,7 +97,7 @@ fn push() -> Vec<u8> {
             shape_id: id,
             color: "black".to_owned(),
             line_size: 3.0,
-            line_type: "earaser".to_owned(),
+            line_type: LineType::General as i32,
             height: 0.0,
             width: 0.0,
             radius_x: 0.0,

@@ -23,7 +23,6 @@ export default function(e: KonvaEventObject<MouseEvent | TouchEvent>, boardManag
   const canDraw = itemIn(state.board.mode, 'author', 'coop')
   const isDrawing = state.stage.isDrawable
   const drawingShapeId = state.stage.drawingShapeId
-  const private_id = state.rooms[boardManager.status.roomId]
   const tool = props.tool
 
   whenDraw(e, boardManager, ({ stage, canvas, temporary, isRightClick }) => {
