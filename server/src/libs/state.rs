@@ -1,5 +1,5 @@
 use crate::{
-    entities::edit::{delete, sync_with_queue, EditState, EditStatus},
+    entities::edit::{sync_with_queue, EditState, EditStatus},
     libs::db_queue::EditReadChunk,
     PoolWrapper, CACHE_CLEANUP_INTERVAL_SECONDS, OPERATION_QUEUE_SIZE,
 };
@@ -284,6 +284,22 @@ impl Board {
     /// - if the edit has no id property
     /// - if the edit_type is not add or remove or modify
     pub async fn push(&mut self, edit: Edit) -> Result<(), PushError> {
+        Self::validate_edit(&edit)?;
+        // if the queue will be overflowed, clear it and save to db
+        if self.queue.len() + 1 > *OPERATION_QUEUE_SIZE {
+            self.db_cache = None;
+            sync_with_queue(
+                self.db_queue,
+                self.public_id,
+                self.queue.drain(..).collect(),
+            )
+            .await;
+        }
+        self.queue.push(QueueOp::Push(SystemTime::now(), edit));
+        Ok(())
+    }
+
+    pub fn validate_edit(edit: &Edit) -> Result<(), PushError> {
         if edit.edit.is_none() {
             return Err(PushError::WrongValue("edit is None"));
         }
@@ -317,17 +333,7 @@ impl Board {
                 }
             }
         }
-        // if the queue will be overflowed, clear it and save to db
-        if self.queue.len() + 1 > *OPERATION_QUEUE_SIZE {
-            self.db_cache = None;
-            sync_with_queue(
-                self.db_queue,
-                self.public_id,
-                self.queue.drain(..).collect(),
-            )
-            .await;
-        }
-        self.queue.push(QueueOp::Push(SystemTime::now(), edit));
+
         Ok(())
     }
 
@@ -435,10 +441,29 @@ impl Board {
         rx.await.unwrap();
     }
 
-    pub fn set_size(&mut self, height: u32, width: u32) -> Result<(), PushError> {
+    pub fn set_title(&mut self, title: Box<str>) -> Result<(), PushError> {
+        Self::validate_title(&title)?;
+        self.title = title;
+        Ok(())
+    }
+
+    pub fn validate_title(title: &str) -> Result<(), PushError> {
+        if title.len() > 36 {
+            return Err(PushError::WrongValue("size is too big"));
+        }
+        Ok(())
+    }
+
+    pub fn validate_size(height: u32, width: u32) -> Result<(), PushError> {
         if height > MAX_DIMENSION_SIZE as u32 || width > MAX_DIMENSION_SIZE as u32 {
             return Err(PushError::WrongValue("size is too big"));
         }
+
+        Ok(())
+    }
+
+    pub fn set_size(&mut self, height: u32, width: u32) -> Result<(), PushError> {
+        Self::validate_size(height, width)?;
         self.size.height = height;
         self.size.width = width;
         Ok(())
@@ -510,10 +535,6 @@ impl Room {
     }
 
     // setters
-
-    pub fn set_title(&mut self, title: Box<str>) {
-        self.board.title = title;
-    }
 
     pub fn add_user(&mut self, id: usize, chan: UserChannel) {
         self.users.insert(id, chan);

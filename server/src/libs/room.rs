@@ -156,13 +156,23 @@ pub async fn task(
                         })),
                     },
                 );
+                send_by_id(
+                    &room,
+                    user_id,
+                    ServerMessage {
+                        msg: Some(Msg::TitleData(TitleData {
+                            title: room.title().to_owned(),
+                        })),
+                    },
+                );
             }
             UserMessage::Quit { user_id } => {
                 room.remove_user(&user_id);
             }
 
             UserMessage::SetTitle { user_id, title } => {
-                if title.len() > 36 {
+                // validate title
+                if let Err(e) = room.board.set_title(title.clone()) {
                     send_by_id(
                         &room,
                         user_id,
@@ -170,14 +180,12 @@ pub async fn task(
                             msg: Some(Msg::Info(Info {
                                 status: "bad".to_owned(),
                                 action: "SetTitle".to_owned(),
-                                payload: "title is too long".to_owned(),
+                                payload: e.to_string(),
                             })),
                         },
                     );
                     continue;
                 }
-                // changes
-                room.set_title(title.clone());
                 // update title in db
                 let (tx, rx) = oneshot::channel();
                 db_queue
