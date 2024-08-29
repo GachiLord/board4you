@@ -160,7 +160,7 @@ pub async fn get_by_owner(
             .iter()
             .map(|row| BoardInfo {
                 title: row.get("title"),
-                public_id: row.get("public_id"),
+                public_id: row.get::<&str, Uuid>("public_id").to_string().into(),
                 id: row.get("id"),
             })
             .collect(),
@@ -201,7 +201,7 @@ pub async fn get_private_ids(
         .iter()
         .map(|row| {
             return RoomCredentials {
-                public_id: row.get("public_id"),
+                public_id: row.get::<&str, Uuid>("public_id").to_string().into(),
                 private_id: row.get("private_id"),
             };
         })
