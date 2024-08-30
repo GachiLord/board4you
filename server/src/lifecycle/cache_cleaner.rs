@@ -14,7 +14,9 @@ pub async fn cleanup_cache(rooms: Rooms) {
         interval.tick().await;
         // remove unused rooms
         let rooms_p = rooms.read().await;
-        for (_, chan) in rooms_p.iter() {
+        let rooms = rooms_p.clone();
+        drop(rooms_p);
+        for (_, chan) in rooms.iter() {
             let _ = chan.send(UserMessage::TryExpireCache).await;
         }
     }

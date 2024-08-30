@@ -181,15 +181,17 @@ async fn delete_room(
     // get client
     let client = state.pool.get().await;
     // prepare room for delete
-    let mut rooms = state.rooms.write().await;
+    let rooms = state.rooms.read().await;
 
-    match rooms.get_mut(&id) {
+    match rooms.get(&id) {
         Some(room) => {
             let (tx, rx) = oneshot::channel();
-            let _ = room.send(UserMessage::DeleteRoom {
-                deleted: tx,
-                private_id: room_info.private_id.clone(),
-            });
+            let _ = room
+                .send(UserMessage::DeleteRoom {
+                    deleted: tx,
+                    private_id: room_info.private_id.clone(),
+                })
+                .await;
             // check if operation was successful
             match rx.await {
                 Ok(res) => {
@@ -211,8 +213,13 @@ async fn delete_room(
             if let Err(_) = board::delete(&client, id, &room_info.private_id).await {
                 return generate_res(StatusCode::NOT_FOUND, Some("no such room"));
             }
+            // response instantly to avoid locking the RwLock
+            return generate_res(StatusCode::OK, Some("deleted"));
         }
     }
+    // drop read lock and create write lock
+    drop(rooms);
+    let mut rooms = state.rooms.write().await;
     // delete room from global state
     rooms.remove(&id);
     // delete room from db

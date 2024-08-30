@@ -40,7 +40,11 @@ EXCEPTION
 END $$;
 
 CREATE TABLE IF NOT EXISTS edits (
-  board_id uuid
+  board_id uuid,
+  CONSTRAINT fk_board
+    FOREIGN KEY(board_id)
+    REFERENCES boards(public_id)
+    ON DELETE CASCADE
 );
 
 ALTER TABLE edits 
@@ -48,6 +52,7 @@ ALTER TABLE edits
     ADD COLUMN IF NOT EXISTS status edit_status NOT NULL,
     ADD COLUMN IF NOT EXISTS changed_at timestamp DEFAULT CURRENT_TIMESTAMP,
     ADD COLUMN IF NOT EXISTS data bytea NOT NULL;
+
 
 CREATE INDEX IF NOT EXISTS board_id_idx ON edits (board_id);
 CREATE INDEX IF NOT EXISTS edit_id_idx ON edits (edit_id);

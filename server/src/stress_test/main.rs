@@ -107,7 +107,7 @@ fn push() -> Vec<u8> {
             scale_y: 1.0,
             skew_x: 0.0,
             skew_y: 0.0,
-            points: vec![0, 100],
+            points: vec![100, 100, 200, 200],
             connected: vec![],
             url: "".to_owned(),
         }),
