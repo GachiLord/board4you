@@ -59,6 +59,8 @@ pub struct BoardUpdateChunk {
     pub ready: oneshot::Sender<()>,
 }
 
+// queue
+
 #[derive(Debug, Clone)]
 pub struct DbQueueSender {
     pub create_edit: mpsc::Sender<EditCreateChunk>,

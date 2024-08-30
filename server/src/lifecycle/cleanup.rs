@@ -16,17 +16,19 @@ pub async fn cleanup(rooms: Rooms) {
         // wait for duration
         interval.tick().await;
         // remove unused rooms
-        let mut rooms_p = rooms.write().await;
+        let rooms_p = rooms.read().await;
+        let rooms_c = rooms_p.clone();
+        drop(rooms_p);
         let mut expired_rooms = HashSet::new();
-        let mut receivers = Vec::with_capacity(rooms_p.len());
+        let mut receivers = Vec::with_capacity(rooms_c.len());
         // send messages to rooms
-        for (_, room) in rooms_p.iter() {
+        for (_, room) in rooms_c.iter() {
             let (tx, rx) = oneshot::channel();
             let _ = room.send(UserMessage::HasUsers(tx)).await;
             receivers.push(rx);
         }
         // collect and expire unused rooms
-        for (i, (id, _)) in rooms_p.iter().enumerate() {
+        for (i, (id, _)) in rooms_c.iter().enumerate() {
             let rx = &mut receivers[i];
             match rx.await {
                 Ok(res) => {
@@ -40,6 +42,8 @@ pub async fn cleanup(rooms: Rooms) {
                 }
             }
         }
+        // create write lock
+        let mut rooms_p = rooms.write().await.clone();
         rooms_p.retain(|id, _| !expired_rooms.contains(id));
         // cleanup log
         info!("{} unused room(s) have been deleted", expired_rooms.len());
