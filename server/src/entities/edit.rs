@@ -15,28 +15,14 @@ use std::{
     time::SystemTime,
 };
 use tokio::{sync::oneshot, task::spawn_blocking};
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::libs::{
     db_queue::{DbQueueSender, EditCreateChunk, EditDeleteChunk, EditReadChunk, EditUpdateChunk},
-    state::{DbClient, ExposeId, QueueOp},
+    state::{ExposeId, QueueOp},
 };
 
 // helpers
-
-async fn encode_edit_async(edit: Edit) -> String {
-    let (tx, rx) = oneshot::channel();
-    spawn_blocking(move || {
-        let encoded = encode_server_msg(&ServerMessage {
-            msg: Some(Msg::PushData(PushData { data: vec![edit] })),
-        });
-        tx.send(HEXUPPER.encode(&encoded)).unwrap();
-    })
-    .await
-    .unwrap();
-    rx.await.unwrap()
-}
 
 async fn decode_edit_async(buf: Vec<u8>) -> Edit {
     let (tx, rx) = oneshot::channel();
@@ -435,19 +421,6 @@ pub async fn delete_bulk(
         }
     });
     Ok(())
-}
-
-pub async fn delete(
-    db_client: &DbClient<'_>,
-    public_id: Uuid,
-    status: &EditStatus,
-) -> Result<u64, tokio_postgres::Error> {
-    db_client
-        .execute(
-            "DELETE FROM edits WHERE status = $1 AND board_id = $2",
-            &[&status, &public_id],
-        )
-        .await
 }
 
 // tests
