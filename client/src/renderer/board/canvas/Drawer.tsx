@@ -59,7 +59,6 @@ export default function Drawer(props: IDrawerProps) {
   const cleanUp = () => {
     setError(false)
     setRoomExists(true)
-    setLoading(false)
     dispatch(setMode('local'))
     dispatch(emptyHistory())
     if (stage.current) clearCanvas(stage.current.children[0], stage.current.children[1])
