@@ -35,16 +35,6 @@ lazy_static! {
             .expect("$DB_QUEUE_ITER_TIME_MS must be usize integer")),
         Err(_) => std::time::Duration::from_millis(200),
     };
-    pub static ref DB_QUEUE_ITEM_CONNECTIONS: usize = match &env::var("DB_QUEUE_ITEM_CONNECTIONS") {
-        Ok(v) => {
-            let v = v
-            .parse()
-            .expect("$DB_QUEUE_ITEM_CONNECTIONS must be usize integer");
-            assert!(v > 0, "$DB_QUEUE_ITEM_CONNECTIONS must be greater than 0");
-            v
-        },
-        Err(_) => 2,
-    };
     pub static ref DB_QUEUE_ITEM_SIZE: usize = match &env::var("DB_QUEUE_ITEM_SIZE") {
         Ok(v) => {
             let v = v.parse().expect("$DB_QUEUE_ITEM_SIZE must be usize integer");
