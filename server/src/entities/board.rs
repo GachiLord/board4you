@@ -114,7 +114,6 @@ pub async fn get(
         .await?;
 
     let board = Board::load(
-        pool,
         db_queue,
         sql_res.get("title"),
         BoardSize {

@@ -32,26 +32,35 @@ lazy_static! {
     pub static ref DB_QUEUE_ITER_TIME_MS: std::time::Duration = match &env::var("DB_QUEUE_ITER_TIME_MS") {
         Ok(v) => std::time::Duration::from_millis(v
             .parse()
-            // TODO: must be greater than 0
             .expect("$DB_QUEUE_ITER_TIME_MS must be usize integer")),
         Err(_) => std::time::Duration::from_millis(200),
     };
     pub static ref DB_QUEUE_ITEM_CONNECTIONS: usize = match &env::var("DB_QUEUE_ITEM_CONNECTIONS") {
-        Ok(v) => v
+        Ok(v) => {
+            let v = v
             .parse()
-            // TODO: must be greater than 0
-            .expect("$DB_QUEUE_ITEM_CONNECTIONS must be usize integer"),
+            .expect("$DB_QUEUE_ITEM_CONNECTIONS must be usize integer");
+            assert!(v > 0, "$DB_QUEUE_ITEM_CONNECTIONS must be greater than 0");
+            v
+        },
         Err(_) => 2,
     };
     pub static ref DB_QUEUE_ITEM_SIZE: usize = match &env::var("DB_QUEUE_ITEM_SIZE") {
-        // TODO: must be greater than 0
-        Ok(v) => v.parse().expect("$DB_QUEUE_ITEM_SIZE must be usize integer"),
+        Ok(v) => {
+            let v = v.parse().expect("$DB_QUEUE_ITEM_SIZE must be usize integer");
+            assert!(v > 0, "$DB_QUEUE_ITEM_SIZE must be greater than 0");
+            v
+        },
         Err(_) => 1000,
     };
     pub static ref CONNECTION_POOL_SIZE: u32 = match &env::var("CONNECTION_POOL_SIZE") {
-        Ok(v) => v
+        Ok(v) => {
+            let v = v
             .parse()
-            .expect("$CONNECTION_POOL_SIZE must be u32 integer"),
+            .expect("$CONNECTION_POOL_SIZE must be u32 integer");
+            assert!(v > 0, "$CONNECTION_POOL_SIZE must be greater than 0");
+            v
+        },
         Err(_) => 12,
     };
     pub static ref CONNECTION_TIMEOUT_SECONDS: u64 = match &env::var("CONNECTION_TIMEOUT_SECONDS") {
@@ -68,9 +77,7 @@ lazy_static! {
                 .parse()
                 .expect("$OPERATION_QUEUE_SIZE must be u8 integer >= 5");
 
-            if parsed < 5 {
-                panic!("$OPERATION_QUEUE_SIZE must be >= 5");
-            }
+            assert!(parsed >= 5, "$OPERATION_QUEUE_SIZE must be >= 5");
 
             parsed
         }

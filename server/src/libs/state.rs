@@ -1,7 +1,7 @@
 use crate::{
     entities::edit::{sync_with_queue, EditState, EditStatus},
     libs::db_queue::EditReadChunk,
-    PoolWrapper, CACHE_CLEANUP_INTERVAL_SECONDS, OPERATION_QUEUE_SIZE,
+    CACHE_CLEANUP_INTERVAL_SECONDS, OPERATION_QUEUE_SIZE,
 };
 
 use super::{
@@ -31,7 +31,6 @@ use uuid::Uuid;
 /// co_editor_private_id - token for co-editors, may change if author asks
 #[derive(Clone)]
 pub struct Board {
-    pool: &'static PoolWrapper,
     db_queue: &'static DbQueueSender,
     db_cache: Option<EditState>,
     db_cache_used_at: SystemTime,
@@ -71,14 +70,12 @@ pub enum CommandName {
 #[derive(Debug)]
 pub enum PushError {
     WrongValue(&'static str),
-    DbError,
 }
 
 impl ToString for PushError {
     fn to_string(&self) -> String {
         match self {
             Self::WrongValue(msg) => msg.to_string(),
-            Self::DbError => String::from("db error"),
         }
     }
 }
@@ -98,14 +95,8 @@ impl ExposeId for EditInner {
 }
 
 impl Board {
-    pub fn new(
-        pool: &'static PoolWrapper,
-        db_queue: &'static DbQueueSender,
-        title: Box<str>,
-        size: BoardSize,
-    ) -> Self {
+    pub fn new(db_queue: &'static DbQueueSender, title: Box<str>, size: BoardSize) -> Self {
         Board {
-            pool,
             db_queue,
             db_cache: None,
             db_cache_used_at: SystemTime::now(),
@@ -117,14 +108,12 @@ impl Board {
     }
 
     pub fn load(
-        pool: &'static PoolWrapper,
         db_queue: &'static DbQueueSender,
         title: Box<str>,
         size: BoardSize,
         public_id: Uuid,
     ) -> Self {
         Board {
-            pool,
             db_queue,
             db_cache: None,
             db_cache_used_at: SystemTime::now(),

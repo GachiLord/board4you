@@ -64,7 +64,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         let line_has_copy_data_type = line.contains("Tool ")
             || line.contains("ShapeType ")
             || line.contains("ActionType ")
-            || line.contains("EmptyActionType ");
+            || line.contains("EmptyActionType ")
+            || line.contains("LineType ");
         if line_has_data_type
             && !line.contains("fn ")
             && !line.contains("Msg ")
@@ -75,7 +76,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             && !line.contains("UserMessage ")
             && !line.contains("EditData ")
             && !line.contains("PushData ")
-            && !line.contains("ServerMessagePackage ")
             && !line_has_copy_data_type
         {
             output.push_str("#[wasm_bindgen(getter_with_clone)]\n");

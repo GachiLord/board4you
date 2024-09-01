@@ -89,7 +89,7 @@ async fn create_room(
         );
     }
     // create Room instance
-    let board = Board::new(state.pool, state.db_queue, room_init.title, room_init.size);
+    let board = Board::new(state.db_queue, room_init.title, room_init.size);
     let room = Room::new(board).await;
     let (public_id, private_id) = (room.public_id(), room.private_id().into());
     // get client
