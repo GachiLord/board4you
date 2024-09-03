@@ -30,15 +30,21 @@ mod websocket;
 lazy_static! {
     // database
     pub static ref DB_QUEUE_ITER_TIME_MS: std::time::Duration = match &env::var("DB_QUEUE_ITER_TIME_MS") {
-        Ok(v) => std::time::Duration::from_millis(v
+        Ok(v) => {
+            let v = v
             .parse()
-            .expect("$DB_QUEUE_ITER_TIME_MS must be usize integer")),
+            .expect("$DB_QUEUE_ITER_TIME_MS must be usize integer");
+
+            assert!(v > 0, "$DB_QUEUE_ITER_TIME_MS must be greater than 0");
+
+            std::time::Duration::from_millis(v)
+        },
         Err(_) => std::time::Duration::from_millis(200),
     };
     pub static ref DB_QUEUE_ITEM_SIZE: usize = match &env::var("DB_QUEUE_ITEM_SIZE") {
         Ok(v) => {
             let v = v.parse().expect("$DB_QUEUE_ITEM_SIZE must be usize integer");
-            assert!(v > 0, "$DB_QUEUE_ITEM_SIZE must be greater than 0");
+            assert!(v > 10, "$DB_QUEUE_ITEM_SIZE must be greater than 10");
             v
         },
         Err(_) => 1000,
@@ -46,17 +52,23 @@ lazy_static! {
     pub static ref CONNECTION_POOL_SIZE: u32 = match &env::var("CONNECTION_POOL_SIZE") {
         Ok(v) => {
             let v = v
-            .parse()
-            .expect("$CONNECTION_POOL_SIZE must be u32 integer");
+                .parse()
+                .expect("$CONNECTION_POOL_SIZE must be u32 integer");
             assert!(v > 0, "$CONNECTION_POOL_SIZE must be greater than 0");
             v
         },
         Err(_) => 12,
     };
     pub static ref CONNECTION_TIMEOUT_SECONDS: u64 = match &env::var("CONNECTION_TIMEOUT_SECONDS") {
-        Ok(v) => v
-            .parse()
-            .expect("$CONNECTION_TIMEOUT_SECONDS must be u64  integer"),
+        Ok(v) => {
+            let v = v
+                .parse()
+                .expect("$CONNECTION_TIMEOUT_SECONDS must be u64  integer");
+
+            assert!(v > 0, "$CONNECTION_TIMEOUT_SECONDS must be greater than 0");
+
+            v
+        },
         Err(_) => 30,
     };
     pub static ref NO_PERSIST: bool = &env::var("NO_PERSIST").unwrap_or("0".to_owned()) == "1";
@@ -75,22 +87,40 @@ lazy_static! {
     };
     // cleanup
     pub static ref CLEANUP_INTERVAL_MINUTES: u64 = match &env::var("CLEANUP_INTERVAL_MINUTES") {
-        Ok(t) => t
-            .parse()
-            .expect("$CLEANUP_INTERVAL_MINUTES must be u64 integer"),
+        Ok(t) => {
+            let t = t
+                .parse()
+                .expect("$CLEANUP_INTERVAL_MINUTES must be u64 integer");
+
+            assert!(t > 0, "$CLEANUP_INTERVAL_MINUTES must be greater than 0");
+
+            t
+        },
         Err(_) => 30,
     };
     pub static ref CACHE_CLEANUP_INTERVAL_SECONDS: u64 = match &env::var("CACHE_CLEANUP_INTERVAL_SECONDS") {
-        Ok(t) => t
+        Ok(t) => {
+            let t = t
             .parse()
-            .expect("$CACHE_CLEANUP_INTERVAL_SECONDS must be u64 integer"),
+            .expect("$CACHE_CLEANUP_INTERVAL_SECONDS must be u64 integer");
+
+            assert!(t > 0, "$CACHE_CLEANUP_INTERVAL_SECONDS must be greater than 0");
+
+            t
+        },
         Err(_) => 10,
     };
     // monitoring
     pub static ref MONITOR_INTERVAL_MINUTES: u64 = match &env::var("MONITOR_INTERVAL_MINUTES") {
-        Ok(t) => t
-            .parse()
-            .expect("$MONITOR_INTERVAL_MINUTES must be u64 integer"),
+        Ok(t) => {
+            let t = t
+                .parse()
+                .expect("$MONITOR_INTERVAL_MINUTES must be u64 integer");
+
+            assert!(t > 0, "$MONITOR_INTERVAL_MINUTES must be greater than 0");
+
+            t
+        },
         Err(_) => 5,
     };
     // paths

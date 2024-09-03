@@ -7,26 +7,33 @@ COPY ./client/package.json ./
 COPY ./client/build ./build
 COPY ./client/src ./src
 COPY ./client/scripts ./scripts
+COPY ./client/build.mjs ./
 COPY ./client/public/web.html ./public/web.html
 # install deps
 RUN npm install --omit=optional -legacy-peer-deps
 # build static
 RUN npm run buildWeb
-# remove bundle analizer file
-RUN rm ./public/meta.json
 
 # build server
-FROM nwtgck/rust-musl-builder:latest as server-builder
+FROM rust as server-builder
 
-RUN USER=root cargo new --bin board4you-build
+RUN apt update \ 
+  && apt install protobuf-compiler -y 
+
+
+RUN cargo new --bin board4you-build
 WORKDIR /board4you-build
-COPY ./server/Cargo.toml ./Cargo.toml
-COPY ./server/src ./src
-RUN USER=root cargo generate-lockfile
-RUN USER=root cargo build --release
+COPY ./server/Cargo.toml ./server/Cargo.toml
+COPY ./server/src ./server/src
+RUN mkdir protocol
+COPY ./protocol/Cargo.toml ./protocol/Cargo.toml
+COPY ./protocol/build.rs ./protocol/build.rs
+COPY ./protocol/src ./protocol/src
+WORKDIR ./server
+RUN cargo build --release
 
 # configure and run app
-FROM alpine:latest
+FROM ubuntu:24.10
 
 ARG APP=/usr/src/app
 
@@ -35,14 +42,10 @@ EXPOSE 3000
 ENV TZ=Etc/UTC \
   APP_USER=appuser
 
-RUN addgroup -S $APP_USER \
-  && adduser -S -g $APP_USER $APP_USER
+RUN groupadd $APP_USER \
+  && useradd -g $APP_USER $APP_USER
 
-RUN apk update \
-  && apk add --no-cache ca-certificates tzdata \
-  && rm -rf /var/cache/apk/*
-
-COPY --from=server-builder /board4you-build/target/x86_64-unknown-linux-musl/release/server ${APP}/server
+COPY --from=server-builder /board4you-build/server/target/release/server ${APP}/server
 COPY --from=client-builder /public ${APP}/public
 COPY ./db/init.sql ${APP}
 

@@ -1,9 +1,14 @@
 services:
   web:
     container_name: board4you-server
-    image: ghcr.io/gachilord/board4you-server:1.0.9
+    # image: ghcr.io/gachilord/board4you-server:1.0.9
+    build: .
     restart: always
     command: ./server 
+    ulimits:
+      nofile:
+        soft: 30000
+        hard: 100000
     environment:
       DB_HOST: db
       DB_PORT: "5432"
@@ -16,6 +21,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - /tmp/board4you/:/tmp/board4you/
   db:
     container_name: board4you-db
     image: postgres:16
