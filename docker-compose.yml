@@ -1,7 +1,7 @@
 services:
   web:
     container_name: board4you-server
-    # image: ghcr.io/gachilord/board4you-server:1.0.9
+    image: ghcr.io/gachilord/board4you-server:2.0.0
     build: .
     restart: always
     command: ./server 
