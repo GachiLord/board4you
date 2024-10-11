@@ -1,5 +1,5 @@
 # build client
-FROM node:latest as client-builder
+FROM node:latest AS client-builder
 
 WORKDIR /
 
@@ -15,7 +15,7 @@ RUN npm install --omit=optional -legacy-peer-deps
 RUN npm run buildWeb
 
 # build server
-FROM rust as server-builder
+FROM rust AS server-builder
 
 RUN apt update \ 
   && apt install protobuf-compiler -y 

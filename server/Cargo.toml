@@ -1,10 +1,8 @@
 [package]
 name = "server"
-version = "1.0.9"
+version = "2.0.0"
 edition = "2021"
 default-run = "server"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[bin]]
 name = "server"
@@ -20,8 +18,8 @@ debug = true
 
 [dependencies]
 protocol = { path = "../protocol" }
-tower = "*"
-tower-http = { version="*", features = ["fs"] }
+tower = "0.5.1"
+tower-http = { version="0.6.1", features = ["fs"] }
 axum = { version="0.7.5", features = [] }
 fastwebsockets = { version="0.8", features=["upgrade", "with_axum", "unstable-split"] }
 tokio = { version = "1", features = ["signal", "rt-multi-thread", "time", "net", "io-util", "sync"] }
@@ -53,7 +51,3 @@ hyper = "1.4.1"
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
-
-#[[bench]]
-#name = "stress-test"
-#harness = false
