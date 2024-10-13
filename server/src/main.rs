@@ -6,6 +6,7 @@ use fast_log::config::Config;
 use jwt_simple::prelude::*;
 use lazy_static::lazy_static;
 use libs::db_queue::{new_db_queue, queue_task, DbQueueSender};
+use log::info;
 use std::{env, fs, path::PathBuf, sync::atomic::AtomicUsize};
 use std::{error::Error, path::Path};
 use tokio::signal::unix::signal;
@@ -209,6 +210,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .unwrap(),
     ));
     // initialize db
+    info!("Getting database client from pool");
     let pool_wrapper = Box::leak(Box::new(PoolWrapper { inner: pool }));
     pool.get_owned()
         .await
