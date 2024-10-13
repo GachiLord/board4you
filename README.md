@@ -24,18 +24,16 @@ Board4you is a whiteboard app built with Electron, axum, React, Redux Toolkit, r
 git clone https://github.com/GachiLord/board4you
 cd board4you
 ```
-2. Create folder in /tmp and give permissions
-```bash
-sudo mkdir /tmp/board4you/
-sudo chown $USER:$USER /tmp/board4you/
-chmod a+rw /tmp/board4you/
-```
 2. Create database password(filename: "db_password.txt") and jwt secret(filename: "jwt_secret.txt") files inside board4you/secrets.
 They should be strong, possibly random values and of great length.
 
-3. If your server has 6 or more CPU cores and 16G RAM, skip this item. Otherwise consider using provided config for cheap servers(1 CPU core, 1GB RAM) by executing:
+3. If your server has 6 or more CPU cores and 16G RAM, execute:
 ```bash
-mv db/postgres-cheap-server.conf db/postgres
+cp db/postgres-server.conf db/postgres.conf
+```
+Otherwise consider using default config that can be customized:
+```bash
+cp db/postgres-custom.conf db/postgres.conf
 ```
 
 4. Start the app locally by this command:

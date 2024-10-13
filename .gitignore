@@ -14,6 +14,7 @@ client/public/data/
 client/test/dist
 electron-builder.env
 target/
+postgres.conf
 bun.lockb
 secrets/
 *.log
