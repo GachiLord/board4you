@@ -50,6 +50,8 @@ COPY --from=client-builder /public ${APP}/public
 COPY ./db/init.sql ${APP}
 
 RUN chown -R $APP_USER:$APP_USER ${APP}
+RUN mkdir -p /tmp/board4you
+RUN chown -R $APP_USER:$APP_USER /tmp/board4you
 
 USER $APP_USER
 WORKDIR ${APP}

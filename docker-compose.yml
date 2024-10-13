@@ -22,7 +22,7 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - /tmp/board4you/:/tmp/board4you/
+      - boardtmp:/tmp/board4you/
   db:
     container_name: board4you-db
     image: postgres:16
@@ -34,7 +34,7 @@ services:
       PGDATA: "/var/lib/postgresql/data/pgdata"
     volumes:
       - /var/lib/postgresql/data:/var/lib/postgresql/data
-      - /tmp/board4you/:/tmp/board4you/
+      - boardtmp:/tmp/board4you/
       - ./db/postgres.conf/:/etc/postgresql/postgresql.conf
     secrets:
       - db_password
@@ -61,3 +61,5 @@ secrets:
     file: ./secrets/db_password.txt
   jwt_secret:
     file: ./secrets/jwt_secret.txt
+volumes:
+  boardtmp:
