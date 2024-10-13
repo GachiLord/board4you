@@ -46,15 +46,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-  adminer:
-    container_name: board4you-db-adminer
-    image: dpage/pgadmin4
-    restart: always
-    environment:
-        PGADMIN_DEFAULT_EMAIL: dev@examle.com
-        PGADMIN_DEFAULT_PASSWORD: root
-    ports:
-      - 8080:80
 
 secrets:
   db_password:
