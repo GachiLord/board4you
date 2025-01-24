@@ -65,6 +65,7 @@ export default function(msg: Uint8Array, { editManager, boardManager, setLoading
         setError(true)
       }
       if (data.action === 'Auth' && data.status === 'bad') {
+        console.log("Private id has been deleted")
         store.dispatch(setMode('viewer'))
         store.dispatch(deleteRoom(boardManager.status.roomId))
         store.dispatch(set('move'))
@@ -79,6 +80,7 @@ export default function(msg: Uint8Array, { editManager, boardManager, setLoading
     case 'UpdateCoEditorData': {
       // remove invalid co editor private id      
       if (store.getState().board.mode === 'coop') {
+        console.log("Private id has been deleted")
         store.dispatch(setMode('viewer'))
         store.dispatch(deleteRoom(boardManager.status.roomId))
         store.dispatch(set('move'))

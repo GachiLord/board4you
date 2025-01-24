@@ -65,6 +65,7 @@ export default function joinRoom({ navigate, setLoading, setRoomExists, boardMan
               store.dispatch(deleteRoom(roomId))
               store.dispatch(set('move'))
               store.dispatch(setMode('viewer'))
+              console.log("Private id is no longer valid")
             }
           })
           .catch(() => {
