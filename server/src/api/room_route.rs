@@ -304,14 +304,14 @@ async fn check_co_editor(
     match state.rooms.read().await.get(&id) {
         Some(room) => {
             let (tx, rx) = oneshot::channel();
-            let _ = room.send(UserMessage::VerifyCoEditorToken {
-                token: check_info.co_editor_private_id,
-                sender: tx,
-            });
+            let _ = room
+                .send(UserMessage::VerifyCoEditorToken {
+                    token: check_info.co_editor_private_id,
+                    sender: tx,
+                })
+                .await;
             if let Ok(res) = rx.await {
-                if res {
-                    return generate_res_json(CheckResult { valid: true });
-                }
+                return generate_res_json(CheckResult { valid: res });
             }
             return generate_res_json(CheckResult { valid: false });
         }
@@ -330,10 +330,12 @@ async fn update_co_editor(
     match state.rooms.write().await.get_mut(&id) {
         Some(room) => {
             let (tx, rx) = oneshot::channel();
-            let _ = room.send(UserMessage::GetUpdatedCoEditorToken {
-                private_id: room_info.private_id,
-                sender: tx,
-            });
+            let _ = room
+                .send(UserMessage::GetUpdatedCoEditorToken {
+                    private_id: room_info.private_id,
+                    sender: tx,
+                })
+                .await;
             if let Ok(res) = rx.await {
                 if let Ok(token) = res {
                     return generate_res_json(CoEditorInfo {
