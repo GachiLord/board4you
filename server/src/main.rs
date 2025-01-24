@@ -270,6 +270,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
         .await
         .expect("Failed to create tcp socket on 3000 port");
+    info!("Bind tcp socket: 0.0.0.0:3000");
     tokio::spawn(async move {
         axum::serve(listener, routes.with_state(state))
             .with_graceful_shutdown(async { rx.await.unwrap() })

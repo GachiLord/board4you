@@ -52,7 +52,7 @@ pub enum QueueOp {
 // shape
 
 const MAX_DIMENSION_SIZE: f32 = 10_000_f32;
-const MAX_IMAGE_LENGTH: u16 = 60_000;
+const MAX_IMAGE_LENGTH: u16 = 65_534;
 
 // commands
 

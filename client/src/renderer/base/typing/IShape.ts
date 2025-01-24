@@ -1,14 +1,13 @@
-import { ShapeType } from "./ShapeType";
-import { ToolName } from "./ToolName";
+import { LineType, ShapeType, Tool } from "../../lib/protocol/protocol";
 
 export default interface IShape {
   [index: string]: unknown,
-  tool: ToolName,
+  tool: Tool,
   shape_type: ShapeType,
   color?: string,
   shape_id: string,
   line_size?: number,
-  line_type?: string,
+  line_type?: LineType,
   height?: number,
   width?: number,
   radius_x?: number,

@@ -128,7 +128,7 @@ export default async function(stage: Konva.Stage, boardManger: BoardManager, o: 
       api.handleFileChange()
     })
   }
-  if (o === 'copy' || o === 'cut' && canRunCommand) {
+  if ((o === 'copy' || o === 'cut') && canRunCommand) {
     const transformer = canvas.find('Transformer')[0]
     if (transformer instanceof Konva.Transformer) {
       writeToClipboard(transformer, o === 'cut')

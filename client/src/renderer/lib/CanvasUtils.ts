@@ -120,6 +120,8 @@ export default class CanvasUtils {
             listening: true,
           })
         )
+      default:
+        throw new TypeError(`No such ShapeType as "${shape.shape_type}"`)
     }
   }
 
@@ -152,7 +154,7 @@ export default class CanvasUtils {
       x: shapeObj.attrs.x,
       y: shapeObj.attrs.y,
       connected: [...shapeObj.attrs.connected],
-      url: shapeObj.attrs.connected.url ?? "",
+      url: shapeObj.attrs?.image?.src ?? "",
     }
 
     return shape
