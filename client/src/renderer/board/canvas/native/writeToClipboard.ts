@@ -4,6 +4,7 @@ import { addCurrent } from "../../../features/history"
 import CanvasUtils from "../../../lib/CanvasUtils"
 import Konva from "konva"
 import { v4 as uuid } from 'uuid'
+import { Edit } from "../../../lib/EditManager"
 
 
 export default async function(transformer: Konva.Transformer, destroySelection = false) {
@@ -32,17 +33,16 @@ export default async function(transformer: Konva.Transformer, destroySelection =
   group.children.forEach(c => c.setAttr('draggable', false))
   // remove and destroy group, saving or destroying children
   const children = group.children
-  group.remove()
+  group.removeChildren()
   if (destroySelection) {
     store.dispatch(addCurrent({
       id: uuid(),
-      edit_type: 'remove',
       shapes: children.map(c => {
         if (c instanceof Konva.Shape) {
           return CanvasUtils.toShape(c)
         }
       })
-    }))
+    } as Edit))
   }
   else {
     canvas.add(...children)
