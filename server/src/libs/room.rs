@@ -400,7 +400,6 @@ pub async fn task(
                 }
             }
             UserMessage::VerifyCoEditorToken { token, sender } => {
-                println!("1: {}", token.as_ref() == room.co_editor_private_id());
                 let _ = sender.send(room.co_editor_private_id() == token.as_ref());
             }
 
